@@ -1,0 +1,57 @@
+$providers = @(
+"Microsoft.Resources",
+"Microsoft.Compute",
+"Microsoft.Network",
+"Microsoft.Storage",
+"Microsoft.KeyVault",
+"Microsoft.ManagedIdentity",
+"Microsoft.Authorization",
+"Microsoft.OperationalInsights",
+"Microsoft.Insights",
+"Microsoft.AlertsManagement",
+"Microsoft.Monitor",
+"Microsoft.Security",
+"Microsoft.SecurityInsights",
+"Microsoft.PolicyInsights",
+"Microsoft.ContainerRegistry",
+"Microsoft.ContainerService",
+"Microsoft.App",
+"Microsoft.Web",
+"Microsoft.ServiceBus",
+"Microsoft.EventGrid",
+"Microsoft.EventHub",
+"Microsoft.SignalRService",
+"Microsoft.Cache",
+"Microsoft.DBforPostgreSQL",
+"Microsoft.DBforMySQL",
+"Microsoft.Sql",
+"Microsoft.DocumentDB",
+"Microsoft.Search",
+"Microsoft.ApiManagement",
+"Microsoft.Cdn",
+"Microsoft.CognitiveServices",
+"Microsoft.MachineLearningServices",
+"Microsoft.Automation",
+"Microsoft.RecoveryServices",
+"Microsoft.Backup",
+"Microsoft.Logic",
+"Microsoft.DevTestLab",
+"Microsoft.DataFactory",
+"Microsoft.DataLakeStore",
+"Microsoft.DataLakeAnalytics",
+"Microsoft.StorageSync",
+"Microsoft.HybridCompute",
+"Microsoft.GuestConfiguration",
+"Microsoft.ExtendedLocation",
+"Microsoft.OperationsManagement",
+"Microsoft.ManagedServices",
+"Microsoft.Kusto",
+"Microsoft.Dashboard"
+)
+
+foreach ($provider in $providers) {
+    Write-Host "Registering $provider..."
+    az provider register --namespace $provider --wait
+}
+
+Write-Host "Completed."
