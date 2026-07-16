@@ -39,3 +39,28 @@ module "apim" {
 
   depends_on = [module.resource_group]
 }
+
+module "container_app_environment" {
+  source = "../../modules/container-app-environment"
+
+  name                = var.container_app_environment_name
+  location            = var.location
+  resource_group_name = module.resource_group.name
+
+  log_analytics_workspace_id = module.monitoring.id
+
+  depends_on = [ module.monitoring, module.resource_group ]
+}
+
+
+module "monitoring" {
+  source = "../../modules/monitoring"
+
+  name                       = var.log_analytics_workspace_name
+  application_insights_name  = var.application_insights_name
+
+  location            = var.location
+  resource_group_name = module.resource_group.name
+
+  retention_in_days = 30
+}

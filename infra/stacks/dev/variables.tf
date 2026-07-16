@@ -43,3 +43,19 @@ variable "apim_public_network_access_enabled" {
   type    = bool
   default = true
 }
+
+variable "environment_name" {
+  type = string
+}
+
+variable "container_app_environment_name" {
+  type = string
+}
+
+variable "log_analytics_workspace_name" {
+  type = string
+}
+
+variable "application_insights_name" {
+  type = string
+}
