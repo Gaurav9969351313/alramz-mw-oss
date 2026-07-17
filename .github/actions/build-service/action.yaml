@@ -1,0 +1,42 @@
+name: Build Service
+
+inputs:
+  service-name:
+    description: Service Name
+    required: true
+
+  acr-name:
+    description: ACR Login Server
+    required: true
+  
+  image-tag:
+    required: true
+
+permissions:
+  contents: read
+
+runs:
+  using: composite
+
+  steps:
+    - name: Generate Image Tag
+      shell: bash
+      run: |
+        echo "IMAGE_TAG=$(git rev-parse --short=5 HEAD)" >> $GITHUB_ENV
+
+    - name: Login to ACR
+      shell: bash
+      run: |
+        az acr login --name alramzregistry
+
+    - name: Build Docker Image
+      shell: bash
+      run: |
+        docker build \
+          -t ${{ inputs.acr-name }}/${{ inputs.service-name }}:$IMAGE_TAG \
+          ./services/${{ inputs.service-name }}
+
+    - name: Push Docker Image
+      shell: bash
+      run: |
+        docker push ${{ inputs.acr-name }}/${{ inputs.service-name }}:$IMAGE_TAG

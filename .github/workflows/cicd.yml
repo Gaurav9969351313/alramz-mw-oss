@@ -1,0 +1,111 @@
+name: CICD
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - dev
+
+permissions:
+  contents: read
+
+jobs:
+
+  # STEP 1 - Detect changed services
+  detect-changes:
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name }}
+    outputs:
+      services: ${{ steps.matrix.outputs.services }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            services:
+              - 'services/**'
+
+          list-files: json
+
+      - name: Build matrix
+        id: matrix
+        shell: bash
+        run: |
+          FILES='${{ steps.filter.outputs.services_files }}'
+
+          SERVICES=$(echo "$FILES" \
+            | jq -r '.[]' \
+            | cut -d/ -f2 \
+            | sort -u \
+            | jq -R . \
+            | jq -s -c .)
+
+          if [ -z "$SERVICES" ] || [ "$SERVICES" = "null" ]; then
+            SERVICES="[]"
+          fi
+
+          echo "services=$SERVICES" >> $GITHUB_OUTPUT
+          echo "Detected services: $SERVICES"
+
+  # STEP 2 - Test the code 
+  test:
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name }}
+    needs: detect-changes
+    if: needs.detect-changes.outputs.services != '[]'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJson(needs.detect-changes.outputs.services) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Tests
+        uses: ./.github/actions/maven-test
+        with:
+          service-name: ${{ matrix.service }}
+
+  # STEP 3 - Build each changed service
+  build:
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name }}
+
+    needs: 
+      - detect-changes
+      - test
+
+    if: needs.detect-changes.outputs.services != '[]'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJson(needs.detect-changes.outputs.services) }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v3
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Login to ACR
+        shell: bash
+        run: |
+          az acr login --name alramzregistry
+
+      - name: Generate Image Tag
+        id: tag
+        shell: bash
+        run: |
+          echo "tag=${GITHUB_SHA::5}" >> $GITHUB_OUTPUT
+
+      - name: Build and Push
+        uses: ./.github/actions/build-service
+        with:
+          service-name: ${{ matrix.service }}
+          acr-name: alramzregistry.azurecr.io

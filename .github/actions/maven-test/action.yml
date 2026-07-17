@@ -1,0 +1,28 @@
+name: Maven Test
+
+description: Run Maven tests for a Spring Boot service
+
+inputs:
+  service-name:
+    description: Service directory name
+    required: true
+
+runs:
+  using: composite
+
+  steps:
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '21'
+        cache: maven
+
+    - name: Run Maven Tests
+      shell: bash
+      run: |
+        cd services/${{ inputs.service-name }}
+
+        echo "Running tests for ${{ inputs.service-name }}"
+
+        mvn -B clean test
