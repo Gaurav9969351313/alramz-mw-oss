@@ -9,8 +9,14 @@ Welcome to the **Al Ramz Middleware and Infrastructure** repository. This reposi
 The infrastructure strategy is designed for enterprise grade isolation, security, and scalability. It leverages Azure Container Apps (ACA) for serverless container execution and Azure API Management (APIM) as the gateway.
 
 Detailed architectural assets are located in the [docs/](file:///c:/Users/User/Desktop/alramz-mw-oss/docs) directory:
-* **Infrastructure Components**: The component-level blueprint of the Azure setup is detailed in [finalComponentDiagram.drawio](file:///c:/Users/User/Desktop/alramz-mw-oss/docs/finalComponentDiagram.drawio) and [finalCloudFlocusedComponentDiagram-v-0-0-1.svg](file:///c:/Users/User/Desktop/alramz-mw-oss/docs/finalCloudFlocusedComponentDiagram-v-0-0-1.svg).
-* **Virtual Network (VNet) Strategy**: Detailed plan for private networking, subnets, internal/external load balancing, and Hub-Spoke topology in [virtual-network-strategy.drawio](file:///c:/Users/User/Desktop/alramz-mw-oss/docs/virtual-network-strategy.drawio) and [virtual-network-strategy.svg](file:///c:/Users/User/Desktop/alramz-mw-oss/docs/virtual-network-strategy.svg).
+* **Infrastructure Components**: The component-level blueprint of the Azure setup is detailed in [finalComponentDiagram.drawio](file:///c:/Users/User/Desktop/alramz-mw-oss/docs/finalComponentDiagram.drawio) and rendered below from [finalCloudFlocusedComponentDiagram-v-0-0-1.svg](file:///c:/Users/User/Desktop/alramz-mw-oss/docs/finalCloudFlocusedComponentDiagram-v-0-0-1.svg).
+
+  ![Infrastructure Components Blueprint](docs/finalCloudFlocusedComponentDiagram-v-0-0-1.svg)
+
+* **Virtual Network (VNet) Strategy**: Detailed plan for private networking, subnets, internal/external load balancing, and Hub-Spoke topology in [virtual-network-strategy.drawio](file:///c:/Users/User/Desktop/alramz-mw-oss/docs/virtual-network-strategy.drawio) and rendered below from [virtual-network-strategy.svg](file:///c:/Users/User/Desktop/alramz-mw-oss/docs/virtual-network-strategy.svg).
+
+  ![Virtual Network Strategy](docs/virtual-network-strategy.svg)
+
 * **CI/CD Lifecycle**: The path-filtered continuous integration pipeline flow in [cicd.drawio](file:///c:/Users/User/Desktop/alramz-mw-oss/docs/cicd.drawio) and [cicd.svg](file:///c:/Users/User/Desktop/alramz-mw-oss/docs/cicd.svg).
 
 ---
@@ -191,6 +197,10 @@ terraform apply -var-file="../../environments/dev.tfvars"
 ## 🔄 CI/CD Pipeline
 
 The continuous integration and deployment flow is configured via GitHub Actions in [.github/workflows/cicd.yml](file:///c:/Users/User/Desktop/alramz-mw-oss/.github/workflows/cicd.yml).
+
+Here is the CI/CD pipeline lifecycle architecture:
+
+![CI/CD Pipeline Lifecycle](docs/cicd.svg)
 
 ### Workflow Mechanism:
 1. **Trigger**: Executes on `workflow_dispatch` or on a `push` to the `dev` branch.
