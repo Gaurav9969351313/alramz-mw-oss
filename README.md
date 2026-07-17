@@ -13,10 +13,6 @@ Detailed architectural assets are located in the [docs/](file:///c:/Users/User/D
 
   ![Infrastructure Components Blueprint](docs/finalCloudFlocusedComponentDiagram-v-0-0-1.svg)
 
-* **Virtual Network (VNet) Strategy**: Detailed plan for private networking, subnets, internal/external load balancing, and Hub-Spoke topology in [virtual-network-strategy.drawio](file:///c:/Users/User/Desktop/alramz-mw-oss/docs/virtual-network-strategy.drawio) and rendered below from [virtual-network-strategy.svg](file:///c:/Users/User/Desktop/alramz-mw-oss/docs/virtual-network-strategy.svg).
-
-  ![Virtual Network Strategy](docs/virtual-network-strategy.svg)
-
 * **CI/CD Lifecycle**: The path-filtered continuous integration pipeline flow in [cicd.drawio](file:///c:/Users/User/Desktop/alramz-mw-oss/docs/cicd.drawio) and [cicd.svg](file:///c:/Users/User/Desktop/alramz-mw-oss/docs/cicd.svg).
 
 ---
