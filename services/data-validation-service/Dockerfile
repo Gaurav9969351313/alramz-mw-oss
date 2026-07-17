@@ -1,5 +1,4 @@
-# Stage 1: Build stage
-FROM maven AS builds
+FROM maven AS build
 
 WORKDIR /app
 
