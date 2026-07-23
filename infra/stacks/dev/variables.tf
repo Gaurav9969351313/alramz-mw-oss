@@ -52,6 +52,16 @@ variable "container_app_environment_name" {
   type = string
 }
 
+variable "container_apps" {
+  type = map(object({
+    image       = string
+    target_port = number
+    cpu         = number
+    memory      = string
+    external_enabled = optional(bool, false)
+  }))
+}
+
 variable "log_analytics_workspace_name" {
   type = string
 }
@@ -59,3 +69,21 @@ variable "log_analytics_workspace_name" {
 variable "application_insights_name" {
   type = string
 }
+
+
+variable "redis_instance_name" {
+  type = string
+}
+
+variable "postgres_instance_name" {
+  type = string
+}
+
+variable postgres_database_name {
+  type = string
+}
+
+variable "postgres_password" {
+  type = string
+}
+

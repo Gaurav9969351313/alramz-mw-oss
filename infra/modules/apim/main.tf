@@ -13,4 +13,6 @@ resource "azurerm_api_management" "this" {
   identity {
     type = "SystemAssigned"
   }
+
+  tags = var.tags
 }

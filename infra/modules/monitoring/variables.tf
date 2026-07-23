@@ -29,3 +29,8 @@ variable "application_insights_name" {
   description = "Application Insights name"
   type        = string
 }
+
+variable "tags" {
+  type    = map(string)
+  default = {}
+}

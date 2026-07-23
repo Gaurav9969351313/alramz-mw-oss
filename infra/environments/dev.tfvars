@@ -16,4 +16,20 @@ container_app_environment_name                    = "alramz-dev-container-apps-e
 container_app_environment_zone_redundancy_enabled = false
 environment_name                                  = "dev"
 
+container_apps = {
+  data-validation-service = {
+    image       = "alramzregistry.azurecr.io/data-validation-service:7f038"
+    target_port = 8080
+    cpu         = 0.5
+    memory      = "1Gi"
+    external_enabled = false
+  }
+}
+
+redis_instance_name  = "alramz-dev-redis"
+
+
+postgres_instance_name = "alramz-dev-postgres-db"
+postgres_database_name = "eTradesDb"
+postgres_password = "SPadmin!1234"
 

@@ -11,6 +11,8 @@ resource "azurerm_key_vault" "this" {
   public_network_access_enabled = var.public_network_access_enabled
   purge_protection_enabled   = false
   soft_delete_retention_days = 7
+
+  tags = var.tags
 }
 
 resource "azurerm_role_assignment" "kv_secrets_user" {
