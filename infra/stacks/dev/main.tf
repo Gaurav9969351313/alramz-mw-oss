@@ -1,13 +1,46 @@
 data "azurerm_client_config" "current" {}
 
+data "terraform_remote_state" "shared_platform" {
+  backend = "azurerm"
+
+  config = {
+    resource_group_name  = "alramz-tf-assets-rg"
+    storage_account_name = "alramztfstatefiles98"
+    container_name       = "sharedplatformtfstate"
+    key                  = "sharedplatform.tfstate"
+  }
+}
+
 module "resource_group" {
   source = "../../modules/resource-group"
 
   name     = var.resource_group_name
   location = var.location
+
+  tags = {
+    Environment = var.environment_name
+    ManagedBy   = "Terraform"
+  }
+  
 }
 
-# RBAC Needs to be implemented 
+# module "vnet" {
+#   source = "../../modules/vnet"
+
+#   name                = var.vnet_name
+#   location            = var.location
+#   resource_group_name = module.resource_group.name
+#   address_space       = var.address_space
+#   subnets             = var.subnets
+
+#   tags = {
+#     Environment = var.environment_name
+#     ManagedBy   = "Terraform"
+#   }
+
+#   depends_on = [module.resource_group]
+# }
+
 module "key_vault" {
   source = "../../modules/key-vault"
 
@@ -19,7 +52,31 @@ module "key_vault" {
 
   public_network_access_enabled = false
 
-  depends_on = [ module.resource_group ]
+  tags = {
+    Environment = var.environment_name
+    ManagedBy   = "Terraform"
+  }
+
+  depends_on = [module.resource_group] #  module.vnet
+}
+
+module "monitoring" {
+  source = "../../modules/monitoring"
+
+  name                       = var.log_analytics_workspace_name
+  application_insights_name  = var.application_insights_name
+
+  location            = var.location
+  resource_group_name = module.resource_group.name
+
+  retention_in_days = 30
+
+  depends_on = [module.resource_group]
+
+  tags = {
+    Environment = var.environment_name
+    ManagedBy   = "Terraform"
+  }
 }
 
 module "apim" {
@@ -37,7 +94,12 @@ module "apim" {
   virtual_network_subnet_id     = var.apim_subnet_name == null ? null : null
   public_network_access_enabled = var.apim_public_network_access_enabled
 
-  depends_on = [module.resource_group]
+  tags = {
+    Environment = var.environment_name
+    ManagedBy   = "Terraform"
+  }
+
+  depends_on = [module.resource_group] # , module.vnet
 }
 
 module "container_app_environment" {
@@ -49,18 +111,76 @@ module "container_app_environment" {
 
   log_analytics_workspace_id = module.monitoring.id
 
-  depends_on = [ module.monitoring, module.resource_group ]
+  tags = {
+    Environment = var.environment_name
+    ManagedBy   = "Terraform"
+  }
+
+  depends_on = [module.monitoring, module.resource_group] # , module.vnet
 }
 
+module "container_apps" {
+  source = "../../modules/container-apps"
 
-module "monitoring" {
-  source = "../../modules/monitoring"
+  resource_group_name = module.resource_group.name
 
-  name                       = var.log_analytics_workspace_name
-  application_insights_name  = var.application_insights_name
+  location         = var.location
+  environment_name = var.environment_name
+  container_app_environment_id = module.container_app_environment.id
 
+  container_apps = var.container_apps
+
+  acr_id           = data.terraform_remote_state.shared_platform.outputs.acr_id
+  acr_login_server = data.terraform_remote_state.shared_platform.outputs.acr_login_server
+
+  depends_on = [module.container_app_environment, module.monitoring] # , module.vnet
+  tags = {
+    Environment = var.environment_name
+    ManagedBy   = "Terraform"
+  }
+}
+
+module "redis" {
+
+  source = "../../modules/redis"
+
+  name                = var.redis_instance_name
   location            = var.location
   resource_group_name = module.resource_group.name
 
-  retention_in_days = 30
+  tags = {
+    Environment = var.environment_name
+    ManagedBy   = "Terraform"
+  }
+
+  depends_on = [module.resource_group] # , module.vnet
+}
+
+module "postgresql" {
+
+  source = "../../modules/postgresql"
+
+  name                = var.postgres_instance_name
+  location            = var.location
+  resource_group_name = module.resource_group.name
+
+  administrator_login    = "pgadmin"
+  administrator_password = var.postgres_password
+
+  postgres_version = "16"
+
+  sku_name = "B_Standard_B1ms"
+
+  storage_mb = 32768
+
+  database_name = var.postgres_database_name
+
+  public_network_access_enabled = var.apim_public_network_access_enabled
+
+  tags = {
+    Environment = var.environment_name
+    ManagedBy   = "Terraform"
+  }
+
+  depends_on = [module.resource_group] # , module.vnet
 }

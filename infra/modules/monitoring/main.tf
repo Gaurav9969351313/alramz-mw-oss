@@ -5,6 +5,8 @@ resource "azurerm_log_analytics_workspace" "this" {
 
   sku               = var.sku
   retention_in_days = var.retention_in_days
+
+  tags = var.tags
 }
 
 resource "azurerm_application_insights" "this" {
@@ -15,4 +17,6 @@ resource "azurerm_application_insights" "this" {
   workspace_id = azurerm_log_analytics_workspace.this.id
 
   application_type = "web"
+
+  tags = var.tags
 }

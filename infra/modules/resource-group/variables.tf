@@ -7,3 +7,8 @@ variable "location" {
   description = "Azure region"
   type        = string
 }
+
+variable "tags" {
+  type    = map(string)
+  default = {}
+}

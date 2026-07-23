@@ -23,6 +23,13 @@ output "container_app_environment_domain" {
   value = module.container_app_environment.default_domain
 }
 
+output "container_app_fqdns" {
+  value = module.container_apps.service_fqdns
+}
+
+output "container_apps" {
+  value = module.container_apps.container_apps
+}
 
 output "log_analytics_workspace_name" {
   value = module.monitoring.name
@@ -46,3 +53,32 @@ output "application_insights_instrumentation_key" {
   sensitive = true
 }
 
+output "redis_hostname" {
+  value = module.redis.hostname
+}
+
+output "redis_port" {
+  value = module.redis.port
+}
+
+output "redis_primary_access_key" {
+  value     = module.redis.primary_access_key
+  sensitive = true
+}
+
+output "redis_connection_string" {
+  value     = module.redis.connection_string
+  sensitive = true
+}
+
+output "postgres_server_name" {
+  value = module.postgresql.name
+}
+
+output "postgres_fqdn" {
+  value = module.postgresql.fqdn
+}
+
+output "postgres_database" {
+  value = module.postgresql.database_name
+}
