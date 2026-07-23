@@ -21,25 +21,23 @@ module "resource_group" {
     Environment = var.environment_name
     ManagedBy   = "Terraform"
   }
-  
 }
 
-# module "vnet" {
-#   source = "../../modules/vnet"
+module "vnet" {
+  source = "../../modules/virtual-network"
+  vnet_name           = var.vnet_name
+  location            = var.location
+  resource_group_name = module.resource_group.name
+  address_space       = var.address_space
+  subnets             = var.subnets
 
-#   name                = var.vnet_name
-#   location            = var.location
-#   resource_group_name = module.resource_group.name
-#   address_space       = var.address_space
-#   subnets             = var.subnets
+  tags = {
+    Environment = var.environment_name
+    ManagedBy   = "Terraform"
+  }
 
-#   tags = {
-#     Environment = var.environment_name
-#     ManagedBy   = "Terraform"
-#   }
-
-#   depends_on = [module.resource_group]
-# }
+  depends_on = [module.resource_group]
+}
 
 module "key_vault" {
   source = "../../modules/key-vault"
@@ -57,7 +55,7 @@ module "key_vault" {
     ManagedBy   = "Terraform"
   }
 
-  depends_on = [module.resource_group] #  module.vnet
+  depends_on = [module.resource_group, module.vnet]
 }
 
 module "monitoring" {
@@ -71,12 +69,12 @@ module "monitoring" {
 
   retention_in_days = 30
 
-  depends_on = [module.resource_group]
-
   tags = {
     Environment = var.environment_name
     ManagedBy   = "Terraform"
   }
+
+  depends_on = [module.resource_group]
 }
 
 module "apim" {
@@ -99,7 +97,7 @@ module "apim" {
     ManagedBy   = "Terraform"
   }
 
-  depends_on = [module.resource_group] # , module.vnet
+  depends_on = [module.resource_group, module.vnet]
 }
 
 module "container_app_environment" {
@@ -116,7 +114,7 @@ module "container_app_environment" {
     ManagedBy   = "Terraform"
   }
 
-  depends_on = [module.monitoring, module.resource_group] # , module.vnet
+  depends_on = [module.monitoring, module.resource_group, module.vnet]
 }
 
 module "container_apps" {
@@ -133,11 +131,12 @@ module "container_apps" {
   acr_id           = data.terraform_remote_state.shared_platform.outputs.acr_id
   acr_login_server = data.terraform_remote_state.shared_platform.outputs.acr_login_server
 
-  depends_on = [module.container_app_environment, module.monitoring] # , module.vnet
   tags = {
     Environment = var.environment_name
     ManagedBy   = "Terraform"
   }
+
+  depends_on = [module.container_app_environment, module.monitoring, module.vnet]
 }
 
 module "redis" {
@@ -153,7 +152,7 @@ module "redis" {
     ManagedBy   = "Terraform"
   }
 
-  depends_on = [module.resource_group] # , module.vnet
+  depends_on = [module.resource_group, module.vnet]
 }
 
 module "postgresql" {
@@ -175,12 +174,12 @@ module "postgresql" {
 
   database_name = var.postgres_database_name
 
-  public_network_access_enabled = var.apim_public_network_access_enabled
+  public_network_access_enabled = false
 
   tags = {
     Environment = var.environment_name
     ManagedBy   = "Terraform"
   }
 
-  depends_on = [module.resource_group] # , module.vnet
+  depends_on = [module.resource_group, module.vnet]
 }

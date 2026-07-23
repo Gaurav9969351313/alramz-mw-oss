@@ -16,6 +16,40 @@ container_app_environment_name                    = "alramz-dev-container-apps-e
 container_app_environment_zone_redundancy_enabled = false
 environment_name                                  = "dev"
 
+vnet_name            = "alramz-dev-vnet-spoke"
+
+address_space = [
+  "10.1.0.0/22"
+]
+
+subnets = {
+  containerapps = {
+    address_prefixes = ["10.1.0.0/24"]
+
+    delegation = {
+      name             = "aca-delegation"
+      service_name     = "Microsoft.App/environments"
+      service_actions  = ["Microsoft.Network/virtualNetworks/subnets/join/action"]
+    }
+  }
+  data = {
+    address_prefixes = ["10.1.1.0/25"]
+  }
+  private-endpoints = {
+    address_prefixes                    = ["10.1.1.128/26"]
+    private_endpoint_network_policies   = "Disabled"
+  }
+  public = {
+    address_prefixes = ["10.1.1.192/27"]
+  }
+  apim = {
+    address_prefixes = ["10.1.1.224/27"]
+  }
+  reserved = {
+    address_prefixes = ["10.1.2.0/23"]
+  }
+}
+
 container_apps = {
   data-validation-service = {
     image       = "alramzregistry.azurecr.io/data-validation-service:7f038"
@@ -28,8 +62,6 @@ container_apps = {
 
 redis_instance_name  = "alramz-dev-redis"
 
-
 postgres_instance_name = "alramz-dev-postgres-db"
 postgres_database_name = "eTradesDb"
 postgres_password = "SPadmin!1234"
-

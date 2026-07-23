@@ -79,11 +79,33 @@ variable "postgres_instance_name" {
   type = string
 }
 
-variable postgres_database_name {
+variable "postgres_database_name" {
   type = string
 }
 
 variable "postgres_password" {
   type = string
 }
+
+variable "vnet_name" {
+  type    = string
+}
+
+variable "address_space" {
+  type    = list(string)
+}
+
+variable "subnets" {
+  type = map(object({
+    address_prefixes = list(string)
+    private_endpoint_network_policies = optional(string)
+    delegation = optional(object({
+      name            = string
+      service_name    = string
+      service_actions = list(string)
+    }))
+  }))
+  default = {}
+}
+
 
