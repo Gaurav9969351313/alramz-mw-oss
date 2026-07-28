@@ -12,10 +12,6 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: preprod
-    strategy:
-      fail-fast: false
-      matrix:
-        include: ${{ fromJson(steps.catalogue.outputs.matrix) }}
 
     steps:
       - uses: actions/checkout@v4
@@ -30,14 +26,14 @@ jobs:
         id: catalogue
         shell: bash
         run: |
-          MATRIX=$(yq -o=json '.services' .github/service-deployment-catalogue/preprod.yml | jq 'to_entries | map({service: .key, tag: .value.tag})')
-          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+          yq -o=json '.services' .github/service-deployment-catalogue/preprod.yml | jq 'to_entries | map({service: .key, tag: .value.tag})' > /tmp/services.json
+          SERVICES=$(cat /tmp/services.json)
+          echo "services=$SERVICES" >> $GITHUB_OUTPUT
 
-      - name: Deploy Service
+      - name: Deploy Services
         uses: ./.github/actions/deploy-aca
         with:
-          service-name: ${{ matrix.service }}
-          image-tag: ${{ matrix.tag }}
+          services: ${{ steps.catalogue.outputs.services }}
           acr-name: alramzregistry.azurecr.io
           resource-group: alramz-preprod-rg
           location: uaenorth

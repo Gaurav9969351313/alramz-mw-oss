@@ -1,14 +1,10 @@
 name: Deploy to ACA
 
-description: Deploys a service to Azure Container Apps using the existing render-template mechanism
+description: Deploys services to Azure Container Apps using the existing render-template mechanism
 
 inputs:
-  service-name:
-    description: Service Name
-    required: true
-
-  image-tag:
-    description: Image Tag
+  services:
+    description: JSON array of service objects with name and tag: [{"service":"svc","tag":"1.0.0"}]
     required: true
 
   acr-name:
@@ -63,7 +59,7 @@ runs:
         ACR_NAME="${ACR_NAME%%.azurecr.io}"
         az acr login --name "$ACR_NAME"
 
-    - name: Render Container App Manifest
+    - name: Deploy Services
       shell: bash
       env:
         LOCATION: ${{ inputs.location }}
@@ -71,62 +67,65 @@ runs:
         MANAGED_IDENTITY: ${{ inputs.managed-identity }}
         ACR_SERVER: ${{ inputs.acr-name }}
       run: |
-        SCRIPT_DIR=".github/deployment/scripts"
-        bash "${SCRIPT_DIR}/render-template.sh" "${{ inputs.service-name }}" "${{ inputs.acr-name }}/${{ inputs.service-name }}:${{ inputs.image-tag }}"
+        set -e
 
-    - name: Check if Container App Exists
-      id: check-app
-      shell: bash
-      run: |
-        EXISTS=$(az containerapp show \
-          --name "${{ inputs.service-name }}" \
-          --resource-group "${{ inputs.resource-group }}" \
-          --query "name" \
-          -o tsv 2>/dev/null) || true
+        SERVICES="${{ inputs.services }}"
+        ACR="${{ inputs.acr-name }}"
+        RG="${{ inputs.resource-group }}"
+        COUNT=$(echo "$SERVICES" | jq 'length')
 
-        if [ -n "$EXISTS" ] && [ "$EXISTS" != "null" ]; then
-          echo "exists=true" >> $GITHUB_OUTPUT
-        else
-          echo "exists=false" >> $GITHUB_OUTPUT
-        fi
+        echo "Deploying $COUNT service(s)..."
 
-    - name: Deploy Container App (Update)
-      if: steps.check-app.outputs.exists == 'true'
-      shell: bash
-      run: |
-        IMAGE=$(yq '.properties.template.containers[0].image' containerapp.yaml)
-        az containerapp update \
-          --name "${{ inputs.service-name }}" \
-          --resource-group "${{ inputs.resource-group }}" \
-          --image "$IMAGE"
+        for i in $(seq 0 $((COUNT - 1))); do
+          SVC=$(echo "$SERVICES" | jq -r ".[$i].service")
+          TAG=$(echo "$SERVICES" | jq -r ".[$i].tag")
 
-    - name: Deploy Container App (Create)
-      if: steps.check-app.outputs.exists != 'true'
-      shell: bash
-      run: |
-        CPU=$(yq '.properties.template.containers[0].cpu' containerapp.yaml)
-        MEMORY=$(yq '.properties.template.containers[0].memory' containerapp.yaml)
-        TARGET_PORT=$(yq '.properties.configuration.ingress.targetPort' containerapp.yaml)
-        EXTERNAL=$(yq '.properties.configuration.ingress.external' containerapp.yaml)
-        MIN_REPLICAS=$(yq '.properties.template.scale.minReplicas' containerapp.yaml)
-        MAX_REPLICAS=$(yq '.properties.template.scale.maxReplicas' containerapp.yaml)
-        IMAGE=$(yq '.properties.template.containers[0].image' containerapp.yaml)
+          echo "=== Deploying $SVC (tag: $TAG) ==="
 
-        INGRESS="internal"
-        if [ "$EXTERNAL" = "True" ] || [ "$EXTERNAL" = "true" ]; then
-          INGRESS="external"
-        fi
+          SCRIPT_DIR=".github/deployment/scripts"
+          bash "${SCRIPT_DIR}/render-template.sh" "$SVC" "$ACR/$SVC:$TAG"
 
-        az containerapp create \
-          --name "${{ inputs.service-name }}" \
-          --resource-group "${{ inputs.resource-group }}" \
-          --environment "${{ inputs.aca-environment-id }}" \
-          --image "$IMAGE" \
-          --cpu "$CPU" \
-          --memory "$MEMORY" \
-          --target-port "$TARGET_PORT" \
-          --ingress "$INGRESS" \
-          --min-replicas "$MIN_REPLICAS" \
-          --max-replicas "$MAX_REPLICAS" \
-          --user-assigned-identity "${{ inputs.managed-identity }}" \
-          --registry-server "${{ inputs.acr-name }}"
+          EXISTS=$(az containerapp show \
+            --name "$SVC" \
+            --resource-group "$RG" \
+            --query "name" \
+            -o tsv 2>/dev/null) || true
+
+          if [ -n "$EXISTS" ] && [ "$EXISTS" != "null" ]; then
+            echo "Container app exists, updating..."
+            az containerapp update \
+              --name "$SVC" \
+              --resource-group "$RG" \
+              --image "$ACR/$SVC:$TAG"
+          else
+            echo "Container app does not exist, creating..."
+            CPU=$(yq '.properties.template.containers[0].cpu' containerapp.yaml)
+            MEMORY=$(yq '.properties.template.containers[0].memory' containerapp.yaml)
+            TARGET_PORT=$(yq '.properties.configuration.ingress.targetPort' containerapp.yaml)
+            EXTERNAL=$(yq '.properties.configuration.ingress.external' containerapp.yaml)
+            MIN_REPLICAS=$(yq '.properties.template.scale.minReplicas' containerapp.yaml)
+            MAX_REPLICAS=$(yq '.properties.template.scale.maxReplicas' containerapp.yaml)
+
+            INGRESS="internal"
+            if [ "$EXTERNAL" = "True" ] || [ "$EXTERNAL" = "true" ]; then
+              INGRESS="external"
+            fi
+
+            az containerapp create \
+              --name "$SVC" \
+              --resource-group "$RG" \
+              --environment "${{ inputs.aca-environment-id }}" \
+              --image "$ACR/$SVC:$TAG" \
+              --cpu "$CPU" \
+              --memory "$MEMORY" \
+              --target-port "$TARGET_PORT" \
+              --ingress "$INGRESS" \
+              --min-replicas "$MIN_REPLICAS" \
+              --max-replicas "$MAX_REPLICAS" \
+              --registry-server "$ACR"
+          fi
+
+          echo "=== Deployed $SVC ==="
+        done
+
+        echo "All deployments complete."

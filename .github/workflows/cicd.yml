@@ -122,13 +122,14 @@ jobs:
 
     if: needs.detect-changes.outputs.services != '[]'
 
-    strategy:
-      fail-fast: false
-      matrix:
-        service: ${{ fromJson(needs.detect-changes.outputs.services) }}
-
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install yq
+        shell: bash
+        run: |
+          wget -q https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+          chmod +x /usr/local/bin/yq
 
       - name: Generate Image Tag
         id: tag
@@ -136,11 +137,19 @@ jobs:
         run: |
           echo "tag=${GITHUB_SHA::5}" >> $GITHUB_OUTPUT
 
-      - name: Deploy to ACA
+      - name: Build services JSON
+        id: services-json
+        shell: bash
+        run: |
+          SERVICES='${{ needs.detect-changes.outputs.services }}'
+          TAG="${{ steps.tag.outputs.tag }}"
+          JSON=$(echo "$SERVICES" | jq -R . | jq -s --arg tag "$TAG" '[.[] | {service: ., tag: $tag}]')
+          echo "json=$JSON" >> $GITHUB_OUTPUT
+
+      - name: Deploy Services
         uses: ./.github/actions/deploy-aca
         with:
-          service-name: ${{ matrix.service }}
-          image-tag: ${{ steps.tag.outputs.tag }}
+          services: ${{ steps.services-json.outputs.json }}
           acr-name: alramzregistry.azurecr.io
           resource-group: alramz-dev-rg
           location: uaenorth
