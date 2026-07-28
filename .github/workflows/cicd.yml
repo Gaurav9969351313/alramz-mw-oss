@@ -143,7 +143,6 @@ jobs:
           echo "tag=${GITHUB_SHA::5}" >> $GITHUB_OUTPUT
 
       - name: Build and Push
-        if: ${{ hashFiles('services/${{ matrix.service }}/Dockerfile') != '' }}
         uses: ./.github/actions/build-service
         with:
           service-name: ${{ matrix.service }}

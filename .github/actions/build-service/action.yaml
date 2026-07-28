@@ -24,12 +24,32 @@ runs:
       run: |
         echo "IMAGE_TAG=$(git rev-parse --short=5 HEAD)" >> $GITHUB_ENV
 
+    - name: Check for Dockerfile
+      id: dockerfile-check
+      shell: bash
+      run: |
+        if [ -f "services/${{ inputs.service-name }}/Dockerfile" ]; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Skip build (no Dockerfile)
+      if: ${{ steps.dockerfile-check.outputs.exists != 'true' }}
+      shell: bash
+      run: |
+        echo "========================================"
+        echo "SKIP: No Dockerfile found for ${{ inputs.service-name }}"
+        echo "========================================"
+
     - name: Login to ACR
+      if: ${{ steps.dockerfile-check.outputs.exists == 'true' }}
       shell: bash
       run: |
         az acr login --name alramzregistry
 
     - name: Build Docker Image
+      if: ${{ steps.dockerfile-check.outputs.exists == 'true' }}
       shell: bash
       run: |
         docker build \
@@ -37,6 +57,7 @@ runs:
           ./services/${{ inputs.service-name }}
 
     - name: Push Docker Image
+      if: ${{ steps.dockerfile-check.outputs.exists == 'true' }}
       shell: bash
       run: |
         docker push ${{ inputs.acr-name }}/${{ inputs.service-name }}:$IMAGE_TAG
