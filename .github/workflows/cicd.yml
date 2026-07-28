@@ -49,15 +49,35 @@ jobs:
           fi
           echo "========================================"
 
-      - name: Detect changes
+      - name: Detect changed services
         id: filter
-        uses: dorny/paths-filter@v3
-        with:
-          filters: |
-            services:
-              - 'services/**'
+        shell: bash
+        run: |
+          echo "========================================"
+          echo "DEBUG: Detecting changed services"
+          echo "========================================"
 
-          list-files: json
+          if [ "${{ github.event_name }}" == "push" ]; then
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} || true)
+          else
+            CHANGED_FILES=""
+          fi
+
+          SERVICES=$(echo "$CHANGED_FILES" \
+            | grep '^services/' \
+            | cut -d/ -f2 \
+            | sort -u \
+            | jq -R . \
+            | jq -s -c .)
+
+          if [ -z "$SERVICES" ] || [ "$SERVICES" = "null" ]; then
+            SERVICES="[]"
+          fi
+
+          echo "Changed files: $CHANGED_FILES"
+          echo "Changed services: $SERVICES"
+          echo "services=$SERVICES" >> $GITHUB_OUTPUT
+          echo "========================================"
 
       - name: Build matrix
         id: matrix
@@ -72,13 +92,7 @@ jobs:
             SERVICES=$(find services -maxdepth 2 -name pom.xml -exec dirname {} \; | sed 's|services/||' | sort -u | jq -R . | jq -s -c .)
           else
             echo "Snapshot mode: including only changed services"
-            FILES='${{ steps.filter.outputs.services_files }}'
-            SERVICES=$(echo "$FILES" \
-              | jq -r '.[]' \
-              | cut -d/ -f2 \
-              | sort -u \
-              | jq -R . \
-              | jq -s -c .)
+            SERVICES="${{ steps.filter.outputs.services }}"
           fi
 
           if [ -z "$SERVICES" ] || [ "$SERVICES" = "null" ]; then
