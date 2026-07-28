@@ -176,6 +176,7 @@ jobs:
           version: ${{ needs.detect-changes.outputs.is_release == 'true' && needs.detect-changes.outputs.version || '' }}
           java-version: '21'
           skip-tests: true
+          github-token: ${{ secrets.GH_TOKEN }}
 
       - name: Tag release and bump to next snapshot
         if: ${{ matrix.service == 'alramz-common-bom' && needs.detect-changes.outputs.is_release == 'true' }}

@@ -20,6 +20,10 @@ inputs:
     required: false
     type: boolean
     default: true
+  github-token:
+    description: 'GitHub token for authentication'
+    required: true
+    type: string
 
 runs:
   using: 'composite'
@@ -62,7 +66,7 @@ runs:
           '    <server>' \
           '      <id>github</id>' \
           '      <username>${{ github.actor }}</username>' \
-          '      <password>${{ secrets.GH_TOKEN }}</password>' \
+          '      <password>${{ inputs.github-token }}</password>' \
           '    </server>' \
           '  </servers>' \
           '</settings>' \
@@ -73,7 +77,7 @@ runs:
     - name: Publish to GitHub Packages
       shell: bash
       env:
-        GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
       run: |
         echo "========================================"
         echo "DEBUG: Publishing to GitHub Packages"
