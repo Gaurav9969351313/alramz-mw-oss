@@ -42,5 +42,11 @@ locals {
     }
   ]...)
 
+  nsg_associatable_subnets = {
+    for subnet_name, subnet in azurerm_subnet.this :
+    subnet_name => subnet
+    if !contains(["GatewaySubnet", "AzureFirewallSubnet", "AzureBastionSubnet"], subnet_name)
+  }
+
 }
-  
+

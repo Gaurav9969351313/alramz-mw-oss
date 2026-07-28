@@ -47,6 +47,43 @@ variable "services" {
   default = {}
 }
 
+variable "backends" {
+  type = map(object({
+    url = string
+  }))
+  default = {}
+}
+
+variable "apis" {
+  type = map(object({
+    path   = string
+    schemes = optional(list(string), ["https"])
+    backend_id = optional(string, null)
+    service_config = optional(object({
+      path = optional(string, null)
+      url  = optional(string, null)
+    }), null)
+  }))
+  default = {}
+}
+
+variable "api_operations" {
+  type = map(map(object({
+    method = string
+    url    = string
+  })))
+  default = {}
+}
+
+variable "products" {
+  type = map(object({
+    display_name = string
+    description  = optional(string, "")
+    api_ids      = optional(list(string), [])
+  }))
+  default = {}
+}
+
 variable "tags" {
   type    = map(string)
   default = {}

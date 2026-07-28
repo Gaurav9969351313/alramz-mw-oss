@@ -5,7 +5,7 @@ resource "azurerm_managed_redis" "this" {
   location            = var.location
 
   sku_name = var.sku_name
-  
+
   default_database {
     access_keys_authentication_enabled = true
     client_protocol                    = "Encrypted"

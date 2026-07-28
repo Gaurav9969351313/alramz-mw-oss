@@ -98,3 +98,27 @@ output "postgres_fqdn" {
 output "postgres_database" {
   value = module.postgresql.database_name
 }
+
+output "kv_private_endpoint_id" {
+  value = module.kv_private_endpoint.id
+}
+
+output "redis_private_endpoint_id" {
+  value = module.redis_private_endpoint.id
+}
+
+output "postgresql_private_endpoint_id" {
+  value = module.postgresql_private_endpoint.id
+}
+
+output "container_apps_private_dns_zone_id" {
+  value = module.container_apps_dns_link.dns_zone_ids["ashybush-7d7123f8.uaenorth.azurecontainerapps.io"]
+}
+
+output "container_apps_private_dns_zone_name" {
+  value = "ashybush-7d7123f8.uaenorth.azurecontainerapps.io"
+}
+
+output "container_apps_internal_wildcard_fqdn" {
+  value = "*.internal.ashybush-7d7123f8.uaenorth.azurecontainerapps.io"
+}

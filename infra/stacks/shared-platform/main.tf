@@ -18,7 +18,7 @@ module "acr" {
 module "github_actions_sp" {
   source = "../../modules/service-principal"
 
-  name = "alramz-github-actions-sp"
+  name                 = "alramz-github-actions-sp"
   create_client_secret = true
 
   role_assignments = [

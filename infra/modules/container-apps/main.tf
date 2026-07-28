@@ -35,7 +35,7 @@ resource "azurerm_container_app" "this" {
 
   revision_mode = "Single"
 
-  
+
 
   # Attach the pre-authorized User-Assigned identity to the application metadata
   identity {
@@ -50,8 +50,8 @@ resource "azurerm_container_app" "this" {
   }
 
   template {
-    min_replicas                     = 1
-    max_replicas                     = 2
+    min_replicas = 1
+    max_replicas = 2
     container {
       name   = each.key
       image  = each.value.image
@@ -85,6 +85,6 @@ resource "azurerm_container_app" "this" {
   ]
 
   tags = var.tags
-  
+
 }
 

@@ -14,6 +14,12 @@ variable "log_analytics_workspace_id" {
   type = string
 }
 
+variable "infrastructure_subnet_id" {
+  type        = string
+  default     = null
+  description = "Optional subnet ID for VNet-integrated Container App Environment"
+}
+
 variable "tags" {
   type    = map(string)
   default = {}

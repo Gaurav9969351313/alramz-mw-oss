@@ -45,12 +45,12 @@ resource "azurerm_subnet" "this" {
 
   for_each = var.subnets
 
-  name = each.key
-  resource_group_name = var.resource_group_name
+  name                 = each.key
+  resource_group_name  = var.resource_group_name
   virtual_network_name = azurerm_virtual_network.this.name
 
-  address_prefixes = each.value.address_prefixes
-  service_endpoints = each.value.service_endpoints
+  address_prefixes                  = each.value.address_prefixes
+  service_endpoints                 = each.value.service_endpoints
   private_endpoint_network_policies = each.value.private_endpoint_network_policies
 
   dynamic "delegation" {
@@ -72,9 +72,9 @@ resource "azurerm_route_table" "this" {
 
   for_each = var.route_tables
 
-  name                          = coalesce(try(each.value.name, null), "${var.vnet_name}-${each.key}-rt")
-  location                      = var.location
-  resource_group_name           = var.resource_group_name
+  name                = coalesce(try(each.value.name, null), "${var.vnet_name}-${each.key}-rt")
+  location            = var.location
+  resource_group_name = var.resource_group_name
   # disable_bgp_route_propagation = try(each.value.disable_bgp_route_propagation, false)
 
   tags = var.tags
@@ -122,10 +122,10 @@ resource "azurerm_nat_gateway" "this" {
 
   for_each = var.nat_gateway_config
 
-  name                = coalesce(each.value.name, "${var.vnet_name}-${each.key}-natgw")
-  location            = var.location
-  resource_group_name = var.resource_group_name
-  sku_name            = "Standard"
+  name                    = coalesce(each.value.name, "${var.vnet_name}-${each.key}-natgw")
+  location                = var.location
+  resource_group_name     = var.resource_group_name
+  sku_name                = "Standard"
   idle_timeout_in_minutes = each.value.idle_timeout_in_minutes
 
   tags = var.tags
@@ -160,9 +160,9 @@ resource "azurerm_network_security_group" "this" {
 
 resource "azurerm_subnet_network_security_group_association" "this" {
 
-  for_each = azurerm_subnet.this
+  for_each = local.nsg_associatable_subnets
 
-  subnet_id = each.value.id
+  subnet_id                 = each.value.id
   network_security_group_id = azurerm_network_security_group.this[each.key].id
 }
 
@@ -170,18 +170,18 @@ resource "azurerm_network_security_rule" "this" {
 
   for_each = local.flattened_nsg_rules
 
-  name     = each.value.name
-  priority = each.value.priority
-  direction = each.value.direction
-  access = each.value.access
-  protocol = each.value.protocol
-  source_port_range = each.value.source_port_range
+  name                   = each.value.name
+  priority               = each.value.priority
+  direction              = each.value.direction
+  access                 = each.value.access
+  protocol               = each.value.protocol
+  source_port_range      = each.value.source_port_range
   destination_port_range = each.value.destination_port_range
 
   source_address_prefix = each.value.source_address_prefix != null ? each.value.source_address_prefix : local.subnet_prefixes[each.value.source_subnet]
 
-  destination_address_prefix = each.value.destination_address_prefix
-  resource_group_name = var.resource_group_name
+  destination_address_prefix  = each.value.destination_address_prefix
+  resource_group_name         = var.resource_group_name
   network_security_group_name = azurerm_network_security_group.this[each.value.subnet].name
 }
 

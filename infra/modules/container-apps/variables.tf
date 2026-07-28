@@ -16,10 +16,10 @@ variable "environment_name" {
 
 variable "container_apps" {
   type = map(object({
-    image       = string
-    target_port = number
-    cpu         = number
-    memory      = string
+    image            = string
+    target_port      = number
+    cpu              = number
+    memory           = string
     external_enabled = optional(bool, false)
   }))
 }

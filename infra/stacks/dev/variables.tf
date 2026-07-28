@@ -54,10 +54,10 @@ variable "container_app_environment_name" {
 
 variable "container_apps" {
   type = map(object({
-    image       = string
-    target_port = number
-    cpu         = number
-    memory      = string
+    image            = string
+    target_port      = number
+    cpu              = number
+    memory           = string
     external_enabled = optional(bool, false)
   }))
 }
@@ -88,11 +88,11 @@ variable "postgres_password" {
 }
 
 variable "vnet_name" {
-  type    = string
+  type = string
 }
 
 variable "address_space" {
-  type    = list(string)
+  type = list(string)
 }
 
 variable "subnets" {
@@ -105,6 +105,21 @@ variable "subnets" {
       service_actions = list(string)
     }))
   }))
+  default = {}
+}
+
+variable "nsg_rules" {
+  type = map(list(object({
+    name                       = string
+    priority                   = number
+    direction                  = string
+    access                     = string
+    protocol                   = string
+    source_port_range          = string
+    destination_port_range     = string
+    source_address_prefix      = optional(string)
+    destination_address_prefix = string
+  })))
   default = {}
 }
 

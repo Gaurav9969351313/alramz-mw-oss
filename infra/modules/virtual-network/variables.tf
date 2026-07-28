@@ -13,7 +13,7 @@ variable "vnet_name" {
 variable "address_space" {
   type = list(string)
   validation {
-    condition = length(var.address_space) > 0
+    condition     = length(var.address_space) > 0
     error_message = "address_space must contain at least one CIDR block."
   }
 }
@@ -22,10 +22,10 @@ variable "subnets" {
 
   description = "Subnet definitions"
   type = map(object({
-    address_prefixes = list(string)
-    service_endpoints = optional(list(string), [])
+    address_prefixes                  = list(string)
+    service_endpoints                 = optional(list(string), [])
     private_endpoint_network_policies = optional(string, "Enabled")
-    route_table_key = optional(string, null)
+    route_table_key                   = optional(string, null)
 
     delegation = optional(object({
       name            = string
@@ -46,14 +46,14 @@ variable "nsg_rules" {
 
   type = map(list(object({
 
-    name                       = string
-    priority                   = number
-    direction                  = string
-    access                     = string
-    protocol                   = string
+    name      = string
+    priority  = number
+    direction = string
+    access    = string
+    protocol  = string
 
-    source_port_range          = string
-    destination_port_range     = string
+    source_port_range      = string
+    destination_port_range = string
 
     source_subnet              = optional(string)
     source_address_prefix      = optional(string)
@@ -123,9 +123,9 @@ variable "nsg_default_deny_rules" {
 variable "nat_gateway_config" {
   description = "NAT Gateway configuration for controlled egress (optional per subnet)."
   type = map(object({
-    name               = optional(string)
-    public_ip_prefixes = optional(list(string), [])
-    subnets            = optional(list(string), [])
+    name                    = optional(string)
+    public_ip_prefixes      = optional(list(string), [])
+    subnets                 = optional(list(string), [])
     idle_timeout_in_minutes = optional(number, 4)
   }))
   default = {}
@@ -149,7 +149,7 @@ variable "management_lock_level" {
   default     = null
 
   validation {
-    condition = var.management_lock_level == null || contains(["CanNotDelete", "ReadOnly"], var.management_lock_level)
+    condition     = var.management_lock_level == null || contains(["CanNotDelete", "ReadOnly"], var.management_lock_level)
     error_message = "management_lock_level must be null, CanNotDelete, or ReadOnly."
   }
 }

@@ -73,7 +73,7 @@ output "nat_gateway_public_ips" {
 }
 
 output "management_locks_enabled" {
-  value = var.management_lock_level != null
+  value       = var.management_lock_level != null
   description = "Whether management locks (CanNotDelete/ReadOnly) are applied to VNet and NSGs."
 }
 
