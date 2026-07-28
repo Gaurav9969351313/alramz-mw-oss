@@ -181,7 +181,7 @@ jobs:
         if: ${{ matrix.service == 'alramz-common-bom' && needs.detect-changes.outputs.is_release == 'true' }}
         shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           echo "========================================"
           echo "DEBUG: Tagging release and bumping version"
