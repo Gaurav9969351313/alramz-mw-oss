@@ -147,7 +147,7 @@ runs:
             az containerapp create \
               --name "$SVC" \
               --resource-group "$RG" \
-              --environment "${{ inputs.aca-environment-id }}" \
+              --environment alramz-dev-container-apps-env \
               --image "$ACR/$SVC:$TAG" \
               --cpu "$CPU" \
               --memory "$MEMORY" \
