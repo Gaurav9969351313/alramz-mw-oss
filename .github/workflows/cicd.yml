@@ -53,43 +53,44 @@ jobs:
 
       - name: Detect changed services
         id: filter
-        uses: dorny/paths-filter@v3
-        with:
-          filters: |
-            services:
-              - 'services/**'
-
-          list-files: json
-
-      - name: Build service matrix
-        id: matrix
         shell: bash
         run: |
           echo "========================================"
-          echo "DEBUG: Building service matrix"
+          echo "DEBUG: Detecting changed services"
           echo "========================================"
 
-          FILES='${{ steps.filter.outputs.services_files }}'
+          CHANGED_FILES=""
 
-          if [ "${{ steps.type.outputs.is_release }}" == "true" ]; then
-            echo "Release mode: including all services"
-            SERVICES=$(find services -maxdepth 2 -name pom.xml -exec dirname {} \; | sed 's|services/||' | sort -u | jq -R . | jq -s -c .)
-          else
-            echo "Snapshot mode: including only changed services"
-            SERVICES=$(echo "$FILES" \
-              | jq -r '.[]' \
-              | cut -d/ -f2 \
-              | sort -u \
-              | jq -R . \
-              | jq -s -c .)
+          if [ "${{ github.event_name }}" == "push" ]; then
+            BEFORE='${{ github.event.before }}'
+            AFTER='${{ github.sha }}'
+
+            if git cat-file -e "$BEFORE^{commit}" 2>/dev/null && git cat-file -e "$AFTER^{commit}" 2>/dev/null; then
+              CHANGED_FILES=$(git diff --name-only "$BEFORE" "$AFTER" 2>/dev/null || true)
+            else
+              PARENT=$(git rev-parse HEAD~1 2>/dev/null || echo "")
+              if [ -n "$PARENT" ]; then
+                CHANGED_FILES=$(git diff --name-only "$PARENT" HEAD 2>/dev/null || true)
+              else
+                CHANGED_FILES=$(git diff --name-only HEAD 2>/dev/null || true)
+              fi
+            fi
           fi
+
+          SERVICES=$(echo "$CHANGED_FILES" \
+            | grep '^services/' \
+            | cut -d/ -f2 \
+            | sort -u \
+            | jq -R . \
+            | jq -s -c .)
 
           if [ -z "$SERVICES" ] || [ "$SERVICES" = "null" ]; then
             SERVICES="[]"
           fi
 
+          echo "Changed files: $CHANGED_FILES"
+          echo "Changed services: $SERVICES"
           echo "services=$SERVICES" >> $GITHUB_OUTPUT
-          echo "Services to process: $SERVICES"
           echo "========================================"
 
   # STEP 2 - Test the code 
