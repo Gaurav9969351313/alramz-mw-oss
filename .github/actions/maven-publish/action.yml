@@ -1,22 +1,37 @@
-name: Maven Test
-
-description: Run Maven tests for a Spring Boot service
-
+name: 'Maven Publish to GitHub Packages'
+description: 'Publish a Maven artifact to GitHub Packages'
 inputs:
-  service-name:
-    description: Service directory name
+  service-path:
+    description: 'Path to the service directory containing pom.xml'
     required: true
+    type: string
+  version:
+    description: 'Version to publish (e.g. 1.0.0 or 1.0-SNAPSHOT). Leave empty to use current POM version.'
+    required: false
+    type: string
+    default: ''
+  java-version:
+    description: 'Java version to use'
+    required: false
+    type: string
+    default: '21'
+  skip-tests:
+    description: 'Skip tests during publish'
+    required: false
+    type: boolean
+    default: true
   github-token:
     description: 'GitHub token for authentication'
     required: true
     type: string
 
 runs:
-  using: composite
-
+  using: 'composite'
   steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Cache Maven local repository
       uses: actions/cache@v4
@@ -26,12 +41,23 @@ runs:
         restore-keys: |
           ${{ runner.os }}-maven-
 
-    - name: Setup Java
+    - name: Set up Java
       uses: actions/setup-java@v4
       with:
         distribution: temurin
-        java-version: '21'
+        java-version: ${{ inputs.java-version }}
         cache: maven
+
+    - name: Set version
+      if: ${{ inputs.version != '' }}
+      shell: bash
+      run: |
+        echo "========================================"
+        echo "DEBUG: Setting version to ${{ inputs.version }}"
+        echo "========================================"
+        cd ${{ inputs.service-path }}
+        mvn versions:set -DnewVersion=${{ inputs.version }} -DgenerateBackupPoms=false
+        echo "========================================"
 
     - name: Configure Maven settings
       shell: bash
@@ -56,23 +82,20 @@ runs:
         echo "Maven settings configured."
         echo "========================================"
 
-    - name: Install BOM locally
+    - name: Publish to GitHub Packages
       shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
       run: |
         echo "========================================"
-        echo "DEBUG: Installing alramz-common-bom locally"
+        echo "DEBUG: Publishing to GitHub Packages"
         echo "========================================"
-        cd services/alramz-common-bom
-        mvn -B install -DskipTests
+        cd ${{ inputs.service-path }}
+        mvn deploy -B \
+          -s $HOME/.m2/settings.xml \
+          -DskipTests=${{ inputs.skip-tests }} \
+          -Dgpg.skip=true \
+          -DaltDeploymentRepository=github::default::https://maven.pkg.github.com/Gaurav9969351313/alramz-mw-oss/
         echo "========================================"
-        echo "SUCCESS: BOM installed locally"
+        echo "SUCCESS: Published to GitHub Packages"
         echo "========================================"
-
-    - name: Run Maven Tests
-      shell: bash
-      run: |
-        cd services/${{ inputs.service-name }}
-
-        echo "Running tests for ${{ inputs.service-name }}"
-
-        mvn -B -s $HOME/.m2/settings.xml clean test
