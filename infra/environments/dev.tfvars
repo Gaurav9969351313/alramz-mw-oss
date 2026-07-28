@@ -18,7 +18,7 @@ environment_name                                  = "dev"
 
 container_apps = {
   data-validation-service = {
-    image       = "alramzregistry.azurecr.io/data-validation-service:7f038"
+    image       = "alramzregistry.azurecr.io/data-validation-service:fe970"
     target_port = 8080
     cpu         = 0.5
     memory      = "1Gi"
