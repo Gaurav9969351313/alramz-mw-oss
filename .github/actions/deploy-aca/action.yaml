@@ -74,6 +74,9 @@ runs:
         RG="${{ inputs.resource-group }}"
         COUNT=$(echo "$SERVICES" | jq 'length')
 
+        echo "DEBUG: services input length=$COUNT"
+        echo "DEBUG: services=$SERVICES"
+
         echo "Deploying $COUNT service(s)..."
 
         for i in $(seq 0 $((COUNT - 1))); do
@@ -92,25 +95,49 @@ runs:
             -o tsv 2>/dev/null) || true
 
           if [ -n "$EXISTS" ] && [ "$EXISTS" != "null" ]; then
+            echo "DEBUG: EXISTS=$EXISTS"
             echo "Container app exists, updating..."
+            echo "DEBUG: running: az containerapp update --name $SVC --resource-group $RG --image $ACR/$SVC:$TAG"
             az containerapp update \
               --name "$SVC" \
               --resource-group "$RG" \
               --image "$ACR/$SVC:$TAG"
+            echo "DEBUG: update exit code=$?"
           else
+            echo "DEBUG: EXISTS is empty or null, proceeding with create"
             echo "Container app does not exist, creating..."
+            echo "DEBUG: running: yq '.properties.template.containers[0].cpu' containerapp.yaml"
             CPU=$(yq '.properties.template.containers[0].cpu' containerapp.yaml)
+            echo "DEBUG: CPU=$CPU"
+
+            echo "DEBUG: running: yq '.properties.template.containers[0].memory' containerapp.yaml"
             MEMORY=$(yq '.properties.template.containers[0].memory' containerapp.yaml)
+            echo "DEBUG: MEMORY=$MEMORY"
+
+            echo "DEBUG: running: yq '.properties.configuration.ingress.targetPort' containerapp.yaml"
             TARGET_PORT=$(yq '.properties.configuration.ingress.targetPort' containerapp.yaml)
+            echo "DEBUG: TARGET_PORT=$TARGET_PORT"
+
+            echo "DEBUG: running: yq '.properties.configuration.ingress.external' containerapp.yaml"
             EXTERNAL=$(yq '.properties.configuration.ingress.external' containerapp.yaml)
+            echo "DEBUG: EXTERNAL=$EXTERNAL"
+
+            echo "DEBUG: running: yq '.properties.template.scale.minReplicas' containerapp.yaml"
             MIN_REPLICAS=$(yq '.properties.template.scale.minReplicas' containerapp.yaml)
+            echo "DEBUG: MIN_REPLICAS=$MIN_REPLICAS"
+
+            echo "DEBUG: running: yq '.properties.template.scale.maxReplicas' containerapp.yaml"
             MAX_REPLICAS=$(yq '.properties.template.scale.maxReplicas' containerapp.yaml)
+            echo "DEBUG: MAX_REPLICAS=$MAX_REPLICAS"
 
             INGRESS="internal"
+            echo "DEBUG: initial INGRESS=$INGRESS"
             if [ "$EXTERNAL" = "True" ] || [ "$EXTERNAL" = "true" ]; then
               INGRESS="external"
             fi
+            echo "DEBUG: final INGRESS=$INGRESS"
 
+            echo "DEBUG: running: az containerapp create --name $SVC --resource-group $RG --environment ${{ inputs.aca-environment-id }} --image $ACR/$SVC:$TAG --cpu $CPU --memory $MEMORY --target-port $TARGET_PORT --ingress $INGRESS --min-replicas $MIN_REPLICAS --max-replicas $MAX_REPLICAS --registry-server $ACR"
             az containerapp create \
               --name "$SVC" \
               --resource-group "$RG" \
@@ -123,6 +150,7 @@ runs:
               --min-replicas "$MIN_REPLICAS" \
               --max-replicas "$MAX_REPLICAS" \
               --registry-server "$ACR"
+            echo "DEBUG: create exit code=$?"
           fi
 
           echo "=== Deployed $SVC ==="
