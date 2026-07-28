@@ -60,6 +60,7 @@ jobs:
           echo "DEBUG: Detecting changed services"
           echo "========================================"
 
+          set +e
           if [ "${{ steps.type.outputs.is_release }}" == "true" ]; then
             echo "Release mode: including all services"
             SERVICES=$(find services -maxdepth 2 -name pom.xml -exec dirname {} \; | sed 's|services/||' | sort -u | jq -R . | jq -s -c .)
@@ -100,6 +101,7 @@ jobs:
               echo "has_changes=true" >> $GITHUB_OUTPUT
             fi
           fi
+          set -e
 
           echo "services=$SERVICES" >> $GITHUB_OUTPUT
           echo "Changed services: $SERVICES"
