@@ -19,6 +19,6 @@ resource "azurerm_role_assignment" "kv_secrets_user" {
   for_each = toset(var.rbac_principal_ids)
 
   scope                = azurerm_key_vault.this.id
-  role_definition_name = "Key Vault Secrets User"
+  role_definition_name = var.rbac_role_name
   principal_id         = each.value
 }

@@ -24,6 +24,12 @@ variable "rbac_principal_ids" {
   default     = []
 }
 
+variable "rbac_role_name" {
+  description = "RBAC role to assign to principals on the Key Vault"
+  type        = string
+  default     = "Key Vault Secrets User"
+}
+
 variable "public_network_access_enabled" {
   description = "Enable or disable public network access for Key Vault."
   type        = bool

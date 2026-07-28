@@ -51,6 +51,7 @@ module "key_vault" {
   tenant_id = data.azurerm_client_config.current.tenant_id
 
   rbac_principal_ids = [data.terraform_remote_state.shared_platform.outputs.github_actions_object_id]
+  rbac_role_name     = "Key Vault Administrator"
 
   public_network_access_enabled = true
 
