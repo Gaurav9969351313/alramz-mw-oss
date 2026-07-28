@@ -65,14 +65,20 @@ jobs:
             BEFORE='${{ github.event.before }}'
             AFTER='${{ github.sha }}'
 
-            if git cat-file -e "$BEFORE^{commit}" 2>/dev/null && git cat-file -e "$AFTER^{commit}" 2>/dev/null; then
-              CHANGED_FILES=$(git diff --name-only "$BEFORE" "$AFTER" 2>/dev/null || true)
-            else
-              PARENT=$(git rev-parse HEAD~1 2>/dev/null || echo "")
-              if [ -n "$PARENT" ]; then
-                CHANGED_FILES=$(git diff --name-only "$PARENT" HEAD 2>/dev/null || true)
-              else
-                CHANGED_FILES=$(git diff --name-only HEAD 2>/dev/null || true)
+            if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+              if [ "$BEFORE" != "0000000000000000000000000000000000000000" ] && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+                if git cat-file -e "$AFTER^{commit}" 2>/dev/null; then
+                  CHANGED_FILES=$(git diff --name-only "$BEFORE" "$AFTER" 2>/dev/null || true)
+                fi
+              fi
+
+              if [ -z "$CHANGED_FILES" ]; then
+                PARENT=$(git rev-parse HEAD~1 2>/dev/null || echo "")
+                if [ -n "$PARENT" ]; then
+                  CHANGED_FILES=$(git diff --name-only "$PARENT" HEAD 2>/dev/null || true)
+                else
+                  CHANGED_FILES=$(git diff --name-only HEAD 2>/dev/null || true)
+                fi
               fi
             fi
           fi
