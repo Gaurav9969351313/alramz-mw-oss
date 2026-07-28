@@ -149,6 +149,7 @@ jobs:
           service-name: ${{ matrix.service }}
           acr-name: alramzregistry.azurecr.io
           image-tag: ${{ steps.tag.outputs.tag }}
+          github-token: ${{ secrets.GH_TOKEN }}
 
   # STEP 4 - Publish Maven artifacts to GitHub Packages
   publish-maven:
