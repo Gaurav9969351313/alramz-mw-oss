@@ -107,6 +107,7 @@ jobs:
         uses: ./.github/actions/maven-test
         with:
           service-name: ${{ matrix.service }}
+          github-token: ${{ secrets.GH_TOKEN }}
 
   # STEP 3 - Build each changed service
   build:

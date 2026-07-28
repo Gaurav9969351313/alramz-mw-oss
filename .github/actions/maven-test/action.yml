@@ -6,6 +6,10 @@ inputs:
   service-name:
     description: Service directory name
     required: true
+  github-token:
+    description: 'GitHub token for authentication'
+    required: true
+    type: string
 
 runs:
   using: composite
@@ -18,6 +22,41 @@ runs:
         java-version: '21'
         cache: maven
 
+    - name: Configure Maven settings
+      shell: bash
+      run: |
+        echo "========================================"
+        echo "DEBUG: Configuring Maven settings for GitHub Packages"
+        echo "========================================"
+        mkdir -p $HOME/.m2
+        cat > $HOME/.m2/settings.xml <<EOF
+        <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
+          <servers>
+            <server>
+              <id>github</id>
+              <username>x-access-token</username>
+              <password>${{ inputs.github-token }}</password>
+            </server>
+          </servers>
+        </settings>
+        EOF
+        echo "Maven settings configured."
+        echo "========================================"
+
+    - name: Install BOM locally
+      shell: bash
+      run: |
+        echo "========================================"
+        echo "DEBUG: Installing alramz-common-bom locally"
+        echo "========================================"
+        cd services/alramz-common-bom
+        mvn -B install -DskipTests
+        echo "========================================"
+        echo "SUCCESS: BOM installed locally"
+        echo "========================================"
+
     - name: Run Maven Tests
       shell: bash
       run: |
@@ -25,4 +64,4 @@ runs:
 
         echo "Running tests for ${{ inputs.service-name }}"
 
-        mvn -B clean test
+        mvn -B -s $HOME/.m2/settings.xml clean test

@@ -58,19 +58,19 @@ runs:
         echo "DEBUG: Configuring Maven settings for GitHub Packages"
         echo "========================================"
         mkdir -p $HOME/.m2
-        printf '%s\n' \
-          '<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"' \
-          '          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"' \
-          '          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">' \
-          '  <servers>' \
-          '    <server>' \
-          '      <id>github</id>' \
-          '      <username>${{ github.actor }}</username>' \
-          '      <password>${{ inputs.github-token }}</password>' \
-          '    </server>' \
-          '  </servers>' \
-          '</settings>' \
-          > $HOME/.m2/settings.xml
+        cat > $HOME/.m2/settings.xml <<EOF
+        <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
+          <servers>
+            <server>
+              <id>github</id>
+              <username>x-access-token</username>
+              <password>${{ inputs.github-token }}</password>
+            </server>
+          </servers>
+        </settings>
+        EOF
         echo "Maven settings configured."
         echo "========================================"
 
@@ -84,6 +84,7 @@ runs:
         echo "========================================"
         cd ${{ inputs.service-path }}
         mvn deploy -B \
+          -s $HOME/.m2/settings.xml \
           -DskipTests=${{ inputs.skip-tests }} \
           -Dgpg.skip=true \
           -DaltDeploymentRepository=github::default::https://maven.pkg.github.com/Gaurav9969351313/alramz-mw-oss/
