@@ -62,33 +62,21 @@ jobs:
           CHANGED_FILES=""
 
           if [ "${{ github.event_name }}" == "push" ]; then
-            BEFORE='${{ github.event.before }}'
-            AFTER='${{ github.sha }}'
-
-            if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-              if [ "$BEFORE" != "0000000000000000000000000000000000000000" ] && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
-                if git cat-file -e "$AFTER^{commit}" 2>/dev/null; then
-                  CHANGED_FILES=$(git diff --name-only "$BEFORE" "$AFTER" 2>/dev/null || true)
-                fi
-              fi
-
-              if [ -z "$CHANGED_FILES" ]; then
-                PARENT=$(git rev-parse HEAD~1 2>/dev/null || echo "")
-                if [ -n "$PARENT" ]; then
-                  CHANGED_FILES=$(git diff --name-only "$PARENT" HEAD 2>/dev/null || true)
-                else
-                  CHANGED_FILES=$(git diff --name-only HEAD 2>/dev/null || true)
-                fi
-              fi
-            fi
+            COMMITS_JSON='${{ toJSON(github.event.commits) }}'
+            CHANGED_FILES=$(echo "$COMMITS_JSON" \
+              | jq -r '.[] | (.added[]?, .modified[]?, .removed[]?)' 2>/dev/null || true)
           fi
 
-          SERVICES=$(echo "$CHANGED_FILES" \
-            | grep '^services/' \
-            | cut -d/ -f2 \
-            | sort -u \
-            | jq -R . \
-            | jq -s -c .)
+          if [ -n "$CHANGED_FILES" ]; then
+            SERVICES=$(echo "$CHANGED_FILES" \
+              | grep '^services/[^/]*/' \
+              | cut -d/ -f2 \
+              | sort -u \
+              | jq -R . \
+              | jq -s -c .)
+          else
+            SERVICES="[]"
+          fi
 
           if [ -z "$SERVICES" ] || [ "$SERVICES" = "null" ]; then
             SERVICES="[]"
@@ -97,7 +85,12 @@ jobs:
           echo "Changed files: $CHANGED_FILES"
           echo "Changed services: $SERVICES"
           echo "services=$SERVICES" >> $GITHUB_OUTPUT
-          echo "========================================"
+
+          if [ "$SERVICES" = "[]" ]; then
+            echo "========================================"
+            echo "No service changes detected. Skipping test, build, and publish."
+            echo "========================================"
+          fi
 
   # STEP 2 - Test the code 
   test:
