@@ -143,7 +143,13 @@ jobs:
         run: |
           SERVICES='${{ needs.detect-changes.outputs.services }}'
           TAG="${{ steps.tag.outputs.tag }}"
-          JSON=$(echo "$SERVICES" | jq -R . | jq -sc --arg tag "$TAG" '[.[] | {service: ., tag: $tag}]')
+
+          if [ -z "$SERVICES" ] || [ "$SERVICES" = "[]" ] || [ "$SERVICES" = "null" ]; then
+            JSON="[]"
+          else
+            JSON=$(echo "$SERVICES" | jq --arg tag "$TAG" '[.[] | {service: ., tag: $tag}]')
+          fi
+
           echo "json=$JSON" >> "$GITHUB_OUTPUT"
 
       - name: Deploy Services
