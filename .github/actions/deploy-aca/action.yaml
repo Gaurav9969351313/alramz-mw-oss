@@ -76,6 +76,9 @@ runs:
 
         echo "DEBUG: services input length=$COUNT"
         echo "DEBUG: services=$SERVICES"
+        echo "DEBUG: ACR=$ACR"
+        echo "DEBUG: RG=$RG"
+        echo "DEBUG: ACA_ENVIRONMENT_ID=$ACA_ENVIRONMENT_ID"
 
         echo "Deploying $COUNT service(s)..."
 
@@ -93,6 +96,9 @@ runs:
             --resource-group "$RG" \
             --query "name" \
             -o tsv 2>/dev/null) || true
+
+          echo "DEBUG: az containerapp show exit code=$?"
+          echo "DEBUG: EXISTS=$EXISTS"
 
           if [ -n "$EXISTS" ] && [ "$EXISTS" != "null" ]; then
             echo "DEBUG: EXISTS=$EXISTS"
