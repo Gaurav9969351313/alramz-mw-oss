@@ -95,3 +95,6 @@ desktop.ini
 
 notes.md
 .env
+.xlsx
+.png
+**/docs/**
