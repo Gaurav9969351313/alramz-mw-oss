@@ -20,11 +20,12 @@ permissions:
 jobs:
 
   # STEP 1 - Detect changed services
-  detect-changes:
+  detect-services:
     runs-on: ubuntu-latest
     environment: ${{ github.ref_name }}
     outputs:
-      services: ${{ steps.matrix.outputs.services }}
+      services: ${{ steps.detect.outputs.services }}
+      has_changes: ${{ steps.detect.outputs.has_changes }}
       is_release: ${{ steps.type.outputs.is_release }}
       version: ${{ steps.type.outputs.version }}
 
@@ -52,57 +53,62 @@ jobs:
           echo "========================================"
 
       - name: Detect changed services
-        id: filter
+        id: detect
         shell: bash
         run: |
           echo "========================================"
           echo "DEBUG: Detecting changed services"
           echo "========================================"
 
-          CHANGED_FILES=""
+          if [ "${{ steps.type.outputs.is_release }}" == "true" ]; then
+            echo "Release mode: including all services"
+            SERVICES=$(find services -maxdepth 2 -name pom.xml -exec dirname {} \; | sed 's|services/||' | sort -u | jq -R . | jq -s -c .)
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "Snapshot mode: detecting changed services"
 
-          if [ "${{ github.event_name }}" == "push" ]; then
-            COMMITS_JSON='${{ toJSON(github.event.commits) }}'
-            CHANGED_FILES=$(echo "$COMMITS_JSON" \
-              | jq -r '.[] | (.added[]?, .modified[]?, .removed[]?)' 2>/dev/null || true)
-          fi
+            if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+              BASE="${{ github.event.pull_request.base.sha }}"
+              HEAD="${{ github.event.pull_request.head.sha }}"
+            else
+              BASE="${{ github.event.before }}"
+              HEAD="${{ github.sha }}"
+            fi
 
-          if [ -n "$CHANGED_FILES" ]; then
-            SERVICES=$(echo "$CHANGED_FILES" \
-              | grep '^services/[^/]*/' \
+            echo "Comparing:"
+            echo "BASE: $BASE"
+            echo "HEAD: $HEAD"
+
+            SERVICES=$(
+              git diff --name-only "$BASE" "$HEAD" || true \
+              | grep '^services/' || true \
               | cut -d/ -f2 \
               | sort -u \
-              | jq -R . \
-              | jq -s -c .)
-          else
-            SERVICES="[]"
+              | jq -R -s -c 'split("\n")[:-1]'
+            )
+
+            if [[ "$SERVICES" == "[]" ]] || [[ -z "$SERVICES" ]]; then
+              echo "has_changes=false" >> $GITHUB_OUTPUT
+            else
+              echo "has_changes=true" >> $GITHUB_OUTPUT
+            fi
           fi
 
-          if [ -z "$SERVICES" ] || [ "$SERVICES" = "null" ]; then
-            SERVICES="[]"
-          fi
-
-          echo "Changed files: $CHANGED_FILES"
-          echo "Changed services: $SERVICES"
           echo "services=$SERVICES" >> $GITHUB_OUTPUT
-
-          if [ "$SERVICES" = "[]" ]; then
-            echo "========================================"
-            echo "No service changes detected. Skipping test, build, and publish."
-            echo "========================================"
-          fi
+          echo "Changed services: $SERVICES"
+          echo "========================================"
 
   # STEP 2 - Test the code 
   test:
     runs-on: ubuntu-latest
     environment: ${{ github.ref_name }}
-    needs: detect-changes
-    if: needs.detect-changes.outputs.services != '[]'
+    needs: detect-services
+    if: needs.detect-services.outputs.has_changes == 'true'
 
     strategy:
       fail-fast: false
       matrix:
-        service: ${{ fromJson(needs.detect-changes.outputs.services) }}
+        service: ${{ fromJson(needs.detect-services.outputs.services) }}
     steps:
       - uses: actions/checkout@v4
 
@@ -118,15 +124,15 @@ jobs:
     environment: ${{ github.ref_name }}
 
     needs: 
-      - detect-changes
+      - detect-services
       - test
 
-    if: needs.detect-changes.outputs.services != '[]'
+    if: needs.detect-services.outputs.has_changes == 'true'
 
     strategy:
       fail-fast: false
       matrix:
-        service: ${{ fromJson(needs.detect-changes.outputs.services) }}
+        service: ${{ fromJson(needs.detect-services.outputs.services) }}
 
     steps:
       - uses: actions/checkout@v4
@@ -159,14 +165,14 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ github.ref_name }}
     needs:
-      - detect-changes
+      - detect-services
       - build
-    if: needs.detect-changes.outputs.services != '[]'
+    if: needs.detect-services.outputs.has_changes == 'true'
 
     strategy:
       fail-fast: false
       matrix:
-        service: ${{ fromJson(needs.detect-changes.outputs.services) }}
+        service: ${{ fromJson(needs.detect-services.outputs.services) }}
 
     steps:
       - uses: actions/checkout@v4
@@ -177,13 +183,13 @@ jobs:
         uses: ./.github/actions/maven-publish
         with:
           service-path: services/${{ matrix.service }}
-          version: ${{ needs.detect-changes.outputs.is_release == 'true' && needs.detect-changes.outputs.version || '' }}
+          version: ${{ needs.detect-services.outputs.is_release == 'true' && needs.detect-services.outputs.version || '' }}
           java-version: '21'
           skip-tests: true
           github-token: ${{ secrets.GH_TOKEN }}
 
       - name: Tag release and bump to next snapshot
-        if: ${{ matrix.service == 'alramz-common-bom' && needs.detect-changes.outputs.is_release == 'true' }}
+        if: ${{ matrix.service == 'alramz-common-bom' && needs.detect-services.outputs.is_release == 'true' }}
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -192,10 +198,10 @@ jobs:
           echo "DEBUG: Tagging release and bumping version"
           echo "========================================"
           cd services/alramz-common-bom
-          TAG="alramz-common-bom-${{ needs.detect-changes.outputs.version }}"
-          MAJOR=$(echo ${{ needs.detect-changes.outputs.version }} | cut -d. -f1)
-          MINOR=$(echo ${{ needs.detect-changes.outputs.version }} | cut -d. -f2)
-          PATCH=$(echo ${{ needs.detect-changes.outputs.version }} | cut -d. -f3)
+          TAG="alramz-common-bom-${{ needs.detect-services.outputs.version }}"
+          MAJOR=$(echo ${{ needs.detect-services.outputs.version }} | cut -d. -f1)
+          MINOR=$(echo ${{ needs.detect-services.outputs.version }} | cut -d. -f2)
+          PATCH=$(echo ${{ needs.detect-services.outputs.version }} | cut -d. -f3)
           NEXT_PATCH=$((PATCH + 1))
           NEXT_SNAPSHOT="$MAJOR.$MINOR.$NEXT_PATCH-SNAPSHOT"
 
@@ -203,8 +209,8 @@ jobs:
           git config user.email "github-actions@github.com"
 
           git add pom.xml
-          git commit -m "chore(bom): release ${{ needs.detect-changes.outputs.version }}"
-          git tag -a "$TAG" -m "Release ${{ needs.detect-changes.outputs.version }}"
+          git commit -m "chore(bom): release ${{ needs.detect-services.outputs.version }}"
+          git tag -a "$TAG" -m "Release ${{ needs.detect-services.outputs.version }}"
           git push origin HEAD:dev
           git push origin "$TAG"
 
