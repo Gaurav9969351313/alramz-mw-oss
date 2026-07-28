@@ -1,0 +1,45 @@
+name: Deploy QA
+
+on:
+  push:
+    branches:
+      - CodePromotion/qa
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: qa
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(steps.catalogue.outputs.matrix) }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install yq
+        shell: bash
+        run: |
+          wget -q https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+          chmod +x /usr/local/bin/yq
+
+      - name: Read catalogue
+        id: catalogue
+        shell: bash
+        run: |
+          MATRIX=$(yq -o=json '.services' .github/service-deployment-catalogue/qa.yml | jq 'to_entries | map({service: .key, tag: .value.tag})')
+          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+
+      - name: Deploy Service
+        uses: ./.github/actions/deploy-aca
+        with:
+          service-name: ${{ matrix.service }}
+          image-tag: ${{ matrix.tag }}
+          acr-name: alramzregistry.azurecr.io
+          resource-group: alramz-qa-rg
+          location: uaenorth
+          aca-environment-id: ${{ secrets.ACA_ENVIRONMENT_ID_QA }}
+          managed-identity: ${{ secrets.MANAGED_IDENTITY_QA }}

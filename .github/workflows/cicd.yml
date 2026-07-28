@@ -5,9 +5,11 @@ on:
   push:
     branches:
       - dev
+      - feature/code-pramotion-v2
 
 permissions:
   contents: read
+  pull-requests: write
 
 jobs:
 
@@ -109,3 +111,82 @@ jobs:
         with:
           service-name: ${{ matrix.service }}
           acr-name: alramzregistry.azurecr.io
+
+  # STEP 4 - Deploy changed services to Development
+  deploy:
+    runs-on: ubuntu-latest
+    environment: dev
+    needs:
+      - detect-changes
+      - build
+
+    if: needs.detect-changes.outputs.services != '[]'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJson(needs.detect-changes.outputs.services) }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate Image Tag
+        id: tag
+        shell: bash
+        run: |
+          echo "tag=${GITHUB_SHA::5}" >> $GITHUB_OUTPUT
+
+      - name: Deploy to ACA
+        uses: ./.github/actions/deploy-aca
+        with:
+          service-name: ${{ matrix.service }}
+          image-tag: ${{ steps.tag.outputs.tag }}
+          acr-name: alramzregistry.azurecr.io
+          resource-group: alramz-dev-rg
+          location: uaenorth
+          aca-environment-id: ${{ secrets.ACA_ENVIRONMENT_ID_DEV }}
+          managed-identity: ${{ secrets.MANAGED_IDENTITY_DEV }}
+
+  # STEP 5 - Update Development deployment catalogue
+  update-catalogue:
+    runs-on: ubuntu-latest
+    environment: dev
+    needs: deploy
+    if: needs.detect-changes.outputs.services != '[]'
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install yq
+        shell: bash
+        run: |
+          wget -q https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+          chmod +x /usr/local/bin/yq
+
+      - name: Generate Image Tag
+        id: tag
+        shell: bash
+        run: |
+          echo "tag=${GITHUB_SHA::5}" >> $GITHUB_OUTPUT
+
+      - name: Update dev.yml
+        shell: bash
+        run: |
+          SERVICES='${{ needs.detect-changes.outputs.services }}'
+          TAG="${{ steps.tag.outputs.tag }}"
+
+          echo "$SERVICES" | jq -r '.[]' | while read -r SERVICE; do
+            yq -i ".services[\"${SERVICE}\"].tag = \"${TAG}\"" .github/service-deployment-catalogue/dev.yml
+          done
+
+      - name: Commit catalogue update
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .github/service-deployment-catalogue/dev.yml
+          git diff --staged --quiet || git commit -m "Update dev catalogue for $(echo '${{ needs.detect-changes.outputs.services }}' | jq -r '.[]' | tr '\n' ',' | sed 's/,$//')"
+          git push

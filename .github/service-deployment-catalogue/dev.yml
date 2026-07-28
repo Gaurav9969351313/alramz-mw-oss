@@ -1,0 +1,3 @@
+services:
+  data-validation-service:
+    tag: fe970

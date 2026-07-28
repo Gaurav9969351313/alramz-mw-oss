@@ -1,0 +1,128 @@
+name: Deploy to ACA
+
+description: Deploys a service to Azure Container Apps using the existing render-template mechanism
+
+inputs:
+  service-name:
+    description: Service Name
+    required: true
+
+  image-tag:
+    description: Image Tag
+    required: true
+
+  acr-name:
+    description: ACR Login Server
+    required: true
+
+  resource-group:
+    description: Azure Resource Group
+    required: true
+
+  location:
+    description: Azure Location
+    required: true
+
+  aca-environment-id:
+    description: Container App Environment ID
+    required: true
+
+  managed-identity:
+    description: User Assigned Managed Identity Client ID
+    required: true
+
+permissions:
+  contents: read
+
+runs:
+  using: composite
+
+  steps:
+    - name: Install yq
+      shell: bash
+      run: |
+        wget -q https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+        chmod +x /usr/local/bin/yq
+
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Login to Azure
+      uses: azure/login@v3
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Login to ACR
+      shell: bash
+      run: |
+        ACR_NAME="${{ inputs.acr-name }}"
+        ACR_NAME="${ACR_NAME%%.azurecr.io}"
+        az acr login --name "$ACR_NAME"
+
+    - name: Render Container App Manifest
+      shell: bash
+      env:
+        LOCATION: ${{ inputs.location }}
+        ACA_ENVIRONMENT_ID: ${{ inputs.aca-environment-id }}
+        MANAGED_IDENTITY: ${{ inputs.managed-identity }}
+        ACR_SERVER: ${{ inputs.acr-name }}
+      run: |
+        SCRIPT_DIR=".github/deployment/scripts"
+        bash "${SCRIPT_DIR}/render-template.sh" "${{ inputs.service-name }}" "${{ inputs.acr-name }}/${{ inputs.service-name }}:${{ inputs.image-tag }}"
+
+    - name: Check if Container App Exists
+      id: check-app
+      shell: bash
+      run: |
+        EXISTS=$(az containerapp show \
+          --name "${{ inputs.service-name }}" \
+          --resource-group "${{ inputs.resource-group }}" \
+          --query "name" \
+          -o tsv 2>/dev/null) || true
+
+        if [ -n "$EXISTS" ] && [ "$EXISTS" != "null" ]; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Deploy Container App (Update)
+      if: steps.check-app.outputs.exists == 'true'
+      shell: bash
+      run: |
+        IMAGE=$(yq '.properties.template.containers[0].image' containerapp.yaml)
+        az containerapp update \
+          --name "${{ inputs.service-name }}" \
+          --resource-group "${{ inputs.resource-group }}" \
+          --image "$IMAGE"
+
+    - name: Deploy Container App (Create)
+      if: steps.check-app.outputs.exists != 'true'
+      shell: bash
+      run: |
+        CPU=$(yq '.properties.template.containers[0].cpu' containerapp.yaml)
+        MEMORY=$(yq '.properties.template.containers[0].memory' containerapp.yaml)
+        TARGET_PORT=$(yq '.properties.configuration.ingress.targetPort' containerapp.yaml)
+        EXTERNAL=$(yq '.properties.configuration.ingress.external' containerapp.yaml)
+        MIN_REPLICAS=$(yq '.properties.template.scale.minReplicas' containerapp.yaml)
+        MAX_REPLICAS=$(yq '.properties.template.scale.maxReplicas' containerapp.yaml)
+        IMAGE=$(yq '.properties.template.containers[0].image' containerapp.yaml)
+
+        INGRESS="internal"
+        if [ "$EXTERNAL" = "True" ] || [ "$EXTERNAL" = "true" ]; then
+          INGRESS="external"
+        fi
+
+        az containerapp create \
+          --name "${{ inputs.service-name }}" \
+          --resource-group "${{ inputs.resource-group }}" \
+          --environment "${{ inputs.aca-environment-id }}" \
+          --image "$IMAGE" \
+          --cpu "$CPU" \
+          --memory "$MEMORY" \
+          --target-port "$TARGET_PORT" \
+          --ingress "$INGRESS" \
+          --min-replicas "$MIN_REPLICAS" \
+          --max-replicas "$MAX_REPLICAS" \
+          --user-assigned-identity "${{ inputs.managed-identity }}" \
+          --registry-server "${{ inputs.acr-name }}"
