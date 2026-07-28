@@ -43,3 +43,4 @@ jobs:
           location: uaeneast
           aca-environment-id: ${{ secrets.ACA_ENVIRONMENT_ID_PROD }}
           managed-identity: ${{ secrets.MANAGED_IDENTITY_PROD }}
+          azure-credentials: ${{ secrets.AZURE_CREDENTIALS }}

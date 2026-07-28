@@ -146,6 +146,7 @@ jobs:
           location: uaenorth
           aca-environment-id: ${{ secrets.ACA_ENVIRONMENT_ID_DEV }}
           managed-identity: ${{ secrets.MANAGED_IDENTITY_DEV }}
+          azure-credentials: ${{ secrets.AZURE_CREDENTIALS }}
 
   # STEP 5 - Update Development deployment catalogue
   update-catalogue:

@@ -31,6 +31,10 @@ inputs:
     description: User Assigned Managed Identity Client ID
     required: true
 
+  azure-credentials:
+    description: Azure Credentials Secret
+    required: true
+
 permissions:
   contents: read
 
@@ -50,7 +54,7 @@ runs:
     - name: Login to Azure
       uses: azure/login@v3
       with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
+        creds: ${{ inputs.azure-credentials }}
 
     - name: Login to ACR
       shell: bash
