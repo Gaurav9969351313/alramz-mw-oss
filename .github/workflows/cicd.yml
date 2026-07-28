@@ -60,7 +60,9 @@ jobs:
           echo "========================================"
 
           if [ "${{ github.event_name }}" == "push" ]; then
-            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} || true)
+            COMMITS_JSON='${{ toJSON(github.event.commits) }}'
+            CHANGED_FILES=$(echo "$COMMITS_JSON" \
+              | jq -r '.[] | (.added // [])[], (.modified // [])[]' 2>/dev/null)
           else
             CHANGED_FILES=""
           fi
