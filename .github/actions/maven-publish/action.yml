@@ -1,0 +1,87 @@
+name: 'Maven Publish to GitHub Packages'
+description: 'Publish a Maven artifact to GitHub Packages'
+inputs:
+  service-path:
+    description: 'Path to the service directory containing pom.xml'
+    required: true
+    type: string
+  version:
+    description: 'Version to publish (e.g. 1.0.0 or 1.0-SNAPSHOT). Leave empty to use current POM version.'
+    required: false
+    type: string
+    default: ''
+  java-version:
+    description: 'Java version to use'
+    required: false
+    type: string
+    default: '21'
+  skip-tests:
+    description: 'Skip tests during publish'
+    required: false
+    type: boolean
+    default: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: ${{ inputs.java-version }}
+        cache: maven
+
+    - name: Set version
+      if: ${{ inputs.version != '' }}
+      shell: bash
+      run: |
+        echo "========================================"
+        echo "DEBUG: Setting version to ${{ inputs.version }}"
+        echo "========================================"
+        cd ${{ inputs.service-path }}
+        mvn versions:set -DnewVersion=${{ inputs.version }} -DgenerateBackupPoms=false
+        echo "========================================"
+
+    - name: Configure Maven settings
+      shell: bash
+      run: |
+        echo "========================================"
+        echo "DEBUG: Configuring Maven settings for GitHub Packages"
+        echo "========================================"
+        mkdir -p $HOME/.m2
+        printf '%s\n' \
+          '<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"' \
+          '          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"' \
+          '          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">' \
+          '  <servers>' \
+          '    <server>' \
+          '      <id>github</id>' \
+          '      <username>${{ github.actor }}</username>' \
+          '      <password>${{ secrets.GITHUB_TOKEN }}</password>' \
+          '    </server>' \
+          '  </servers>' \
+          '</settings>' \
+          > $HOME/.m2/settings.xml
+        echo "Maven settings configured."
+        echo "========================================"
+
+    - name: Publish to GitHub Packages
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        echo "========================================"
+        echo "DEBUG: Publishing to GitHub Packages"
+        echo "========================================"
+        cd ${{ inputs.service-path }}
+        mvn deploy -B \
+          -DskipTests=${{ inputs.skip-tests }} \
+          -Dgpg.skip=true
+        echo "========================================"
+        echo "SUCCESS: Published to GitHub Packages"
+        echo "========================================"

@@ -2,12 +2,19 @@ name: CICD
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. 1.0.0 or 0.0.1). Leave empty to publish current snapshot versions.'
+        required: false
+        type: string
+        default: ''
   push:
     branches:
       - dev
 
 permissions:
-  contents: read
+  contents: write
+  packages: write
 
 jobs:
 
@@ -17,9 +24,29 @@ jobs:
     environment: ${{ github.ref_name }}
     outputs:
       services: ${{ steps.matrix.outputs.services }}
+      is_release: ${{ steps.type.outputs.is_release }}
+      version: ${{ steps.type.outputs.version }}
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Determine publish type
+        id: type
+        shell: bash
+        run: |
+          echo "========================================"
+          echo "DEBUG: Determining publish type"
+          echo "========================================"
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ -n "${{ github.event.inputs.version }}" ]; then
+            echo "Release mode: ${{ github.event.inputs.version }}"
+            echo "is_release=true" >> $GITHUB_OUTPUT
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "Snapshot mode"
+            echo "is_release=false" >> $GITHUB_OUTPUT
+            echo "version=" >> $GITHUB_OUTPUT
+          fi
+          echo "========================================"
 
       - name: Detect changes
         id: filter
@@ -35,21 +62,31 @@ jobs:
         id: matrix
         shell: bash
         run: |
-          FILES='${{ steps.filter.outputs.services_files }}'
+          echo "========================================"
+          echo "DEBUG: Building service matrix"
+          echo "========================================"
 
-          SERVICES=$(echo "$FILES" \
-            | jq -r '.[]' \
-            | cut -d/ -f2 \
-            | sort -u \
-            | jq -R . \
-            | jq -s -c .)
+          if [ "${{ steps.type.outputs.is_release }}" == "true" ]; then
+            echo "Release mode: including all services"
+            SERVICES=$(find services -maxdepth 2 -name pom.xml -exec dirname {} \; | sed 's|services/||' | sort -u | jq -R . | jq -s -c .)
+          else
+            echo "Snapshot mode: including only changed services"
+            FILES='${{ steps.filter.outputs.services_files }}'
+            SERVICES=$(echo "$FILES" \
+              | jq -r '.[]' \
+              | cut -d/ -f2 \
+              | sort -u \
+              | jq -R . \
+              | jq -s -c .)
+          fi
 
           if [ -z "$SERVICES" ] || [ "$SERVICES" = "null" ]; then
             SERVICES="[]"
           fi
 
           echo "services=$SERVICES" >> $GITHUB_OUTPUT
-          echo "Detected services: $SERVICES"
+          echo "Services to process: $SERVICES"
+          echo "========================================"
 
   # STEP 2 - Test the code 
   test:
@@ -105,7 +142,70 @@ jobs:
           echo "tag=${GITHUB_SHA::5}" >> $GITHUB_OUTPUT
 
       - name: Build and Push
+        if: ${{ hashFiles('services/${{ matrix.service }}/Dockerfile') != '' }}
         uses: ./.github/actions/build-service
         with:
           service-name: ${{ matrix.service }}
           acr-name: alramzregistry.azurecr.io
+          image-tag: ${{ steps.tag.outputs.tag }}
+
+  # STEP 4 - Publish Maven artifacts to GitHub Packages
+  publish-maven:
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name }}
+    needs:
+      - detect-changes
+      - build
+    if: needs.detect-changes.outputs.services != '[]'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJson(needs.detect-changes.outputs.services) }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Publish to GitHub Packages
+        uses: ./.github/actions/maven-publish
+        with:
+          service-path: services/${{ matrix.service }}
+          version: ${{ needs.detect-changes.outputs.is_release == 'true' && needs.detect-changes.outputs.version || '' }}
+          java-version: '21'
+          skip-tests: true
+
+      - name: Tag release and bump to next snapshot
+        if: ${{ matrix.service == 'alramz-common-bom' && needs.detect-changes.outputs.is_release == 'true' }}
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "========================================"
+          echo "DEBUG: Tagging release and bumping version"
+          echo "========================================"
+          cd services/alramz-common-bom
+          TAG="alramz-common-bom-${{ needs.detect-changes.outputs.version }}"
+          MAJOR=$(echo ${{ needs.detect-changes.outputs.version }} | cut -d. -f1)
+          MINOR=$(echo ${{ needs.detect-changes.outputs.version }} | cut -d. -f2)
+          PATCH=$(echo ${{ needs.detect-changes.outputs.version }} | cut -d. -f3)
+          NEXT_PATCH=$((PATCH + 1))
+          NEXT_SNAPSHOT="$MAJOR.$MINOR.$NEXT_PATCH-SNAPSHOT"
+
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git add pom.xml
+          git commit -m "chore(bom): release ${{ needs.detect-changes.outputs.version }}"
+          git tag -a "$TAG" -m "Release ${{ needs.detect-changes.outputs.version }}"
+          git push origin HEAD:dev
+          git push origin "$TAG"
+
+          mvn versions:set -DnewVersion=$NEXT_SNAPSHOT -DgenerateBackupPoms=false
+          git add pom.xml
+          git commit -m "chore(bom): bump version to $NEXT_SNAPSHOT"
+          git push origin HEAD:dev
+          echo "========================================"
+          echo "SUCCESS: Tagged $TAG and bumped to $NEXT_SNAPSHOT"
+          echo "========================================"
