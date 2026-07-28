@@ -27,7 +27,7 @@
 		<url/>
 	</scm>
 
-	<!-- <dependencyManagement>
+	<dependencyManagement>
 		<dependencies>
 			<dependency>
 				<groupId>com.alramz.bom</groupId>
@@ -37,7 +37,7 @@
 				<scope>import</scope>
 			</dependency>
 		</dependencies>
-	</dependencyManagement> -->
+	</dependencyManagement>
 
 	<repositories>
 		<repository>

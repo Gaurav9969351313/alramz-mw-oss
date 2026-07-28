@@ -85,7 +85,8 @@ runs:
         cd ${{ inputs.service-path }}
         mvn deploy -B \
           -DskipTests=${{ inputs.skip-tests }} \
-          -Dgpg.skip=true
+          -Dgpg.skip=true \
+          -DaltDeploymentRepository=github::default::https://maven.pkg.github.com/Gaurav9969351313/alramz-mw-oss/
         echo "========================================"
         echo "SUCCESS: Published to GitHub Packages"
         echo "========================================"
