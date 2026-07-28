@@ -147,10 +147,10 @@ jobs:
           if [ -z "$SERVICES" ] || [ "$SERVICES" = "[]" ] || [ "$SERVICES" = "null" ]; then
             JSON="[]"
           else
-            JSON=$(echo "$SERVICES" | jq --arg tag "$TAG" '[.[] | {service: ., tag: $tag}]')
+            JSON=$(echo "$SERVICES" | jq -c --arg tag "$TAG" '[.[] | {service: ., tag: $tag}]')
           fi
 
-          echo "json=$JSON" >> "$GITHUB_OUTPUT"
+          printf 'json=%s\n' "$JSON" >> "$GITHUB_OUTPUT"
 
       - name: Deploy Services
         uses: ./.github/actions/deploy-aca

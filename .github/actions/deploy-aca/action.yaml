@@ -66,10 +66,10 @@ runs:
         ACA_ENVIRONMENT_ID: ${{ inputs.aca-environment-id }}
         MANAGED_IDENTITY: ${{ inputs.managed-identity }}
         ACR_SERVER: ${{ inputs.acr-name }}
+        SERVICES: ${{ inputs.services }}
       run: |
         set -e
 
-        SERVICES="${{ inputs.services }}"
         ACR="${{ inputs.acr-name }}"
         RG="${{ inputs.resource-group }}"
         COUNT=$(echo "$SERVICES" | jq 'length')
