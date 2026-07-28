@@ -4,11 +4,17 @@ WORKDIR /app
 
 ARG MAVEN_SETTINGS=""
 COPY pom.xml .
-RUN if [ -n "$MAVEN_SETTINGS" ]; then mkdir -p /root/.m2 && echo "$MAVEN_SETTINGS" > /root/.m2/settings.xml; fi
-RUN if [ -n "$MAVEN_SETTINGS" ]; then mvn dependency:go-offline -B -s /root/.m2/settings.xml; else mvn dependency:go-offline -B; fi
+
+RUN --mount=type=cache,target=/root/.m2,id=maven-repo \
+    if [ -n "$MAVEN_SETTINGS" ]; then echo "$MAVEN_SETTINGS" | base64 -d > /root/.m2/settings.xml; fi
+
+RUN --mount=type=cache,target=/root/.m2,id=maven-repo \
+    if [ -n "$MAVEN_SETTINGS" ]; then mvn dependency:go-offline -B -s /root/.m2/settings.xml; else mvn dependency:go-offline -B; fi
 
 COPY src ./src
-RUN if [ -n "$MAVEN_SETTINGS" ]; then mvn clean package -DskipTests -s /root/.m2/settings.xml; else mvn clean package -DskipTests; fi
+
+RUN --mount=type=cache,target=/root/.m2,id=maven-repo \
+    if [ -n "$MAVEN_SETTINGS" ]; then mvn clean package -DskipTests -s /root/.m2/settings.xml; else mvn clean package -DskipTests; fi
 
 FROM eclipse-temurin:21-jdk AS final
 

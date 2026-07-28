@@ -57,15 +57,19 @@ runs:
       if: ${{ steps.dockerfile-check.outputs.exists == 'true' }}
       shell: bash
       env:
+        DOCKER_BUILDKIT: '1'
         GH_TOKEN: ${{ inputs.github-token }}
       run: |
         echo "========================================"
         echo "DEBUG: Building Docker image for ${{ inputs.service-name }}"
         echo "========================================"
-        MAVEN_SETTINGS='<settings xmlns=\"http://maven.apache.org/SETTINGS/1.0.0\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd\"><servers><server><id>github</id><username>x-access-token</username><password>'$GH_TOKEN'</password></server></servers></settings>'
+        MAVEN_SETTINGS='<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd"><servers><server><id>github</id><username>x-access-token</username><password>'$GH_TOKEN'</password></server></servers></settings>'
+
+        echo "$MAVEN_SETTINGS" | base64
+        echo "$MAVEN_SETTINGS" | base64 > /tmp/maven_settings_b64
 
         docker build \
-          --build-arg MAVEN_SETTINGS="$MAVEN_SETTINGS" \
+          --build-arg MAVEN_SETTINGS="$(cat /tmp/maven_settings_b64)" \
           -t ${{ inputs.acr-name }}/${{ inputs.service-name }}:$IMAGE_TAG \
           ./services/${{ inputs.service-name }}
         echo "========================================"
