@@ -8,6 +8,17 @@
 		<version>4.1.0</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
+	<developers>
+        <developer>
+            <id>gauravtalele</id>
+            <name>Gaurav Tale</name>
+            <email>gaurav@okay.com</email>
+            <organization>Okay</organization>
+            <roles>
+                <role>Lead Developer</role>
+            </roles>
+        </developer>
+    </developers>
 	<groupId>com.alramz</groupId>
 	<artifactId>data-validation-service</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
@@ -27,6 +38,7 @@
 		<url/>
 	</scm>
 
+	
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
