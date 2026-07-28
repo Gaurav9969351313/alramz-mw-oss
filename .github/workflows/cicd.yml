@@ -53,37 +53,15 @@ jobs:
 
       - name: Detect changed services
         id: filter
-        shell: bash
-        run: |
-          echo "========================================"
-          echo "DEBUG: Detecting changed services"
-          echo "========================================"
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            services:
+              - 'services/**'
 
-          if [ "${{ github.event_name }}" == "push" ]; then
-            COMMITS_JSON='${{ toJSON(github.event.commits) }}'
-            CHANGED_FILES=$(echo "$COMMITS_JSON" \
-              | jq -r '.[] | (.added // [])[], (.modified // [])[]' 2>/dev/null)
-          else
-            CHANGED_FILES=""
-          fi
+          list-files: json
 
-          SERVICES=$(echo "$CHANGED_FILES" \
-            | grep '^services/' \
-            | cut -d/ -f2 \
-            | sort -u \
-            | jq -R . \
-            | jq -s -c .)
-
-          if [ -z "$SERVICES" ] || [ "$SERVICES" = "null" ]; then
-            SERVICES="[]"
-          fi
-
-          echo "Changed files: $CHANGED_FILES"
-          echo "Changed services: $SERVICES"
-          echo "services=$SERVICES" >> $GITHUB_OUTPUT
-          echo "========================================"
-
-      - name: Build matrix
+      - name: Build service matrix
         id: matrix
         shell: bash
         run: |
@@ -91,12 +69,19 @@ jobs:
           echo "DEBUG: Building service matrix"
           echo "========================================"
 
+          FILES='${{ steps.filter.outputs.services_files }}'
+
           if [ "${{ steps.type.outputs.is_release }}" == "true" ]; then
             echo "Release mode: including all services"
             SERVICES=$(find services -maxdepth 2 -name pom.xml -exec dirname {} \; | sed 's|services/||' | sort -u | jq -R . | jq -s -c .)
           else
             echo "Snapshot mode: including only changed services"
-            SERVICES="${{ steps.filter.outputs.services }}"
+            SERVICES=$(echo "$FILES" \
+              | jq -r '.[]' \
+              | cut -d/ -f2 \
+              | sort -u \
+              | jq -R . \
+              | jq -s -c .)
           fi
 
           if [ -z "$SERVICES" ] || [ "$SERVICES" = "null" ]; then
