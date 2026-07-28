@@ -63,7 +63,7 @@ runs:
       shell: bash
       env:
         LOCATION: ${{ inputs.location }}
-        ACA_ENVIRONMENT_ID: ${{ inputs.aca-environment-id }}
+        ACA_ENVIRONMENT_ID: "alramz-dev-container-apps-env"
         MANAGED_IDENTITY: ${{ inputs.managed-identity }}
         ACR_SERVER: ${{ inputs.acr-name }}
         SERVICES: ${{ inputs.services }}
