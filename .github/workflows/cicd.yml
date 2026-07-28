@@ -143,8 +143,8 @@ jobs:
         run: |
           SERVICES='${{ needs.detect-changes.outputs.services }}'
           TAG="${{ steps.tag.outputs.tag }}"
-          JSON=$(echo "$SERVICES" | jq -R . | jq -s --arg tag "$TAG" '[.[] | {service: ., tag: $tag}]')
-          echo "json=$JSON" >> $GITHUB_OUTPUT
+          JSON=$(echo "$SERVICES" | jq -R . | jq -sc --arg tag "$TAG" '[.[] | {service: ., tag: $tag}]')
+          echo "json=$JSON" >> "$GITHUB_OUTPUT"
 
       - name: Deploy Services
         uses: ./.github/actions/deploy-aca
