@@ -4,7 +4,7 @@ description: Deploys services to Azure Container Apps using the existing render-
 
 inputs:
   services:
-    description: JSON array of service objects with name and tag: [{"service":"svc","tag":"1.0.0"}]
+    description: 'JSON array of service objects with name and tag'
     required: true
 
   acr-name:
