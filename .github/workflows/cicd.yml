@@ -79,13 +79,20 @@ jobs:
             echo "BASE: $BASE"
             echo "HEAD: $HEAD"
 
-            SERVICES=$(
-              git diff --name-only "$BASE" "$HEAD" || true \
-              | grep '^services/' || true \
-              | cut -d/ -f2 \
-              | sort -u \
-              | jq -R -s -c 'split("\n")[:-1]'
-            )
+            CHANGED=$(git diff --name-only "$BASE" "$HEAD" 2>/dev/null || true)
+            SERVICES="[]"
+
+            if [ -n "$CHANGED" ]; then
+              SERVICES=$(echo "$CHANGED" \
+                | grep '^services/' \
+                | cut -d/ -f2 \
+                | sort -u \
+                | jq -R . \
+                | jq -s -c .)
+              if [ -z "$SERVICES" ] || [ "$SERVICES" = "null" ]; then
+                SERVICES="[]"
+              fi
+            fi
 
             if [[ "$SERVICES" == "[]" ]] || [[ -z "$SERVICES" ]]; then
               echo "has_changes=false" >> $GITHUB_OUTPUT
