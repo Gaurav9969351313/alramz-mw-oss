@@ -19,6 +19,7 @@ jobs:
     environment: ${{ github.ref_name }}
     outputs:
       services: ${{ steps.matrix.outputs.services }}
+      has_services: ${{ steps.check.outputs.has_services }}
 
     steps:
       - uses: actions/checkout@v4
@@ -53,13 +54,16 @@ jobs:
           echo "services=$SERVICES" >> $GITHUB_OUTPUT
           echo "Detected services: $SERVICES"
 
-
       - name: Check if services detected
+        id: check
         shell: bash
         run: |
           if [ '${{ steps.matrix.outputs.services }}' = '[]' ] || [ -z '${{ steps.matrix.outputs.services }}' ]; then
             echo "No services detected, skipping remaining jobs"
+            echo "has_services=false" >> $GITHUB_OUTPUT
             exit 0
+          else
+            echo "has_services=true" >> $GITHUB_OUTPUT
           fi
 
   # STEP 2 - Test the code 
@@ -67,7 +71,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ github.ref_name }}
     needs: detect-changes
-    if: ${{ needs.detect-changes.outputs.services != '[]' && needs.detect-changes.outputs.services != '' }}
+    if: needs.detect-changes.outputs.has_services == 'true'
 
     strategy:
       fail-fast: false
@@ -90,7 +94,7 @@ jobs:
       - detect-changes
       - test
 
-    if: ${{ needs.detect-changes.outputs.services != '[]' && needs.detect-changes.outputs.services != '' }}
+    if: needs.detect-changes.outputs.has_services == 'true'
 
     strategy:
       fail-fast: false
@@ -126,7 +130,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: dev
     needs: build
-    if: ${{ needs.detect-changes.outputs.services != '[]' && needs.detect-changes.outputs.services != '' }}
+    if: needs.detect-changes.outputs.has_services == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -177,7 +181,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: dev
     needs: deploy
-    if: ${{ needs.detect-changes.outputs.services != '[]' && needs.detect-changes.outputs.services != '' }}
+    if: needs.detect-changes.outputs.has_services == 'true'
     strategy:
       fail-fast: false
       matrix:
