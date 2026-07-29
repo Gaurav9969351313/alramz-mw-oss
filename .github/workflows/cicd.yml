@@ -169,16 +169,16 @@ jobs:
           acr-name: alramzregistry.azurecr.io
           github-token: ${{ secrets.GH_TOKEN }}
 
-# STEP 4 - Deploy changed services to Development
-   deploy:
-     runs-on: ubuntu-latest
-     environment: dev
-     needs: build
-     if: needs.detect-services.outputs.has_changes == 'true'
-     strategy:
-       fail-fast: false
-       matrix:
-         service: ${{ fromJson(needs.detect-services.outputs.services) }}
+  # STEP 4 - Deploy changed services to Development
+  deploy:
+    runs-on: ubuntu-latest
+    environment: dev
+    needs: build
+    if: needs.detect-services.outputs.has_changes == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJson(needs.detect-services.outputs.services) }}
 
     permissions:
       contents: read
@@ -220,16 +220,16 @@ jobs:
           managed-identity: ${{ secrets.MANAGED_IDENTITY_DEV }}
           azure-credentials: ${{ secrets.AZURE_CREDENTIALS }}
 
-# STEP 5 - Update Development deployment catalogue
-   update-catalogue:
-     runs-on: ubuntu-latest
-     environment: dev
-     needs: deploy
-     if: needs.detect-services.outputs.has_changes == 'true'
-     strategy:
-       fail-fast: false
-       matrix:
-         service: ${{ fromJson(needs.detect-services.outputs.services) }}
+  # STEP 5 - Update Development deployment catalogue
+  update-catalogue:
+    runs-on: ubuntu-latest
+    environment: dev
+    needs: deploy
+    if: needs.detect-services.outputs.has_changes == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJson(needs.detect-services.outputs.services) }}
 
     permissions:
       contents: write
@@ -264,17 +264,14 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .github/service-deployment-catalogue/dev.yml
           git diff --staged --quiet || git commit -m "Update dev catalogue for ${{ matrix.service }}"
-          git push
-          image-tag: ${{ steps.tag.outputs.tag }}
-          github-token: ${{ secrets.GH_TOKEN }}
+git push
 
-  # STEP 6 - Publish Maven artifacts to GitHub Packages
+   # STEP 6 - Publish Maven artifacts to GitHub Packages
   publish-maven:
     runs-on: ubuntu-latest
     environment: ${{ github.ref_name }}
     needs:
       - detect-services
-      - build
     if: needs.detect-services.outputs.has_changes == 'true'
 
     strategy:
