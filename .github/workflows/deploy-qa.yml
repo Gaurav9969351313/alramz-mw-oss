@@ -33,6 +33,7 @@ jobs:
         id: changes
         shell: bash
         run: |
+          set +e
           REGISTER_FILE=".github/service-deployment-catalogue/service-register.yml"
           MERGE_SHA="${{ github.event.pull_request.merge_commit_sha }}"
           PARENT_SHA=$(git rev-parse "${MERGE_SHA}^1" 2>/dev/null || echo "")
@@ -49,7 +50,12 @@ jobs:
           fi
 
           if [ -n "$CHANGED" ]; then
-            SERVICES=$(echo "$CHANGED" | grep '^+' | grep -E '^\+  [a-zA-Z0-9_-]+:' | sed 's/^+  \([^:]*\):.*/\1/' | sort -u)
+            PARENTS_FILE=$(mktemp)
+            CURRENT_FILE=$(mktemp)
+            git show "${PARENT_SHA}:${REGISTER_FILE}" > "$PARENTS_FILE" 2>/dev/null || touch "$PARENTS_FILE"
+            cp "$REGISTER_FILE" "$CURRENT_FILE"
+            SERVICES=$(diff "$PARENTS_FILE" "$CURRENT_FILE" | grep '^[<>]' | grep -E '^\+  [a-zA-Z0-9_-]+:|^-  [a-zA-Z0-9_-]+:' | sed 's/^[<>]  \([^:]*\):.*/\1/' | sort -u)
+            rm -f "$PARENTS_FILE" "$CURRENT_FILE"
           else
             SERVICES=""
           fi
