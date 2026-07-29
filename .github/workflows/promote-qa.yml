@@ -33,7 +33,7 @@ jobs:
         id: changes
         shell: bash
         run: |
-          SERVERS_FILE=".github/service-deployment-catalogue/qa.yml"
+          SERVERS_FILE=".github/service-deployment-catalogue/service-register.yml"
           MERGE_SHA="${{ github.event.pull_request.merge_commit_sha }}"
           PARENT_SHA=$(git rev-parse "${MERGE_SHA}^1" 2>/dev/null || echo "")
 
