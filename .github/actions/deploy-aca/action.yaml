@@ -52,6 +52,21 @@ runs:
       with:
         creds: ${{ inputs.azure-credentials }}
 
+    - name: Debug Azure Context
+      run: |
+        az account show
+        az account list -o table
+
+    - name: Verify ACA Environment
+      run: |
+        az containerapp env show \
+          --name alramz-dev-container-apps-env \
+          --resource-group alramz-dev-rg
+        
+        az containerapp env list \
+        --resource-group alramz-dev-rg \
+        -o table
+
     - name: Login to ACR
       shell: bash
       run: |
