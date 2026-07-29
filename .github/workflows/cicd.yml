@@ -17,6 +17,7 @@ permissions:
   contents: write
   pull-requests: write
   packages: write
+  workflows: write
 
 jobs:
 
@@ -251,7 +252,6 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-      workflows: write
 
     steps:
       - uses: actions/checkout@v4
