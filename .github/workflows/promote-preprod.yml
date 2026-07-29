@@ -1,0 +1,132 @@
+name: Promote to PreProd
+
+on:
+  workflow_run:
+    workflows:
+      - CICD
+    types:
+      - completed
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  promote:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install yq
+        shell: bash
+        run: |
+          wget -q https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+          chmod +x /usr/local/bin/yq
+
+      - name: Determine changed services
+        id: changes
+        shell: bash
+        run: |
+          DEV_FILE=".github/service-deployment-catalogue/dev.yml"
+          TARGET_BRANCH="CodePromotion/preprod"
+          TARGET_FILE=".github/service-deployment-catalogue/preprod.yml"
+
+          if [ ! -f "$DEV_FILE" ]; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          git fetch origin "$TARGET_BRANCH" 2>/dev/null || true
+
+          if git show-ref --verify --quiet "refs/heads/$TARGET_BRANCH"; then
+            git show "origin/$TARGET_BRANCH:$TARGET_FILE" > current_preprod.yml 2>/dev/null || echo "services: {}" > current_preprod.yml
+          else
+            echo "services: {}" > current_preprod.yml
+          fi
+
+          DEV_SERVICES=$(yq '.services | keys' "$DEV_FILE" 2>/dev/null | grep -v null || true)
+          PREDSERVICES=$(yq '.services | keys' current_preprod.yml 2>/dev/null | grep -v null || true)
+
+          ALL_SERVICES=$(echo -e "${DEV_SERVICES}\n${PREDSERVICES}" | sort -u | grep -v null)
+
+          SERVICES_TO_UPDATE=""
+          for SVC in $ALL_SERVICES; do
+            DEV_TAG=$(yq ".services[\"$SVC\"].tag" "$DEV_FILE" 2>/dev/null || echo "")
+            PRETAG=$(yq ".services[\"$SVC\"].tag" current_preprod.yml 2>/dev/null || echo "")
+            if [ "$DEV_TAG" != "$PRETAG" ] && [ -n "$DEV_TAG" ]; then
+              if [ -z "$SERVICES_TO_UPDATE" ]; then
+                SERVICES_TO_UPDATE="$SVC"
+              else
+                SERVICES_TO_UPDATE="$SERVICES_TO_UPDATE,$SVC"
+              fi
+            fi
+          done
+
+          if [ -z "$SERVICES_TO_UPDATE" ]; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+            rm -f current_preprod.yml
+            exit 0
+          fi
+
+          echo "changed=true" >> $GITHUB_OUTPUT
+          echo "services=$SERVICES_TO_UPDATE" >> $GITHUB_OUTPUT
+          rm -f current_preprod.yml
+
+      - name: Promote to PreProd
+        if: steps.changes.outputs.changed == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET_BRANCH: CodePromotion/preprod
+          SOURCE_BRANCH: promote-preprod
+          TARGET_FILE: .github/service-deployment-catalogue/preprod.yml
+          SERVICES: ${{ steps.changes.outputs.services }}
+        run: |
+          set -e
+
+          IFS=',' read -ra SVC_ARRAY <<< "$SERVICES"
+
+          git fetch origin "$TARGET_BRANCH" 2>/dev/null || true
+
+          if git show-ref --verify --quiet "refs/heads/$TARGET_BRANCH"; then
+            git checkout "$TARGET_BRANCH"
+          else
+            git checkout -b "$TARGET_BRANCH" origin/main
+          fi
+
+          git checkout -b "$SOURCE_BRANCH" 2>/dev/null || git checkout "$SOURCE_BRANCH"
+
+          DEV_FILE=".github/service-deployment-catalogue/dev.yml"
+
+          for SVC in "${SVC_ARRAY[@]}"; do
+            DEV_TAG=$(yq ".services[\"$SVC\"].tag" "$DEV_FILE")
+            yq -i ".services[\"$SVC\"].tag = \"${DEV_TAG}\" "$TARGET_FILE"
+          done
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "$TARGET_FILE"
+          git commit -m "Promote to PreProd: update ${SERVICES}"
+          git push origin "$SOURCE_BRANCH" --force
+
+          EXISTING_PR=$(gh pr list \
+            --state open \
+            --search "repo:${GITHUB_REPOSITORY} head:${SOURCE_BRANCH} base:${TARGET_BRANCH}" \
+            --json number \
+            --jq '.[0].number' 2>/dev/null || true)
+
+          if [ -n "$EXISTING_PR" ]; then
+            echo "Promotion PR already exists: #${EXISTING_PR}"
+          else
+            gh pr create \
+              --base "$TARGET_BRANCH" \
+              --head "$SOURCE_BRANCH" \
+              --title "Promote to PreProd" \
+              --body "Auto-promotion from Development to PreProd: ${SERVICES}" \
+              --label "promotion" \
+              --repo "${GITHUB_REPOSITORY}" 2>/dev/null || true
+          fi

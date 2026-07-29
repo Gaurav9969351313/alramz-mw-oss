@@ -1,0 +1,33 @@
+location: "${LOCATION}"
+
+identity:
+  type: UserAssigned
+  userAssignedIdentities:
+    "${MANAGED_IDENTITY}": {}
+
+properties:
+  managedEnvironmentId: "${ACA_ENVIRONMENT_ID}"
+  configuration:
+    activeRevisionsMode: Single
+    registries:
+      - server: "${ACR_SERVER}"
+        identity: "${MANAGED_IDENTITY}"
+    ingress:
+      external: ${INGRESS_EXTERNAL}
+      targetPort: ${TARGET_PORT}
+      transport: auto
+
+  template:
+    containers:
+      - name: "${CONTAINER_NAME}"
+        image: "${IMAGE}"
+        cpu: "${CPU}"
+        memory: "${MEMORY}"
+        env:
+          - name: SPRING_PROFILES_ACTIVE
+            value: "${SPRING_PROFILE}"
+          - name: JAVA_OPTS
+            value: "${JAVA_OPTS}"
+    scale:
+      minReplicas: ${MIN_REPLICAS}
+      maxReplicas: ${MAX_REPLICAS}

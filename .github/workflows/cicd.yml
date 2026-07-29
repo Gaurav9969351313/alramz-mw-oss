@@ -11,10 +11,11 @@ on:
   push:
     branches:
       - dev
-      - feature/github-packages-publish
+      - feature/code-pramotion-v2
 
 permissions:
   contents: write
+  pull-requests: write
   packages: write
 
 jobs:
@@ -107,6 +108,18 @@ jobs:
           echo "Changed services: $SERVICES"
           echo "========================================"
 
+      - name: Check if services detected
+        id: check
+        shell: bash
+        run: |
+          if [ '${{ steps.matrix.outputs.services }}' = '[]' ] || [ -z '${{ steps.matrix.outputs.services }}' ]; then
+            echo "No services detected, skipping remaining jobs"
+            echo "has_services=false" >> $GITHUB_OUTPUT
+            exit 0
+          else
+            echo "has_services=true" >> $GITHUB_OUTPUT
+          fi
+
   # STEP 2 - Test the code 
   test:
     runs-on: ubuntu-latest
@@ -166,10 +179,107 @@ jobs:
         with:
           service-name: ${{ matrix.service }}
           acr-name: alramzregistry.azurecr.io
+
+  # STEP 4 - Deploy changed services to Development
+  deploy:
+    runs-on: ubuntu-latest
+    environment: dev
+    needs: build
+    if: needs.detect-changes.outputs.has_services == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJson(needs.detect-changes.outputs.services) }}
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install yq
+        shell: bash
+        run: |
+          wget -q https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+          chmod +x /usr/local/bin/yq
+
+      - name: Generate Image Tag
+        id: tag
+        shell: bash
+        run: |
+          echo "tag=${GITHUB_SHA::5}" >> $GITHUB_OUTPUT
+
+      - name: Build services JSON
+        id: services-json
+        shell: bash
+        run: |
+          SERVICE="${{ matrix.service }}"
+          TAG="${{ steps.tag.outputs.tag }}"
+
+          JSON=$(echo "[]" | jq -c --arg service "$SERVICE" --arg tag "$TAG" '[.[] | {service: $service, tag: $tag}]')
+
+          printf 'json=%s\n' "$JSON" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy Service
+        uses: ./.github/actions/deploy-aca
+        with:
+          services: ${{ steps.services-json.outputs.json }}
+          acr-name: alramzregistry.azurecr.io
+          resource-group: alramz-dev-rg
+          location: uaenorth
+          aca-environment-id: alramz-dev-container-apps-env
+          managed-identity: ${{ secrets.MANAGED_IDENTITY_DEV }}
+          azure-credentials: ${{ secrets.AZURE_CREDENTIALS }}
+
+  # STEP 5 - Update Development deployment catalogue
+  update-catalogue:
+    runs-on: ubuntu-latest
+    environment: dev
+    needs: deploy
+    if: needs.detect-changes.outputs.has_services == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJson(needs.detect-changes.outputs.services) }}
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install yq
+        shell: bash
+        run: |
+          wget -q https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+          chmod +x /usr/local/bin/yq
+
+      - name: Generate Image Tag
+        id: tag
+        shell: bash
+        run: |
+          echo "tag=${GITHUB_SHA::5}" >> $GITHUB_OUTPUT
+
+      - name: Update dev.yml
+        shell: bash
+        run: |
+          SERVICE="${{ matrix.service }}"
+          TAG="${{ steps.tag.outputs.tag }}"
+
+          yq -i ".services[\"${SERVICE}\"].tag = \"${TAG}\"" .github/service-deployment-catalogue/dev.yml
+
+      - name: Commit catalogue update
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .github/service-deployment-catalogue/dev.yml
+          git diff --staged --quiet || git commit -m "Update dev catalogue for ${{ matrix.service }}"
+          git push
           image-tag: ${{ steps.tag.outputs.tag }}
           github-token: ${{ secrets.GH_TOKEN }}
 
-  # STEP 4 - Publish Maven artifacts to GitHub Packages
+  # STEP 6 - Publish Maven artifacts to GitHub Packages
   publish-maven:
     runs-on: ubuntu-latest
     environment: ${{ github.ref_name }}

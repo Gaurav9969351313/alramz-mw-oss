@@ -1,0 +1,42 @@
+name: Deploy PreProd
+
+on:
+  push:
+    branches:
+      - CodePromotion/preprod
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: preprod
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install yq
+        shell: bash
+        run: |
+          wget -q https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+          chmod +x /usr/local/bin/yq
+
+      - name: Read catalogue
+        id: catalogue
+        shell: bash
+        run: |
+          yq -o=json '.services' .github/service-deployment-catalogue/preprod.yml | jq 'to_entries | map({service: .key, tag: .value.tag})' > /tmp/services.json
+          SERVICES=$(cat /tmp/services.json)
+          echo "services=$SERVICES" >> $GITHUB_OUTPUT
+
+      - name: Deploy Services
+        uses: ./.github/actions/deploy-aca
+        with:
+          services: ${{ steps.catalogue.outputs.services }}
+          acr-name: alramzregistry.azurecr.io
+          resource-group: alramz-preprod-rg
+          location: uaenorth
+          aca-environment-id: ${{ secrets.ACA_ENVIRONMENT_ID_PREPROD }}
+          managed-identity: ${{ secrets.MANAGED_IDENTITY_PREPROD }}
+          azure-credentials: ${{ secrets.AZURE_CREDENTIALS }}
