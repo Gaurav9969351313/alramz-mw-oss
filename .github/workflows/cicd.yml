@@ -53,6 +53,7 @@ jobs:
           echo "services=$SERVICES" >> $GITHUB_OUTPUT
           echo "Detected services: $SERVICES"
 
+
       - name: Check if services detected
         shell: bash
         run: |
@@ -125,6 +126,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: dev
     needs: build
+    if: needs.detect-changes.outputs.services != '[]'
     strategy:
       fail-fast: false
       matrix:
@@ -175,6 +177,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: dev
     needs: deploy
+    if: needs.detect-changes.outputs.services != '[]'
     strategy:
       fail-fast: false
       matrix:
