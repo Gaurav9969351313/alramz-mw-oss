@@ -1,5 +1,5 @@
-
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.alramz.bom</groupId>
@@ -16,47 +16,47 @@
   </scm>
 
   <developers>
-        <developer>
-            <id>gauravtalele</id>
-            <name>Gaurav Talele</name>
-            <email>gaurav@okay.com</email>
-            <organization>Okay</organization>
-            <roles>
-                <role>Lead Developer</role>
-            </roles>
-        </developer>
-    </developers>
+    <developer>
+      <id>gauravtalele</id>
+      <name>Gaurav Talele</name>
+      <email>gaurav@okay.com</email>
+      <organization>Okay</organization>
+      <roles>
+        <role>Lead Developer</role>
+      </roles>
+    </developer>
+  </developers>
 
   <properties>
-      <java.version>21</java.version>
-      <maven.compiler.release>21</maven.compiler.release>
-      <spring.boot.version>4.1.0</spring.boot.version>
-      <spring.cloud.version>2025.1.2</spring.cloud.version>
-      <lombok.version>1.18.38</lombok.version>
-      <mapstruct.version>1.6.3</mapstruct.version>
-      <spring.cloud.resiliance4j.version>5.0.2</spring.cloud.resiliance4j.version>
-      <spring-security-oauth2-jose.version>7.1.0</spring-security-oauth2-jose.version>
-      <swagger-annotations-jakarta.version>2.2.31</swagger-annotations-jakarta.version>
-      <springdoc-openapi-starter-webmvc-ui.version>2.8.9</springdoc-openapi-starter-webmvc-ui.version>
-      <jackson-databind-nullable.version>0.2.6</jackson-databind-nullable.version>
+    <java.version>21</java.version>
+    <maven.compiler.release>21</maven.compiler.release>
+    <spring.boot.version>4.1.0</spring.boot.version>
+    <spring.cloud.version>2025.1.2</spring.cloud.version>
+    <lombok.version>1.18.38</lombok.version>
+    <mapstruct.version>1.6.3</mapstruct.version>
+    <spring.cloud.resiliance4j.version>5.0.2</spring.cloud.resiliance4j.version>
+    <spring-security-oauth2-jose.version>7.1.0</spring-security-oauth2-jose.version>
+    <swagger-annotations-jakarta.version>2.2.31</swagger-annotations-jakarta.version>
+    <springdoc-openapi-starter-webmvc-ui.version>2.8.9</springdoc-openapi-starter-webmvc-ui.version>
+    <jackson-databind-nullable.version>0.2.6</jackson-databind-nullable.version>
   </properties>
-  
+
   <dependencyManagement>
     <dependencies>
       <dependency>
-          <groupId>org.springframework.boot</groupId>
-          <artifactId>spring-boot-dependencies</artifactId>
-          <version>${spring.boot.version}</version>
-          <type>pom</type>
-          <scope>import</scope>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-dependencies</artifactId>
+        <version>${spring.boot.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
       </dependency>
 
       <dependency>
-          <groupId>org.springframework.cloud</groupId>
-          <artifactId>spring-cloud-dependencies</artifactId>
-          <version>${spring.cloud.version}</version>
-          <type>pom</type>
-          <scope>import</scope>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-dependencies</artifactId>
+        <version>${spring.cloud.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
       </dependency>
 
       <dependency>
@@ -65,9 +65,9 @@
       </dependency>
 
       <dependency>
-          <groupId>org.projectlombok</groupId>
-          <artifactId>lombok</artifactId>
-          <version>${lombok.version}</version>
+        <groupId>org.projectlombok</groupId>
+        <artifactId>lombok</artifactId>
+        <version>${lombok.version}</version>
       </dependency>
 
       <dependency>

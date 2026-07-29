@@ -180,6 +180,7 @@ jobs:
         with:
           service-name: ${{ matrix.service }}
           acr-name: alramzregistry.azurecr.io
+          github-token: ${{ secrets.GH_TOKEN }}
 
   # STEP 4 - Deploy changed services to Development
   deploy:
