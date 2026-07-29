@@ -64,8 +64,8 @@ runs:
           --resource-group alramz-dev-rg
         
         az containerapp env list \
-        --resource-group alramz-dev-rg \
-        -o table
+          --resource-group alramz-dev-rg \
+          -o table
 
     - name: Login to ACR
       shell: bash
