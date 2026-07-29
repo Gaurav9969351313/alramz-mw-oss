@@ -68,7 +68,7 @@ jobs:
         shell: bash
         run: |
           SERVICES_CSV="${{ steps.changes.outputs.services }}"
-          SERVERS_FILE=".github/service-deployment-catalogue/qa.yml"
+          SERVERS_FILE=".github/service-deployment-catalogue/service-register.yml"
 
           JSON_ARRAY="[]"
           IFS=',' read -ra SVC_ARRAY <<< "$SERVICES_CSV"
