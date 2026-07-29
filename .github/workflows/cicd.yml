@@ -284,9 +284,8 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .github/service-deployment-catalogue/dev.yml
           git diff --staged --quiet || git commit -m "Update dev catalogue for ${{ matrix.service }}"
-          git checkout -B qa
-          git push --force origin qa
-          gh pr create --title "Update dev catalogue for ${{ matrix.service }}" --body "Updates deployment catalogue for ${{ matrix.service }}" --base qa --head dev --repo "${{ github.repository }}"
+          git push origin dev
+          gh pr create --title "Update dev catalogue for ${{ matrix.service }}" --body "Updates deployment catalogue for ${{ matrix.service }}" --base qa --head dev --repo "${{ github.repository }}" || true
 
   # STEP 6 - Publish Maven artifacts to GitHub Packages
   publish-maven:
