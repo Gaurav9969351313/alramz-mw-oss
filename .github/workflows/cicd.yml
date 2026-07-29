@@ -186,12 +186,14 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: dev
-    needs: build
-    if: needs.detect-changes.outputs.has_services == 'true'
+    needs:
+      - build
+      - detect-services
+    if: needs.detect-services.outputs.has_services == 'true'
     strategy:
       fail-fast: false
       matrix:
-        service: ${{ fromJson(needs.detect-changes.outputs.services) }}
+        service: ${{ fromJson(needs.detect-services.outputs.services) }}
 
     permissions:
       contents: read
@@ -237,12 +239,14 @@ jobs:
   update-catalogue:
     runs-on: ubuntu-latest
     environment: dev
-    needs: deploy
-    if: needs.detect-changes.outputs.has_services == 'true'
+    needs:
+      - deploy
+      - detect-services
+    if: needs.detect-services.outputs.has_services == 'true'
     strategy:
       fail-fast: false
       matrix:
-        service: ${{ fromJson(needs.detect-changes.outputs.services) }}
+        service: ${{ fromJson(needs.detect-services.outputs.services) }}
 
     permissions:
       contents: write
