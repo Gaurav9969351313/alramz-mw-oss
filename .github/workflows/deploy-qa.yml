@@ -3,7 +3,7 @@ name: Deploy QA
 on:
   push:
     branches:
-      - CodePromotion/qa
+      - qa
 
 permissions:
   contents: read
