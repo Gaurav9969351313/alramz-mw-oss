@@ -282,8 +282,6 @@ jobs:
           git add .github/service-deployment-catalogue/dev.yml
           git diff --staged --quiet || git commit -m "Update dev catalogue for ${{ matrix.service }}"
           git push
-          image-tag: ${{ steps.tag.outputs.tag }}
-          github-token: ${{ secrets.GH_TOKEN }}
 
   # STEP 6 - Publish Maven artifacts to GitHub Packages
   publish-maven:
