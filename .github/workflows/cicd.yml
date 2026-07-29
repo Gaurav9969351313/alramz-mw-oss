@@ -159,7 +159,7 @@ jobs:
           acr-name: alramzregistry.azurecr.io
           resource-group: alramz-dev-rg
           location: uaenorth
-          aca-environment-id: ${{ secrets.ACA_ENVIRONMENT_ID_DEV }}
+          aca-environment-id: alramz-dev-container-apps-env
           managed-identity: ${{ secrets.MANAGED_IDENTITY_DEV }}
           azure-credentials: ${{ secrets.AZURE_CREDENTIALS }}
 
