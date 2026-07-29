@@ -27,7 +27,6 @@
 		<tag/>
 		<url/>
 	</scm>
-
 	
 	<dependencyManagement>
 		<dependencies>
