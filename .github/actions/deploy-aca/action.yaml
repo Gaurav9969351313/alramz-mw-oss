@@ -53,11 +53,13 @@ runs:
         creds: ${{ inputs.azure-credentials }}
 
     - name: Debug Azure Context
+      shell: bash
       run: |
         az account show
         az account list -o table
 
     - name: Verify ACA Environment
+      shell: bash
       run: |
         az containerapp env show \
           --name alramz-dev-container-apps-env \
