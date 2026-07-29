@@ -1,6 +1,7 @@
 name: Deploy QA
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - qa
@@ -26,7 +27,7 @@ jobs:
         id: catalogue
         shell: bash
         run: |
-          yq -o=json '.services' .github/service-deployment-catalogue/qa.yml | jq 'to_entries | map({service: .key, tag: .value.tag})' > /tmp/services.json
+          yq -o=json '.services' .github/service-deployment-catalogue/service-register.yml 2>/dev/null | jq 'to_entries | map({service: .key, tag: .value.tag})' > /tmp/services.json
           SERVICES=$(cat /tmp/services.json)
           echo "services=$SERVICES" >> $GITHUB_OUTPUT
 
