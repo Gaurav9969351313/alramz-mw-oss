@@ -67,7 +67,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ github.ref_name }}
     needs: detect-changes
-    if: needs.detect-changes.outputs.services != '[]'
+    if: ${{ needs.detect-changes.outputs.services != '[]' && needs.detect-changes.outputs.services != '' }}
 
     strategy:
       fail-fast: false
@@ -90,7 +90,7 @@ jobs:
       - detect-changes
       - test
 
-    if: needs.detect-changes.outputs.services != '[]'
+    if: ${{ needs.detect-changes.outputs.services != '[]' && needs.detect-changes.outputs.services != '' }}
 
     strategy:
       fail-fast: false
@@ -126,7 +126,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: dev
     needs: build
-    if: needs.detect-changes.outputs.services != '[]'
+    if: ${{ needs.detect-changes.outputs.services != '[]' && needs.detect-changes.outputs.services != '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -177,7 +177,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: dev
     needs: deploy
-    if: needs.detect-changes.outputs.services != '[]'
+    if: ${{ needs.detect-changes.outputs.services != '[]' && needs.detect-changes.outputs.services != '' }}
     strategy:
       fail-fast: false
       matrix:
