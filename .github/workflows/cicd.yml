@@ -292,7 +292,7 @@ jobs:
           else
             git checkout -b update-catalogue-${{ matrix.service }}
           fi
-          git push origin update-catalogue-${{ matrix.service }}
+          git push --force origin update-catalogue-${{ matrix.service }}
           gh pr create --title "Update dev catalogue for ${{ matrix.service }}" --body "Updates deployment catalogue for ${{ matrix.service }}" --base qa --head update-catalogue-${{ matrix.service }} --repo "${{ github.repository }}" || true
 
   # STEP 6 - Publish Maven artifacts to GitHub Packages
