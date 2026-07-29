@@ -12,6 +12,11 @@ inputs:
   image-tag:
     required: true
 
+  github-token:
+    description: 'GitHub token for authentication'
+    required: true
+    type: string
+
 permissions:
   contents: read
 
@@ -24,7 +29,26 @@ runs:
       run: |
         echo "IMAGE_TAG=$(git rev-parse --short=5 HEAD)" >> $GITHUB_ENV
 
+    - name: Check for Dockerfile
+      id: dockerfile-check
+      shell: bash
+      run: |
+        if [ -f "services/${{ inputs.service-name }}/Dockerfile" ]; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Skip build (no Dockerfile)
+      if: ${{ steps.dockerfile-check.outputs.exists != 'true' }}
+      shell: bash
+      run: |
+        echo "========================================"
+        echo "SKIP: No Dockerfile found for ${{ inputs.service-name }}"
+        echo "========================================"
+
     - name: Login to ACR
+      if: ${{ steps.dockerfile-check.outputs.exists == 'true' }}
       shell: bash
       run: |
         az acr login --name alramzregistry
@@ -40,15 +64,30 @@ runs:
         fi
 
     - name: Build Docker Image
-      if: env.skip != 'true'
+      if: ${{ steps.dockerfile-check.outputs.exists == 'true' }}
       shell: bash
+      env:
+        DOCKER_BUILDKIT: '1'
+        GH_TOKEN: ${{ inputs.github-token }}
       run: |
+        echo "========================================"
+        echo "DEBUG: Building Docker image for ${{ inputs.service-name }}"
+        echo "========================================"
+        MAVEN_SETTINGS='<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd"><servers><server><id>github</id><username>x-access-token</username><password>'$GH_TOKEN'</password></server></servers></settings>'
+
+        echo "$MAVEN_SETTINGS" | base64
+        echo "$MAVEN_SETTINGS" | base64 > /tmp/maven_settings_b64
+
         docker build \
+          --build-arg MAVEN_SETTINGS="$(cat /tmp/maven_settings_b64)" \
           -t ${{ inputs.acr-name }}/${{ inputs.service-name }}:$IMAGE_TAG \
           ./services/${{ inputs.service-name }}
+        echo "========================================"
+        echo "SUCCESS: Built Docker image"
+        echo "========================================"
 
     - name: Push Docker Image
-      if: env.skip != 'true'
+      if: ${{ steps.dockerfile-check.outputs.exists == 'true' }}
       shell: bash
       run: |
         docker push ${{ inputs.acr-name }}/${{ inputs.service-name }}:$IMAGE_TAG
