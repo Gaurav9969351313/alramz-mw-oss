@@ -275,13 +275,13 @@ jobs:
         run: |
           echo "tag=${GITHUB_SHA::5}" >> $GITHUB_OUTPUT
 
-      - name: Update dev.yml
+      - name: Update service-register.yml
         shell: bash
         run: |
           SERVICE="${{ matrix.service }}"
           TAG="${{ steps.tag.outputs.tag }}"
 
-          yq -i ".services[\"${SERVICE}\"].tag = \"${TAG}\"" .github/service-deployment-catalogue/dev.yml
+          yq -i ".services[\"${SERVICE}\"].tag = \"${TAG}\"" .github/service-deployment-catalogue/service-register.yml
 
       - name: Commit catalogue update
         shell: bash
@@ -290,7 +290,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .github/service-deployment-catalogue/dev.yml
+          git add .github/service-deployment-catalogue/service-register.yml
           git diff --staged --quiet || git commit -m "Update dev catalogue for ${{ matrix.service }}"
           git push origin dev
           gh pr create --title "Update dev catalogue for ${{ matrix.service }}" --body "Updates deployment catalogue for ${{ matrix.service }}" --base qa --head dev --repo "${{ github.repository }}" || true
