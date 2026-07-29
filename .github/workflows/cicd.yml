@@ -11,7 +11,7 @@ on:
   push:
     branches:
       - dev
-      - feature/code-pramotion-v2
+      - feature/code
 
 permissions:
   contents: write
@@ -130,7 +130,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: ${{ fromJson(needs.detect-services.outputs.services) }}
+        service: ${{ fromJson(needs.detect-services.outputs.services == '' && '["placeholder"]' || needs.detect-services.outputs.services == '[]' && '["placeholder"]' || needs.detect-services.outputs.services) }}
     steps:
       - uses: actions/checkout@v4
 
@@ -148,13 +148,14 @@ jobs:
     needs: 
       - detect-services
       - test
+      - publish-maven
 
     if: needs.detect-services.outputs.has_changes == 'true'
 
     strategy:
       fail-fast: false
       matrix:
-        service: ${{ fromJson(needs.detect-services.outputs.services) }}
+        service: ${{ fromJson(needs.detect-services.outputs.services == '' && '["placeholder"]' || needs.detect-services.outputs.services == '[]' && '["placeholder"]' || needs.detect-services.outputs.services) }}
 
     steps:
       - uses: actions/checkout@v4
@@ -179,17 +180,20 @@ jobs:
         with:
           service-name: ${{ matrix.service }}
           acr-name: alramzregistry.azurecr.io
+          github-token: ${{ secrets.GH_TOKEN }}
 
   # STEP 4 - Deploy changed services to Development
   deploy:
     runs-on: ubuntu-latest
     environment: dev
-    needs: build
-    if: needs.detect-changes.outputs.has_services == 'true'
+    needs:
+      - build
+      - detect-services
+    if: needs.detect-services.outputs.has_changes == 'true'
     strategy:
       fail-fast: false
       matrix:
-        service: ${{ fromJson(needs.detect-changes.outputs.services) }}
+        service: ${{ fromJson(needs.detect-services.outputs.services) }}
 
     permissions:
       contents: read
@@ -216,7 +220,7 @@ jobs:
           SERVICE="${{ matrix.service }}"
           TAG="${{ steps.tag.outputs.tag }}"
 
-          JSON=$(echo "[]" | jq -c --arg service "$SERVICE" --arg tag "$TAG" '[.[] | {service: $service, tag: $tag}]')
+          JSON=$(jq -n -c --arg service "$SERVICE" --arg tag "$TAG" '[{service: $service, tag: $tag}]')
 
           printf 'json=%s\n' "$JSON" >> "$GITHUB_OUTPUT"
 
@@ -235,12 +239,14 @@ jobs:
   update-catalogue:
     runs-on: ubuntu-latest
     environment: dev
-    needs: deploy
-    if: needs.detect-changes.outputs.has_services == 'true'
+    needs:
+      - deploy
+      - detect-services
+    if: needs.detect-services.outputs.has_changes == 'true'
     strategy:
       fail-fast: false
       matrix:
-        service: ${{ fromJson(needs.detect-changes.outputs.services) }}
+        service: ${{ fromJson(needs.detect-services.outputs.services) }}
 
     permissions:
       contents: write
@@ -276,8 +282,6 @@ jobs:
           git add .github/service-deployment-catalogue/dev.yml
           git diff --staged --quiet || git commit -m "Update dev catalogue for ${{ matrix.service }}"
           git push
-          image-tag: ${{ steps.tag.outputs.tag }}
-          github-token: ${{ secrets.GH_TOKEN }}
 
   # STEP 6 - Publish Maven artifacts to GitHub Packages
   publish-maven:
@@ -285,13 +289,12 @@ jobs:
     environment: ${{ github.ref_name }}
     needs:
       - detect-services
-      - build
     if: needs.detect-services.outputs.has_changes == 'true'
 
     strategy:
       fail-fast: false
       matrix:
-        service: ${{ fromJson(needs.detect-services.outputs.services) }}
+        service: ${{ fromJson(needs.detect-services.outputs.services == '' && '["placeholder"]' || needs.detect-services.outputs.services == '[]' && '["placeholder"]' || needs.detect-services.outputs.services) }}
 
     steps:
       - uses: actions/checkout@v4
