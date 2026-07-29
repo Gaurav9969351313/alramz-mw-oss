@@ -117,7 +117,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: ${{ fromJson(needs.detect-services.outputs.services) }}
+        service: ${{ fromJson(needs.detect-services.outputs.services || '[]') }}
     steps:
       - uses: actions/checkout@v4
 
@@ -142,7 +142,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: ${{ fromJson(needs.detect-services.outputs.services) }}
+        service: ${{ fromJson(needs.detect-services.outputs.services || '[]') }}
 
     steps:
       - uses: actions/checkout@v4
@@ -179,7 +179,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: ${{ fromJson(needs.detect-services.outputs.services) }}
+        service: ${{ fromJson(needs.detect-services.outputs.services || '[]') }}
 
     permissions:
       contents: read
@@ -230,7 +230,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: ${{ fromJson(needs.detect-services.outputs.services) }}
+        service: ${{ fromJson(needs.detect-services.outputs.services || '[]') }}
 
     permissions:
       contents: write
@@ -278,7 +278,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: ${{ fromJson(needs.detect-services.outputs.services) }}
+        service: ${{ fromJson(needs.detect-services.outputs.services || '[]') }}
 
     steps:
       - uses: actions/checkout@v4
