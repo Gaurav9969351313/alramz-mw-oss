@@ -220,7 +220,7 @@ jobs:
           SERVICE="${{ matrix.service }}"
           TAG="${{ steps.tag.outputs.tag }}"
 
-          JSON=$(echo "[]" | jq -c --arg service "$SERVICE" --arg tag "$TAG" '[.[] | {service: $service, tag: $tag}]')
+          JSON=$(jq -n -c --arg service "$SERVICE" --arg tag "$TAG" '[{service: $service, tag: $tag}]')
 
           printf 'json=%s\n' "$JSON" >> "$GITHUB_OUTPUT"
 
