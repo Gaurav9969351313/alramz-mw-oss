@@ -120,6 +120,14 @@ jobs:
             echo "has_services=true" >> $GITHUB_OUTPUT
           fi
 
+      - name: Check if services detected
+        shell: bash
+        run: |
+          if [ '${{ steps.matrix.outputs.services }}' = '[]' ] || [ -z '${{ steps.matrix.outputs.services }}' ]; then
+            echo "No services detected, skipping remaining jobs"
+            exit 0
+          fi
+
   # STEP 2 - Test the code 
   test:
     runs-on: ubuntu-latest
