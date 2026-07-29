@@ -53,6 +53,14 @@ jobs:
           echo "services=$SERVICES" >> $GITHUB_OUTPUT
           echo "Detected services: $SERVICES"
 
+      - name: Check if services detected
+        shell: bash
+        run: |
+          if [ '${{ steps.matrix.outputs.services }}' = '[]' ] || [ -z '${{ steps.matrix.outputs.services }}' ]; then
+            echo "No services detected, skipping remaining jobs"
+            exit 0
+          fi
+
   # STEP 2 - Test the code 
   test:
     runs-on: ubuntu-latest
@@ -116,11 +124,14 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: dev
-    needs:
-      - detect-changes
-      - build
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJson(needs.detect-changes.outputs.services) }}
 
-    if: needs.detect-changes.outputs.services != '[]'
+    permissions:
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
@@ -141,18 +152,14 @@ jobs:
         id: services-json
         shell: bash
         run: |
-          SERVICES='${{ needs.detect-changes.outputs.services }}'
+          SERVICE="${{ matrix.service }}"
           TAG="${{ steps.tag.outputs.tag }}"
 
-          if [ -z "$SERVICES" ] || [ "$SERVICES" = "[]" ] || [ "$SERVICES" = "null" ]; then
-            JSON="[]"
-          else
-            JSON=$(echo "$SERVICES" | jq -c --arg tag "$TAG" '[.[] | {service: ., tag: $tag}]')
-          fi
+          JSON=$(echo "[]" | jq -c --arg service "$SERVICE" --arg tag "$TAG" '[.[] | {service: $service, tag: $tag}]')
 
           printf 'json=%s\n' "$JSON" >> "$GITHUB_OUTPUT"
 
-      - name: Deploy Services
+      - name: Deploy Service
         uses: ./.github/actions/deploy-aca
         with:
           services: ${{ steps.services-json.outputs.json }}
@@ -168,7 +175,10 @@ jobs:
     runs-on: ubuntu-latest
     environment: dev
     needs: deploy
-    if: needs.detect-changes.outputs.services != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJson(needs.detect-changes.outputs.services) }}
 
     permissions:
       contents: write
@@ -191,12 +201,10 @@ jobs:
       - name: Update dev.yml
         shell: bash
         run: |
-          SERVICES='${{ needs.detect-changes.outputs.services }}'
+          SERVICE="${{ matrix.service }}"
           TAG="${{ steps.tag.outputs.tag }}"
 
-          echo "$SERVICES" | jq -r '.[]' | while read -r SERVICE; do
-            yq -i ".services[\"${SERVICE}\"].tag = \"${TAG}\"" .github/service-deployment-catalogue/dev.yml
-          done
+          yq -i ".services[\"${SERVICE}\"].tag = \"${TAG}\"" .github/service-deployment-catalogue/dev.yml
 
       - name: Commit catalogue update
         shell: bash
@@ -204,5 +212,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .github/service-deployment-catalogue/dev.yml
-          git diff --staged --quiet || git commit -m "Update dev catalogue for $(echo '${{ needs.detect-changes.outputs.services }}' | jq -r '.[]' | tr '\n' ',' | sed 's/,$//')"
+          git diff --staged --quiet || git commit -m "Update dev catalogue for ${{ matrix.service }}"
           git push
