@@ -189,7 +189,7 @@ jobs:
     needs:
       - build
       - detect-services
-    if: needs.detect-services.outputs.has_services == 'true'
+    if: needs.detect-services.outputs.has_changes == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -242,7 +242,7 @@ jobs:
     needs:
       - deploy
       - detect-services
-    if: needs.detect-services.outputs.has_services == 'true'
+    if: needs.detect-services.outputs.has_changes == 'true'
     strategy:
       fail-fast: false
       matrix:
