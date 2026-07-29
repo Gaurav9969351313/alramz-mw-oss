@@ -1,0 +1,42 @@
+name: Deploy Production
+
+on:
+  push:
+    branches:
+      - CodePromotion/prod
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: prod
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install yq
+        shell: bash
+        run: |
+          wget -q https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+          chmod +x /usr/local/bin/yq
+
+      - name: Read catalogue
+        id: catalogue
+        shell: bash
+        run: |
+          yq -o=json '.services' .github/service-deployment-catalogue/prod.yml | jq 'to_entries | map({service: .key, tag: .value.tag})' > /tmp/services.json
+          SERVICES=$(cat /tmp/services.json)
+          echo "services=$SERVICES" >> $GITHUB_OUTPUT
+
+      - name: Deploy Services
+        uses: ./.github/actions/deploy-aca
+        with:
+          services: ${{ steps.catalogue.outputs.services }}
+          acr-name: alramzregistry.azurecr.io
+          resource-group: alramz-prod-rg
+          location: uaeneast
+          aca-environment-id: ${{ secrets.ACA_ENVIRONMENT_ID_PROD }}
+          managed-identity: ${{ secrets.MANAGED_IDENTITY_PROD }}
+          azure-credentials: ${{ secrets.AZURE_CREDENTIALS }}

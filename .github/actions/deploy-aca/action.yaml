@@ -1,0 +1,182 @@
+name: Deploy to ACA
+
+description: Deploys services to Azure Container Apps using the existing render-template mechanism
+
+inputs:
+  services:
+    description: 'JSON array of service objects with name and tag'
+    required: true
+
+  acr-name:
+    description: ACR Login Server
+    required: true
+
+  resource-group:
+    description: Azure Resource Group
+    required: true
+
+  location:
+    description: Azure Location
+    required: true
+
+  aca-environment-id:
+    description: Container App Environment ID
+    required: true
+
+  managed-identity:
+    description: User Assigned Managed Identity Client ID
+    required: true
+
+  azure-credentials:
+    description: Azure Credentials Secret
+    required: true
+
+permissions:
+  contents: read
+
+runs:
+  using: composite
+
+  steps:
+    - name: Install yq
+      shell: bash
+      run: |
+        wget -q https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+        chmod +x /usr/local/bin/yq
+
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Login to Azure
+      uses: azure/login@v3
+      with:
+        creds: ${{ inputs.azure-credentials }}
+
+    - name: Debug Azure Context
+      shell: bash
+      run: |
+        az account show
+        az account list -o table
+
+    - name: Verify ACA Environment
+      shell: bash
+      run: |
+        az containerapp env show \
+          --name alramz-dev-container-apps-env \
+          --resource-group alramz-dev-rg
+        
+        az containerapp env list \
+          --resource-group alramz-dev-rg \
+          -o table
+
+    - name: Login to ACR
+      shell: bash
+      run: |
+        ACR_NAME="${{ inputs.acr-name }}"
+        ACR_NAME="${ACR_NAME%%.azurecr.io}"
+        az acr login --name "$ACR_NAME"
+
+    - name: Deploy Services
+      shell: bash
+      env:
+        LOCATION: ${{ inputs.location }}
+        ACA_ENVIRONMENT_ID: "alramz-dev-container-apps-env"
+        MANAGED_IDENTITY: ${{ inputs.managed-identity }}
+        ACR_SERVER: ${{ inputs.acr-name }}
+        SERVICES: ${{ inputs.services }}
+      run: |
+        set -e
+
+        ACR="${{ inputs.acr-name }}"
+        RG="${{ inputs.resource-group }}"
+        COUNT=$(echo "$SERVICES" | jq 'length')
+
+        echo "DEBUG: services input length=$COUNT"
+        echo "DEBUG: services=$SERVICES"
+        echo "DEBUG: ACR=$ACR"
+        echo "DEBUG: RG=$RG"
+        echo "DEBUG: ACA_ENVIRONMENT_ID=$ACA_ENVIRONMENT_ID"
+
+        echo "Deploying $COUNT service(s)..."
+
+        for i in $(seq 0 $((COUNT - 1))); do
+          SVC=$(echo "$SERVICES" | jq -r ".[$i].service")
+          TAG=$(echo "$SERVICES" | jq -r ".[$i].tag")
+
+          echo "=== Deploying $SVC (tag: $TAG) ==="
+
+          SCRIPT_DIR=".github/deployment/scripts"
+          bash "${SCRIPT_DIR}/render-template.sh" "$SVC" "$ACR/$SVC:$TAG"
+
+          EXISTS=$(az containerapp show \
+            --name "$SVC" \
+            --resource-group "$RG" \
+            --query "name" \
+            -o tsv 2>/dev/null) || true
+
+          echo "DEBUG: az containerapp show exit code=$?"
+          echo "DEBUG: EXISTS=$EXISTS"
+
+          if [ -n "$EXISTS" ] && [ "$EXISTS" != "null" ]; then
+            echo "DEBUG: EXISTS=$EXISTS"
+            echo "Container app exists, updating..."
+            echo "DEBUG: running: az containerapp update --name $SVC --resource-group $RG --image $ACR/$SVC:$TAG"
+            az containerapp update \
+              --name "$SVC" \
+              --resource-group "$RG" \
+              --image "$ACR/$SVC:$TAG"
+            echo "DEBUG: update exit code=$?"
+          else
+            echo "DEBUG: EXISTS is empty or null, proceeding with create"
+            echo "Container app does not exist, creating..."
+            echo "DEBUG: running: yq '.properties.template.containers[0].cpu' containerapp.yaml"
+            CPU=$(yq '.properties.template.containers[0].cpu' containerapp.yaml)
+            echo "DEBUG: CPU=$CPU"
+
+            echo "DEBUG: running: yq '.properties.template.containers[0].memory' containerapp.yaml"
+            MEMORY=$(yq '.properties.template.containers[0].memory' containerapp.yaml)
+            echo "DEBUG: MEMORY=$MEMORY"
+
+            echo "DEBUG: running: yq '.properties.configuration.ingress.targetPort' containerapp.yaml"
+            TARGET_PORT=$(yq '.properties.configuration.ingress.targetPort' containerapp.yaml)
+            echo "DEBUG: TARGET_PORT=$TARGET_PORT"
+
+            echo "DEBUG: running: yq '.properties.configuration.ingress.external' containerapp.yaml"
+            EXTERNAL=$(yq '.properties.configuration.ingress.external' containerapp.yaml)
+            echo "DEBUG: EXTERNAL=$EXTERNAL"
+
+            echo "DEBUG: running: yq '.properties.template.scale.minReplicas' containerapp.yaml"
+            MIN_REPLICAS=$(yq '.properties.template.scale.minReplicas' containerapp.yaml)
+            echo "DEBUG: MIN_REPLICAS=$MIN_REPLICAS"
+
+            echo "DEBUG: running: yq '.properties.template.scale.maxReplicas' containerapp.yaml"
+            MAX_REPLICAS=$(yq '.properties.template.scale.maxReplicas' containerapp.yaml)
+            echo "DEBUG: MAX_REPLICAS=$MAX_REPLICAS"
+
+            INGRESS="internal"
+            echo "DEBUG: initial INGRESS=$INGRESS"
+            if [ "$EXTERNAL" = "True" ] || [ "$EXTERNAL" = "true" ]; then
+              INGRESS="external"
+            fi
+            echo "DEBUG: final INGRESS=$INGRESS"
+
+            echo "DEBUG: running: az containerapp create --name $SVC --resource-group $RG --environment ${{ inputs.aca-environment-id }} --image $ACR/$SVC:$TAG --cpu $CPU --memory $MEMORY --target-port $TARGET_PORT --ingress $INGRESS --min-replicas $MIN_REPLICAS --max-replicas $MAX_REPLICAS --registry-server $ACR"
+            az containerapp create \
+              --name "$SVC" \
+              --resource-group "$RG" \
+              --environment alramz-dev-container-apps-env \
+              --image "$ACR/$SVC:$TAG" \
+              --cpu "$CPU" \
+              --memory "$MEMORY" \
+              --target-port "$TARGET_PORT" \
+              --ingress "$INGRESS" \
+              --min-replicas "$MIN_REPLICAS" \
+              --max-replicas "$MAX_REPLICAS" \
+              --registry-server "$ACR"
+            echo "DEBUG: create exit code=$?"
+          fi
+
+          echo "=== Deployed $SVC ==="
+        done
+
+        echo "All deployments complete."

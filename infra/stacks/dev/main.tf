@@ -114,6 +114,9 @@ module "container_app_environment" {
 
   log_analytics_workspace_id = module.monitoring.id
 
+  github_actions_object_id = data.terraform_remote_state.shared_platform.outputs.github_actions_object_id
+  subscription_id          = data.terraform_remote_state.shared_platform.outputs.subscription_id
+
   tags = {
     Environment = var.environment_name
     ManagedBy   = "Terraform"

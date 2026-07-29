@@ -15,6 +15,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
   packages: write
 
 jobs:
@@ -107,6 +108,18 @@ jobs:
           echo "Changed services: $SERVICES"
           echo "========================================"
 
+      - name: Check if services detected
+        id: check
+        shell: bash
+        run: |
+          if [ '${{ steps.matrix.outputs.services }}' = '[]' ] || [ -z '${{ steps.matrix.outputs.services }}' ]; then
+            echo "No services detected, skipping remaining jobs"
+            echo "has_services=false" >> $GITHUB_OUTPUT
+            exit 0
+          else
+            echo "has_services=true" >> $GITHUB_OUTPUT
+          fi
+
   # STEP 2 - Test the code 
   test:
     runs-on: ubuntu-latest
@@ -167,19 +180,17 @@ jobs:
         with:
           service-name: ${{ matrix.service }}
           acr-name: alramzregistry.azurecr.io
-          image-tag: ${{ steps.tag.outputs.tag }}
-          github-token: ${{ secrets.GH_TOKEN }}
 
   # STEP 4 - Deploy changed services to Development
   deploy:
     runs-on: ubuntu-latest
     environment: dev
     needs: build
-    if: needs.detect-services.outputs.has_changes == 'true'
+    if: needs.detect-changes.outputs.has_services == 'true'
     strategy:
       fail-fast: false
       matrix:
-        service: ${{ fromJson(needs.detect-services.outputs.services == '' && '["placeholder"]' || needs.detect-services.outputs.services == '[]' && '["placeholder"]' || needs.detect-services.outputs.services) }}
+        service: ${{ fromJson(needs.detect-changes.outputs.services) }}
 
     permissions:
       contents: read
@@ -226,11 +237,11 @@ jobs:
     runs-on: ubuntu-latest
     environment: dev
     needs: deploy
-    if: needs.detect-services.outputs.has_changes == 'true'
+    if: needs.detect-changes.outputs.has_services == 'true'
     strategy:
       fail-fast: false
       matrix:
-        service: ${{ fromJson(needs.detect-services.outputs.services == '' && '["placeholder"]' || needs.detect-services.outputs.services == '[]' && '["placeholder"]' || needs.detect-services.outputs.services) }}
+        service: ${{ fromJson(needs.detect-changes.outputs.services) }}
 
     permissions:
       contents: write
@@ -266,6 +277,8 @@ jobs:
           git add .github/service-deployment-catalogue/dev.yml
           git diff --staged --quiet || git commit -m "Update dev catalogue for ${{ matrix.service }}"
           git push
+          image-tag: ${{ steps.tag.outputs.tag }}
+          github-token: ${{ secrets.GH_TOKEN }}
 
   # STEP 6 - Publish Maven artifacts to GitHub Packages
   publish-maven:

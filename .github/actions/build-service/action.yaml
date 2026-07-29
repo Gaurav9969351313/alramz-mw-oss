@@ -53,6 +53,16 @@ runs:
       run: |
         az acr login --name alramzregistry
 
+    - name: Check for Dockerfile
+      shell: bash
+      run: |
+        if [ ! -f "services/${{ inputs.service-name }}/Dockerfile" ]; then
+          echo "No Dockerfile found for ${{ inputs.service-name }}, skipping build and push"
+          echo "skip=true" >> $GITHUB_ENV
+        else
+          echo "skip=false" >> $GITHUB_ENV
+        fi
+
     - name: Build Docker Image
       if: ${{ steps.dockerfile-check.outputs.exists == 'true' }}
       shell: bash
