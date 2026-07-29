@@ -1,20 +1,22 @@
-name: Promote to QA
+name: Deploy QA Promotion
 
 on:
-  workflow_run:
-    workflows:
-      - CICD
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - qa
     types:
-      - completed
+      - closed
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
+  pull-requests: read
 
 jobs:
-  promote:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+  deploy-to-qa:
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
+    environment: qa
 
     steps:
       - uses: actions/checkout@v4
@@ -27,106 +29,63 @@ jobs:
           wget -q https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
           chmod +x /usr/local/bin/yq
 
-      - name: Determine changed services
+      - name: Get changed services
         id: changes
         shell: bash
         run: |
-          DEV_FILE=".github/service-deployment-catalogue/dev.yml"
-          TARGET_BRANCH="CodePromotion/qa"
-          TARGET_FILE=".github/service-deployment-catalogue/qa.yml"
+          SERVERS_FILE=".github/service-deployment-catalogue/qa.yml"
+          MERGE_SHA="${{ github.event.pull_request.merge_commit_sha }}"
+          PARENT_SHA=$(git rev-parse "${MERGE_SHA}^1" 2>/dev/null || echo "")
 
-          if [ ! -f "$DEV_FILE" ]; then
+          if [ ! -f "$SERVERS_FILE" ]; then
             echo "changed=false" >> $GITHUB_OUTPUT
             exit 0
           fi
 
-          git fetch origin "$TARGET_BRANCH" 2>/dev/null || true
-
-          if git show-ref --verify --quiet "refs/heads/$TARGET_BRANCH"; then
-            git show "origin/$TARGET_BRANCH:$TARGET_FILE" > current_qa.yml 2>/dev/null || echo "services: {}" > current_qa.yml
+          if [ -n "$PARENT_SHA" ]; then
+            CHANGED=$(git diff "$PARENT_SHA" "$MERGE_SHA" -- "$SERVERS_FILE" 2>/dev/null || true)
           else
-            echo "services: {}" > current_qa.yml
+            CHANGED=""
           fi
 
-          DEV_SERVICES=$(yq '.services | keys' "$DEV_FILE" 2>/dev/null | grep -v null || true)
-          QA_SERVICES=$(yq '.services | keys' current_qa.yml 2>/dev/null | grep -v null || true)
+          if [ -n "$CHANGED" ]; then
+            SERVICES=$(echo "$CHANGED" | grep '^+' | grep -E '^\+  [a-zA-Z0-9_-]+:' | sed 's/^+  \([^:]*\):.*/\1/' | sort -u)
+          else
+            SERVICES=$(yq '.services | keys' "$SERVERS_FILE" 2>/dev/null | grep -v null | grep -v 'null' || true)
+          fi
 
-          ALL_SERVICES=$(echo -e "${DEV_SERVICES}\n${QA_SERVICES}" | sort -u | grep -v null)
-
-          SERVICES_TO_UPDATE=""
-          for SVC in $ALL_SERVICES; do
-            DEV_TAG=$(yq ".services[\"$SVC\"].tag" "$DEV_FILE" 2>/dev/null || echo "")
-            QA_TAG=$(yq ".services[\"$SVC\"].tag" current_qa.yml 2>/dev/null || echo "")
-            if [ "$DEV_TAG" != "$QA_TAG" ] && [ -n "$DEV_TAG" ]; then
-              if [ -z "$SERVICES_TO_UPDATE" ]; then
-                SERVICES_TO_UPDATE="$SVC"
-              else
-                SERVICES_TO_UPDATE="$SERVICES_TO_UPDATE,$SVC"
-              fi
-            fi
-          done
-
-          if [ -z "$SERVICES_TO_UPDATE" ]; then
+          if [ -z "$SERVICES" ]; then
             echo "changed=false" >> $GITHUB_OUTPUT
-            rm -f current_qa.yml
             exit 0
           fi
 
+          SERVICES_CSV=$(echo "$SERVICES" | tr '\n' ',' | sed 's/,$//')
           echo "changed=true" >> $GITHUB_OUTPUT
-          echo "services=$SERVICES_TO_UPDATE" >> $GITHUB_OUTPUT
-          rm -f current_qa.yml
+          echo "services=$SERVICES_CSV" >> $GITHUB_OUTPUT
 
-      - name: Promote to QA
-        if: steps.changes.outputs.changed == 'true'
+      - name: Build services JSON
+        id: services-json
         shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TARGET_BRANCH: CodePromotion/qa
-          SOURCE_BRANCH: promote-qa
-          TARGET_FILE: .github/service-deployment-catalogue/qa.yml
-          SERVICES: ${{ steps.changes.outputs.services }}
         run: |
-          set -e
+          SERVICES_CSV="${{ steps.changes.outputs.services }}"
+          SERVERS_FILE=".github/service-deployment-catalogue/qa.yml"
 
-          IFS=',' read -ra SVC_ARRAY <<< "$SERVICES"
-
-          git fetch origin "$TARGET_BRANCH" 2>/dev/null || true
-
-          if git show-ref --verify --quiet "refs/heads/$TARGET_BRANCH"; then
-            git checkout "$TARGET_BRANCH"
-          else
-            git checkout -b "$TARGET_BRANCH" origin/main
-          fi
-
-          git checkout -b "$SOURCE_BRANCH" 2>/dev/null || git checkout "$SOURCE_BRANCH"
-
-          DEV_FILE=".github/service-deployment-catalogue/dev.yml"
-
+          JSON_ARRAY="[]"
+          IFS=',' read -ra SVC_ARRAY <<< "$SERVICES_CSV"
           for SVC in "${SVC_ARRAY[@]}"; do
-            DEV_TAG=$(yq ".services[\"$SVC\"].tag" "$DEV_FILE")
-            yq -i ".services[\"$SVC\"].tag = \"${DEV_TAG}\" "$TARGET_FILE"
+            TAG=$(yq ".services[\"$SVC\"].tag" "$SERVERS_FILE")
+            JSON_ARRAY=$(echo "$JSON_ARRAY" | jq -c --arg service "$SVC" --arg tag "$TAG" '. + [{service: $service, tag: $tag}]')
           done
+          echo "json=$JSON_ARRAY" >> "$GITHUB_OUTPUT"
 
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add "$TARGET_FILE"
-          git commit -m "Promote to QA: update ${SERVICES}"
-          git push origin "$SOURCE_BRANCH" --force
-
-          EXISTING_PR=$(gh pr list \
-            --state open \
-            --search "repo:${GITHUB_REPOSITORY} head:${SOURCE_BRANCH} base:${TARGET_BRANCH}" \
-            --json number \
-            --jq '.[0].number' 2>/dev/null || true)
-
-          if [ -n "$EXISTING_PR" ]; then
-            echo "Promotion PR already exists: #${EXISTING_PR}"
-          else
-            gh pr create \
-              --base "$TARGET_BRANCH" \
-              --head "$SOURCE_BRANCH" \
-              --title "Promote to QA" \
-              --body "Auto-promotion from Development to QA: ${SERVICES}" \
-              --label "promotion" \
-              --repo "${GITHUB_REPOSITORY}" 2>/dev/null || true
-          fi
+      - name: Deploy Services
+        if: steps.changes.outputs.changed == 'true'
+        uses: ./.github/actions/deploy-aca
+        with:
+          services: ${{ steps.services-json.outputs.json }}
+          acr-name: alramzregistry.azurecr.io
+          resource-group: alramz-qa-rg
+          location: uaenorth
+          aca-environment-id: ${{ secrets.ACA_ENVIRONMENT_ID_QA }}
+          managed-identity: ${{ secrets.MANAGED_IDENTITY_QA }}
+          azure-credentials: ${{ secrets.AZURE_CREDENTIALS }}
