@@ -209,6 +209,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check for Dockerfile
+        shell: bash
+        run: |
+          if [ ! -f "services/${{ matrix.service }}/Dockerfile" ]; then
+            echo "No Dockerfile found for service ${{ matrix.service }}, skipping deploy"
+            exit 0
+          fi
+
       - name: Install yq
         shell: bash
         run: |
@@ -262,6 +270,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Check for Dockerfile
+        shell: bash
+        run: |
+          if [ ! -f "services/${{ matrix.service }}/Dockerfile" ]; then
+            echo "No Dockerfile found for service ${{ matrix.service }}, skipping catalogue update"
+            exit 0
+          fi
 
       - name: Install yq
         shell: bash

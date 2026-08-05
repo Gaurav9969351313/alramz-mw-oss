@@ -31,9 +31,6 @@ inputs:
     description: Azure Credentials Secret
     required: true
 
-permissions:
-  contents: read
-
 runs:
   using: composite
 

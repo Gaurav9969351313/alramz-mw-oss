@@ -102,3 +102,7 @@ notes.md
 **/docs/**
 
 .kilo/**
+
+**/target/**
+
+**/*.class

@@ -1,12 +1,13 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-  <groupId>com.alramz</groupId>
-  <artifactId>alramz-api-starter</artifactId>
-  <packaging>jar</packaging>
-  <version>1.0-SNAPSHOT</version>
-  <name>alramz-api-starter</name>
-  <url>http://maven.apache.org</url>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.alramz</groupId>
+    <artifactId>alramz-api-starter</artifactId>
+    <packaging>jar</packaging>
+    <version>1.0-SNAPSHOT</version>
+    <name>alramz-api-starter</name>
+    <url>http://maven.apache.org</url>
 
     <properties>
         <java.version>21</java.version>
@@ -14,57 +15,69 @@
         <maven.compiler.target>21</maven.compiler.target>
     </properties>
 
-  <dependencyManagement>
-		<dependencies>
-			<dependency>
-				<groupId>com.alramz.bom</groupId>
-				<artifactId>alramz-common-bom</artifactId>
-				<version>1.0-SNAPSHOT</version>
-				<type>pom</type>
-				<scope>import</scope>
-        	</dependency>
-		</dependencies>
-  </dependencyManagement>
+    <developers>
+        <developer>
+            <id>gauravtalele</id>
+            <name>Gaurav Talele</name>
+            <email>gaurav@okay.com</email>
+            <organization>Okay</organization>
+            <roles>
+                <role>Lead Developer</role>
+            </roles>
+        </developer>
+    </developers>
 
-  <repositories>
-		<repository>
-			<id>github</id>
-			<url>https://maven.pkg.github.com/Gaurav9969351313/alramz-mw-oss/</url>
-		</repository>
-	</repositories>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.alramz.bom</groupId>
+                <artifactId>alramz-common-bom</artifactId>
+                <version>1.0-SNAPSHOT</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
-  <dependencies>
+    <repositories>
+        <repository>
+            <id>github</id>
+            <url>https://maven.pkg.github.com/Gaurav9969351313/alramz-mw-oss/</url>
+        </repository>
+    </repositories>
 
-    <dependency>
-        <groupId>org.springframework.security</groupId>
-        <artifactId>spring-security-oauth2-jose</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>org.springframework</groupId>
-        <artifactId>spring-web</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>org.springframework</groupId>
-        <artifactId>spring-webflux</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-databind</artifactId>
-    </dependency>
+    <dependencies>
 
-    <dependency>
-        <groupId>org.projectlombok</groupId>
-        <artifactId>lombok</artifactId>
-    </dependency>
-      <dependency>
-          <groupId>org.springframework.boot</groupId>
-          <artifactId>spring-boot-starter-test</artifactId>
-          <scope>test</scope>
-      </dependency>
-    <dependency>
-        <groupId>org.springframework.cloud</groupId>
-        <artifactId>spring-cloud-starter-circuitbreaker-reactor-resilience4j</artifactId>
-        <scope>compile</scope>
-    </dependency>
-  </dependencies>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-oauth2-jose</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webflux</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-circuitbreaker-reactor-resilience4j</artifactId>
+            <scope>compile</scope>
+        </dependency>
+    </dependencies>
 </project>
