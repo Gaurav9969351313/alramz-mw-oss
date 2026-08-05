@@ -5,6 +5,7 @@ import com.alramz.config.IbanServiceProperties;
 import com.alramz.exception.ApplicationException;
 import com.alramz.exception.ExternalSystemException;
 import com.alramz.exception.IbanValidationException;
+import com.alramz.exceptions.ApiCallFailedException;
 import com.alramz.model.BankData;
 import com.alramz.model.GenericResponse;
 import com.alramz.model.IBANRequest;
@@ -24,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.util.List;
 
@@ -75,9 +77,9 @@ public class IBANValidationServiceImpl extends AbstractRestClient implements IBA
                     null,
                     params
             ).block();
-        } catch (com.alramz.exceptions.ApiCallFailedException e) {
+        } catch (ApiCallFailedException e) {
             throw new ExternalSystemException("IBAN validation service unavailable");
-        } catch (org.springframework.web.reactive.function.client.WebClientResponseException e) {
+        } catch (WebClientResponseException e) {
             throw new ExternalSystemException("IBAN validation service unavailable");
         } catch (RuntimeException e) {
             throw new ApplicationException("Internal Server Error");

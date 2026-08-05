@@ -24,18 +24,18 @@ import org.springframework.web.reactive.function.client.WebClient;
 import java.time.Duration;
 
 @Configuration
-@EnableConfigurationProperties( IbanServiceProperties.class)
+@EnableConfigurationProperties( PhoneServiceProperties.class)
 @AllArgsConstructor
-public class ExternalIbanServiceConfig {
+public class ExternalVeriPhoneServiceConfig {
 
-    private final IbanServiceProperties ibanServiceProperties;
+    private final PhoneServiceProperties phoneServiceProperties;
 
-    private static final String CIRCUIT_BREAKER_ID = "iban-circuit-breaker";
+    private static final String CIRCUIT_BREAKER_ID = "phone-circuit-breaker";
 
-    @Bean(name = "ibanValidationService")
-    public WebClient ibanService() {
+    @Bean(name = "phoneValidationService")
+    public WebClient phoneService() {
         return WebClient.builder()
-                .baseUrl(ibanServiceProperties.baseUrl())
+                .baseUrl(phoneServiceProperties.baseUrl())
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 .codecs(configurer -> { configurer.defaultCodecs()
@@ -45,20 +45,20 @@ public class ExternalIbanServiceConfig {
                 .build();
     }
 
-    @Bean(name = "ibanCircuitBreaker")
-    public CircuitBreaker ibanServiceCircuitBreaker(CircuitBreakerRegistry registry) {
+    @Bean(name = "phoneCircuitBreaker")
+    public CircuitBreaker phoneServiceCircuitBreaker(CircuitBreakerRegistry registry) {
         return registry.circuitBreaker(CIRCUIT_BREAKER_ID);
     }
 
-    @Bean(name = "ibanRetry")
-    public Retry ibanServiceRetry(RetryRegistry registry) {
+    @Bean(name = "phoneRetry")
+    public Retry phoneServiceRetry(RetryRegistry registry) {
         return registry.retry(CIRCUIT_BREAKER_ID);
     }
 
-    @Bean(name = "ibanTimeLimiter")
-    public TimeLimiter ibanServiceTimeLimiter(TimeLimiterRegistry registry) {
+    @Bean(name = "phoneTimeLimiter")
+    public TimeLimiter phoneServiceTimeLimiter(TimeLimiterRegistry registry) {
         TimeLimiterConfig config = TimeLimiterConfig.custom()
-                .timeoutDuration(Duration.ofSeconds(Integer.parseInt(ibanServiceProperties.requestTimeout())))
+                .timeoutDuration(Duration.ofSeconds(Integer.parseInt(phoneServiceProperties.requestTimeout())))
                 .build();
         return registry.timeLimiter(CIRCUIT_BREAKER_ID, config);
     }

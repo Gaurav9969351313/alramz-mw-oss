@@ -312,7 +312,6 @@ components:
         phone:
           type: string
           minLength: 3
-          pattern: '.*\\S.*'
           description: Phone number in international format without spaces.
           example: "971502540238"
 
