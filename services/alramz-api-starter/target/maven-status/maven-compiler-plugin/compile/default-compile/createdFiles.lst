@@ -1,0 +1,7 @@
+com\alramz\client\AbstractRestClient.class
+com\alramz\App.class
+com\alramz\client\UserRequestContext.class
+com\alramz\exceptions\ApiCallFailedException.class
+com\alramz\exceptions\InvalidHttpRequestException.class
+com\alramz\models\UserRequestDetails$UserRequestDetailsBuilder.class
+com\alramz\models\UserRequestDetails.class
