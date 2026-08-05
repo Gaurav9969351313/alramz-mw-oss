@@ -65,6 +65,7 @@ jobs:
           if [ "${{ steps.type.outputs.is_release }}" == "true" ]; then
             echo "Release mode: including all services"
             SERVICES=$(find services -maxdepth 2 -name pom.xml -exec dirname {} \; | sed 's|services/||' | sort -u | jq -R . | jq -s -c .)
+            echo "has_changes=true" >> $GITHUB_OUTPUT
           else
             echo "Snapshot mode: detecting changed services"
 
@@ -94,31 +95,33 @@ jobs:
                 SERVICES="[]"
               fi
             fi
+
+            if [[ "$SERVICES" == "[]" ]] || [[ -z "$SERVICES" ]]; then
+              echo "has_changes=false" >> $GITHUB_OUTPUT
+            else
+              echo "has_changes=true" >> $GITHUB_OUTPUT
+            fi
           fi
           set -e
 
-          echo "All services before Dockerfile filter: $SERVICES"
+          echo "services=$SERVICES" >> $GITHUB_OUTPUT
+          echo "Changed services: $SERVICES"
 
-          FILTERED=$(echo "$SERVICES" | jq -r '.[]' | while read -r svc; do
+          DEPLOY_SERVICES=$(echo "$SERVICES" | jq -r '.[]' | while read -r svc; do
             if [ -n "$svc" ] && [ "$svc" != "null" ] && [ -f "services/$svc/Dockerfile" ]; then
               echo "$svc"
             fi
           done | jq -R . | jq -s -c .)
 
-          if [ -z "$FILTERED" ] || [ "$FILTERED" = "null" ]; then
-            FILTERED="[]"
-          fi
-
-          echo "Filtered services with Dockerfile: $FILTERED"
-
-          if [[ "$FILTERED" == "[]" ]] || [[ -z "$FILTERED" ]]; then
-            echo "has_changes=false" >> $GITHUB_OUTPUT
+          if [ -z "$DEPLOY_SERVICES" ] || [ "$DEPLOY_SERVICES" = "null" ]; then
+            DEPLOY_SERVICES="[]"
+            echo "has_deploy_changes=false" >> $GITHUB_OUTPUT
           else
-            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "has_deploy_changes=true" >> $GITHUB_OUTPUT
           fi
 
-          echo "services=$FILTERED" >> $GITHUB_OUTPUT
-          echo "Changed services: $FILTERED"
+          echo "deploy_services=$DEPLOY_SERVICES" >> $GITHUB_OUTPUT
+          echo "Services with Dockerfile: $DEPLOY_SERVICES"
           echo "========================================"
 
       - name: Check if services detected
@@ -171,12 +174,12 @@ jobs:
       - test
       - publish-maven
 
-    if: needs.detect-services.outputs.has_changes == 'true'
+    if: needs.detect-services.outputs.has_deploy_changes == 'true'
 
     strategy:
       fail-fast: false
       matrix:
-        service: ${{ fromJson(needs.detect-services.outputs.services == '' && '["placeholder"]' || needs.detect-services.outputs.services == '[]' && '["placeholder"]' || needs.detect-services.outputs.services) }}
+        service: ${{ fromJson(needs.detect-services.outputs.deploy_services == '' && '["placeholder"]' || needs.detect-services.outputs.deploy_services == '[]' && '["placeholder"]' || needs.detect-services.outputs.deploy_services) }}
 
     steps:
       - uses: actions/checkout@v4
@@ -210,11 +213,11 @@ jobs:
     needs:
       - build
       - detect-services
-    if: needs.detect-services.outputs.has_changes == 'true'
+    if: needs.detect-services.outputs.has_deploy_changes == 'true'
     strategy:
       fail-fast: false
       matrix:
-        service: ${{ fromJson(needs.detect-services.outputs.services) }}
+        service: ${{ fromJson(needs.detect-services.outputs.deploy_services) }}
 
     permissions:
       contents: read
@@ -263,11 +266,11 @@ jobs:
     needs:
       - deploy
       - detect-services
-    if: needs.detect-services.outputs.has_changes == 'true'
+    if: needs.detect-services.outputs.has_deploy_changes == 'true'
     strategy:
       fail-fast: false
       matrix:
-        service: ${{ fromJson(needs.detect-services.outputs.services) }}
+        service: ${{ fromJson(needs.detect-services.outputs.deploy_services) }}
 
     permissions:
       contents: write
