@@ -65,7 +65,6 @@ jobs:
           if [ "${{ steps.type.outputs.is_release }}" == "true" ]; then
             echo "Release mode: including all services"
             SERVICES=$(find services -maxdepth 2 -name pom.xml -exec dirname {} \; | sed 's|services/||' | sort -u | jq -R . | jq -s -c .)
-            echo "has_changes=true" >> $GITHUB_OUTPUT
           else
             echo "Snapshot mode: detecting changed services"
 
@@ -95,17 +94,31 @@ jobs:
                 SERVICES="[]"
               fi
             fi
-
-            if [[ "$SERVICES" == "[]" ]] || [[ -z "$SERVICES" ]]; then
-              echo "has_changes=false" >> $GITHUB_OUTPUT
-            else
-              echo "has_changes=true" >> $GITHUB_OUTPUT
-            fi
           fi
           set -e
 
-          echo "services=$SERVICES" >> $GITHUB_OUTPUT
-          echo "Changed services: $SERVICES"
+          echo "All services before Dockerfile filter: $SERVICES"
+
+          FILTERED=$(echo "$SERVICES" | jq -r '.[]' | while read -r svc; do
+            if [ -n "$svc" ] && [ "$svc" != "null" ] && [ -f "services/$svc/Dockerfile" ]; then
+              echo "$svc"
+            fi
+          done | jq -R . | jq -s -c .)
+
+          if [ -z "$FILTERED" ] || [ "$FILTERED" = "null" ]; then
+            FILTERED="[]"
+          fi
+
+          echo "Filtered services with Dockerfile: $FILTERED"
+
+          if [[ "$FILTERED" == "[]" ]] || [[ -z "$FILTERED" ]]; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+
+          echo "services=$FILTERED" >> $GITHUB_OUTPUT
+          echo "Changed services: $FILTERED"
           echo "========================================"
 
       - name: Check if services detected
@@ -209,14 +222,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check for Dockerfile
-        shell: bash
-        run: |
-          if [ ! -f "services/${{ matrix.service }}/Dockerfile" ]; then
-            echo "No Dockerfile found for service ${{ matrix.service }}, skipping deploy"
-            exit 0
-          fi
-
       - name: Install yq
         shell: bash
         run: |
@@ -270,14 +275,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Check for Dockerfile
-        shell: bash
-        run: |
-          if [ ! -f "services/${{ matrix.service }}/Dockerfile" ]; then
-            echo "No Dockerfile found for service ${{ matrix.service }}, skipping catalogue update"
-            exit 0
-          fi
 
       - name: Install yq
         shell: bash
