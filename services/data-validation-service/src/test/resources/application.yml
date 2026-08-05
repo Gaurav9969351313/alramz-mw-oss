@@ -16,22 +16,10 @@ spring:
     console:
       enabled: true
 
-server:
-  address: 0.0.0.0
-  port: 8080
-  
-management:
-  endpoints:
-    web:
-      exposure:
-        include: "*"
-
 adapter:
   external-iban-service:
-    base-url: https://api.iban.com/clients/api/v4/iban
-    api-key: ${IBAN_API_KEY:}
-    request-timeout: 10
+    base-url: http://api.iban.com
+    request-timeout: 15
   external-veriphone-service:
-    base-url: https://api.veriphone.io
-    api-key: ${VERIPHONE_API_KEY:}
-    request-timeout: 10
+    base-url: http://api.veriphone.io
+    request-timeout: 15

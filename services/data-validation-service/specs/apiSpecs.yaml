@@ -1,0 +1,389 @@
+openapi: 3.0.3
+
+info:
+  title: IBAN Validation API
+  version: 1.0.0
+  description: API to validate an IBAN and retrieve bank information.
+
+servers:
+  - url: http://localhost:8080
+
+paths:
+  /iban/validate:
+    post:
+      tags:
+        - IBAN
+      summary: Validate IBAN
+      description: Validates an IBAN and returns bank details along with validation results.
+      operationId: validateIBAN
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IBANRequest'
+            example:
+              IBAN: AE460260001015862843301
+
+      responses:
+        '200':
+          description: IBAN validated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseIBAN'
+              example:
+                responseCode: "200"
+                responseMessage: "OK"
+                response:
+                  bankData:
+                    countryISO3: ARE
+                    bic: ADCBAEAAXXX
+                    branch: null
+                    bank: ABU DHABI COMMERCIAL BANK
+                    address: ADCB BUILDING, SALAM STREET
+                    city: ABU DHABI
+                    state: null
+                    zip: "939"
+                    phone: null
+                    fax: null
+                    www: null
+                    email: null
+                    country: United Arab Emirates
+                    country_iso: AE
+                    account: "0012552369920001"
+                    bank_code: "003"
+                    branch_code: ""
+
+                  validations:
+                    chars:
+                      code: "006"
+                      message: IBAN does not contain illegal characters
+                    account:
+                      code: "004"
+                      message: Account Number check digit is not performed for this bank or branch
+                    iban:
+                      code: "001"
+                      message: IBAN Check digit is correct
+                    structure:
+                      code: "005"
+                      message: IBAN structure is correct
+                    length:
+                      code: "003"
+                      message: IBAN Length is correct
+                    country_support:
+                      code: "007"
+                      message: Country supports IBAN standard
+
+        '400':
+          description: Invalid request
+
+        '500':
+          description: Internal server error
+
+  /veriphone/verify:
+    post:
+      tags:
+        - VeriPhone
+      summary: Verify phone number
+      description: Validates a phone number and returns phone metadata.
+      operationId: verifyPhone
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PhoneRequest'
+            example:
+              phone: "971502540238"
+      responses:
+        '200':
+          description: Phone verified successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponsePhone'
+              example:
+                responseCode: "200"
+                responseMessage: "OK"
+                response:
+                  status: success
+                  phone: "971502540238"
+                  phone_valid: true
+                  phone_type: mobile
+                  phone_region: United Arab Emirates
+                  country: United Arab Emirates
+                  country_code: AE
+                  country_prefix: "971"
+                  international_number: "971502540238"
+                  local_number: "0502540238"
+                  e164: "971502540238"
+                  carrier: du
+
+        '400':
+          description: Invalid request
+
+        '500':
+          description: Internal server error
+
+
+components:
+  schemas:
+    
+    IBANRequest:
+      type: object
+      required:
+        - IBAN
+      properties:
+        IBAN:
+          type: string
+          description: International Bank Account Number
+          minLength: 1
+          example: AE460260001015862843301
+
+    ApiResponseIBAN:
+      type: object
+      required:
+        - responseCode
+        - responseMessage
+        - response
+      properties:
+        responseCode:
+          type: string
+          example: "200"
+
+        responseMessage:
+          type: string
+          example: OK
+
+        response:
+          $ref: '#/components/schemas/IBANValidationResponse'
+
+    IBANValidationResponse:
+      type: object
+      properties:
+        bank_data:
+          $ref: '#/components/schemas/BankData'
+        sepa_data:
+          $ref: '#/components/schemas/SepaData'
+        validations:
+          $ref: '#/components/schemas/Validations'
+        errors:
+          type: array
+          items:
+            type: object
+
+    SepaData:
+      type: object
+      properties:
+        SCT:
+          type: string
+          example: "NO"
+
+        SDD:
+          type: string
+          example: "NO"
+
+        COR1:
+          type: string
+          example: "NO"
+
+        B2B:
+          type: string
+          example: "NO"
+
+        SCC:
+          type: string
+          example: "NO"
+
+    BankData:
+      type: object
+      properties:
+
+        countryISO3:
+          type: string
+          example: ARE
+
+        bic:
+          type: string
+          example: ADCBAEAAXXX
+
+        branch:
+          type: string
+          nullable: true
+
+        bank:
+          type: string
+          example: ABU DHABI COMMERCIAL BANK
+
+        address:
+          type: string
+          example: ADCB BUILDING, SALAM STREET
+
+        city:
+          type: string
+          example: ABU DHABI
+
+        state:
+          type: string
+          nullable: true
+
+        zip:
+          type: string
+          example: "939"
+
+        phone:
+          type: string
+          nullable: true
+
+        fax:
+          type: string
+          nullable: true
+
+        www:
+          type: string
+          nullable: true
+
+        email:
+          type: string
+          nullable: true
+
+        country:
+          type: string
+          example: United Arab Emirates
+
+        country_iso:
+          type: string
+          example: AE
+
+        account:
+          type: string
+          example: "0012552369920001"
+
+        bank_code:
+          type: string
+          example: "003"
+
+        branch_code:
+          type: string
+          example: ""
+
+    Validations:
+      type: object
+      properties:
+
+        chars:
+          $ref: '#/components/schemas/ValidationResult'
+
+        account:
+          $ref: '#/components/schemas/ValidationResult'
+
+        iban:
+          $ref: '#/components/schemas/ValidationResult'
+
+        structure:
+          $ref: '#/components/schemas/ValidationResult'
+
+        length:
+          $ref: '#/components/schemas/ValidationResult'
+
+        country_support:
+          $ref: '#/components/schemas/ValidationResult'
+
+    ValidationResult:
+      type: object
+      properties:
+
+        code:
+          type: string
+          example: "001"
+
+        message:
+          type: string
+          example: IBAN Check digit is correct
+
+    PhoneRequest:
+      type: object
+      required:
+        - phone
+      properties:
+        phone:
+          type: string
+          minLength: 3
+          pattern: '.*\\S.*'
+          description: Phone number in international format without spaces.
+          example: "971502540238"
+
+    PhoneValidationResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+
+        phone:
+          type: string
+          example: "971502540238"
+
+        phone_valid:
+          type: boolean
+          example: true
+
+        phone_type:
+          type: string
+          example: mobile
+
+        phone_region:
+          type: string
+          example: United Arab Emirates
+
+        country:
+          type: string
+          example: United Arab Emirates
+
+        country_code:
+          type: string
+          example: AE
+
+        country_prefix:
+          type: string
+          example: "971"
+
+        international_number:
+          type: string
+          example: "971502540238"
+
+        local_number:
+          type: string
+          example: "0502540238"
+
+        e164:
+          type: string
+          example: "971502540238"
+
+        carrier:
+          type: string
+          example: du
+
+    ApiResponsePhone:
+      type: object
+      required:
+        - responseCode
+        - responseMessage
+        - response
+      properties:
+        responseCode:
+          type: string
+          example: "200"
+
+        responseMessage:
+          type: string
+          example: OK
+
+        response:
+          $ref: '#/components/schemas/PhoneValidationResponse'
+
+
+  

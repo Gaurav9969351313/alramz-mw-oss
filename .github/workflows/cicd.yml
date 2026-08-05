@@ -11,7 +11,7 @@ on:
   push:
     branches:
       - dev
-      - feature/code
+      - feature/common-stuff-1
 
 permissions:
   contents: write
