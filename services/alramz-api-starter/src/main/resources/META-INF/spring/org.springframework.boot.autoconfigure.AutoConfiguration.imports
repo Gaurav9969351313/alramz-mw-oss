@@ -1,1 +1,2 @@
 com.alramz.logging.config.LoggingAutoConfiguration
+com.alramz.scheduler.config.SchedulerAutoConfiguration

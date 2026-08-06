@@ -6,7 +6,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
 
+import com.alramz.scheduler.EnableScheduler;
+
 @SpringBootApplication
+@EnableScheduler(jobGroupName = "dataValidation")
 public class DataValidationServiceApplication {
 
 	// http://localhost:8080/api/v1/info

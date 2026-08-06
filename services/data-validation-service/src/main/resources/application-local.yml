@@ -35,3 +35,16 @@ adapter:
     base-url: https://api.veriphone.io
     api-key: ${VERIPHONE_API_KEY:}
     request-timeout: 10
+
+company:
+  scheduler:
+    pool-size: 5
+    thread-group-name: DataValidation-Scheduled-Tasks
+    thread-name-prefix: DataValidation-TaskScheduler-Worker-
+    jobs:
+      - schedule-id: dataValidationHealthCheck
+        worker-bean-name: dataValidationJobRunner
+        job-bean-names: dataValidationJobRunner
+        schedule-mode: CRON_EXP
+        cron-expr: "0 */5 * * * *"
+        enable: Y
