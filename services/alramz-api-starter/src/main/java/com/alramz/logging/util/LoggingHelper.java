@@ -1,0 +1,284 @@
+package com.alramz.logging.util;
+
+import com.alramz.logging.config.LoggingProperties;
+import com.alramz.logging.model.RequestLog;
+import com.alramz.logging.model.ResponseLog;
+import com.alramz.logging.otel.TraceContextExtractor;
+import com.alramz.logging.constants.LoggingConstants;
+import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.springframework.core.env.Environment;
+import org.springframework.util.StringUtils;
+import org.springframework.web.util.ContentCachingRequestWrapper;
+import org.springframework.web.util.WebUtils;
+
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+
+/**
+ * Orchestrating helper used by the filters and interceptors. It is the single
+ * entry point for resolving the service name, populating the diagnostic
+ * context (MDC) from an HTTP request and for safely reading masked request
+ * bodies and query/header maps.
+ */
+public class LoggingHelper {
+
+    private final String serviceName;
+    private final LoggingProperties properties;
+    private final TraceContextExtractor traceContextExtractor;
+    private final boolean maskingEnabled;
+
+    public LoggingHelper(Environment environment, LoggingProperties properties,
+                         List<TraceContextExtractor> traceContextExtractors) {
+        this.serviceName = environment.getProperty("spring.application.name", LoggingConstants.DEFAULT_SERVICE_NAME);
+        this.properties = properties;
+        this.traceContextExtractor = resolveExtractor(traceContextExtractors);
+        this.maskingEnabled = properties.getMasking().isEnabled();
+    }
+
+    private static TraceContextExtractor resolveExtractor(List<TraceContextExtractor> extractors) {
+        if (extractors != null) {
+            for (TraceContextExtractor e : extractors) {
+                if (e.isSupported()) {
+                    return e;
+                }
+            }
+        }
+        return new com.alramz.logging.otel.NoopTraceContextExtractor();
+    }
+
+    public String getServiceName() {
+        return serviceName;
+    }
+
+    public String getCorrelationIdHeader() {
+        return properties.getCorrelationId().getHeader();
+    }
+
+    public boolean isMaskingEnabled() {
+        return maskingEnabled;
+    }
+
+    public TraceContextExtractor getTraceContextExtractor() {
+        return traceContextExtractor;
+    }
+
+    /**
+     * Populate the MDC with the standard diagnostic context entries derived
+     * from the current request. Correlation id must already be present.
+     */
+    public void populateMdc(HttpServletRequest request) {
+        MDCUtil.putServiceName(serviceName);
+        MDCUtil.putClientIp(extractClientIp(request));
+        MDCUtil.putUserId(resolveHeader(request, properties.getCorrelationId().getUserIdHeader()));
+        MDCUtil.putTenantId(resolveHeader(request, properties.getCorrelationId().getTenantIdHeader()));
+        MDCUtil.putRequestId(resolveHeader(request, properties.getCorrelationId().getRequestIdHeader()));
+        MDCUtil.put(LoggingConstants.METHOD, request.getMethod());
+        MDCUtil.put(LoggingConstants.URI, request.getRequestURI());
+        String query = request.getQueryString();
+        if (query != null && !query.isEmpty()) {
+            MDCUtil.put("queryString", query);
+        }
+        MDCUtil.putTraceId(traceContextExtractor.traceId());
+        MDCUtil.putSpanId(traceContextExtractor.spanId());
+    }
+
+    private String resolveHeader(HttpServletRequest request, String headerName) {
+        String value = request.getHeader(headerName);
+        if (!StringUtils.hasText(value)) {
+            return null;
+        }
+        return maskingEnabled && LogMaskingUtil.isSensitiveKey(headerName)
+                ? LogMaskingUtil.maskValue(headerName, value)
+                : value;
+    }
+
+    public static String extractClientIp(HttpServletRequest request) {
+        if (request == null) {
+            return null;
+        }
+        String[] headers = {"X-Forwarded-For", "X-Real-IP", "Proxy-Client-IP",
+                "WL-Proxy-Client-IP", "HTTP_CLIENT_IP", "HTTP_X_FORWARDED_FOR"};
+        for (String header : headers) {
+            String value = request.getHeader(header);
+            if (StringUtils.hasText(value) && !"unknown".equalsIgnoreCase(value)) {
+                return value.split(",")[0].trim();
+            }
+        }
+        return request.getRemoteAddr();
+    }
+
+    public Map<String, String> toQueryParams(HttpServletRequest request) {
+        Map<String, String> map = new LinkedHashMap<>();
+        if (request == null) {
+            return map;
+        }
+        request.getParameterMap().forEach((key, values) -> {
+            if (values != null && values.length > 0) {
+                String value = maskingEnabled ? LogMaskingUtil.mask(values[0]) : values[0];
+                map.put(key, value);
+            }
+        });
+        return map;
+    }
+
+    public Map<String, String> toHeaders(HttpServletRequest request) {
+        Map<String, String> map = new LinkedHashMap<>();
+        if (request == null) {
+            return map;
+        }
+        Enumeration<String> names = request.getHeaderNames();
+        if (names == null) {
+            return map;
+        }
+        while (names.hasMoreElements()) {
+            String headerName = names.nextElement();
+            List<String> values = Collections.list(request.getHeaders(headerName));
+            String value = LogMaskingUtil.maskHeader(headerName, values);
+            map.put(headerName, value);
+        }
+        return map;
+    }
+
+    public String extractPayload(HttpServletRequest request) {
+        if (request == null) {
+            return null;
+        }
+        ContentCachingRequestWrapper caching = WebUtils.getNativeRequest(request, ContentCachingRequestWrapper.class);
+        if (caching == null) {
+            return null;
+        }
+        byte[] content = caching.getContentAsByteArray();
+        if (content == null || content.length == 0) {
+            return null;
+        }
+        String raw = new String(content, StandardCharsets.UTF_8);
+        String limited = raw.length() > properties.getRequest().getMaxPayloadLength()
+                ? raw.substring(0, properties.getRequest().getMaxPayloadLength()) + "...[truncated]"
+                : raw;
+        return maskingEnabled ? LogMaskingUtil.mask(limited) : limited;
+    }
+
+    /**
+     * Build a {@link RequestLog} for the current request. Payload is only
+     * populated when request payload logging is enabled, and only if the
+     * request has been wrapped in a {@link ContentCachingRequestWrapper}.
+     */
+    public RequestLog buildRequestLog(HttpServletRequest request, String correlationId) {
+        if (request == null) {
+            return null;
+        }
+        Map<String, String> headers = properties.getRequest().isIncludeHeaders()
+                ? toHeaders(request) : Collections.emptyMap();
+        String payload = properties.getRequest().isIncludePayload() ? extractPayload(request) : null;
+        return RequestLog.builder()
+                .serviceName(serviceName)
+                .correlationId(correlationId)
+                .requestId(MDCUtil.get(LoggingConstants.REQUEST_ID))
+                .traceId(MDCUtil.get(LoggingConstants.TRACE_ID))
+                .spanId(MDCUtil.get(LoggingConstants.SPAN_ID))
+                .timestamp(java.time.Instant.now())
+                .method(request.getMethod())
+                .uri(request.getRequestURI())
+                .queryParams(toQueryParams(request))
+                .headers(headers)
+                .clientIp(extractClientIp(request))
+                .payload(payload)
+                .build();
+    }
+
+    public ResponseLog buildResponseLog(int status, long responseTimeMs, long responseSizeBytes, String payload) {
+        return ResponseLog.builder()
+                .serviceName(serviceName)
+                .correlationId(MDCUtil.getCorrelationId())
+                .traceId(MDCUtil.get(LoggingConstants.TRACE_ID))
+                .spanId(MDCUtil.get(LoggingConstants.SPAN_ID))
+                .timestamp(java.time.Instant.now())
+                .status(status)
+                .responseTimeMs(responseTimeMs)
+                .responseSizeBytes(responseSizeBytes)
+                .payload(payload)
+                .build();
+    }
+
+    public void logRequest(Logger logger, RequestLog requestLog) {
+        if (requestLog == null || !logger.isInfoEnabled()) {
+            return;
+        }
+        Map<String, String> headers = requestLog.headers();
+        if (!headers.isEmpty()) {
+            MDCUtil.putAll(headers);
+        }
+        String query = requestLog.queryParams().isEmpty() ? "" : requestLog.queryParams().toString();
+        MDCUtil.put("queryParams", query);
+        try {
+            if (requestLog.payload() != null) {
+                logger.info("Incoming request: {} {} {} RequestBody={}",
+                        requestLog.method(), requestLog.uri(), query, requestLog.payload());
+            } else {
+                logger.info("Incoming request: {} {} {}",
+                        requestLog.method(), requestLog.uri(), query);
+            }
+        } finally {
+            MDCUtil.remove("queryParams");
+            for (String key : headers.keySet()) {
+                MDCUtil.remove(key);
+            }
+        }
+    }
+
+    public void logResponse(Logger logger, ResponseLog responseLog) {
+        if (responseLog == null || !logger.isInfoEnabled()) {
+            return;
+        }
+        MDCUtil.put(LoggingConstants.RESPONSE_STATUS, String.valueOf(responseLog.status()));
+        MDCUtil.put(LoggingConstants.RESPONSE_TIME_MS, String.valueOf(responseLog.responseTimeMs()));
+        MDCUtil.put(LoggingConstants.RESPONSE_SIZE_BYTES, String.valueOf(responseLog.responseSizeBytes()));
+        try {
+            if (responseLog.payload() != null) {
+                logger.info("Completed response: status={} duration={}ms size={}B ResponseBody={}",
+                        responseLog.status(), responseLog.responseTimeMs(),
+                        responseLog.responseSizeBytes(), responseLog.payload());
+            } else {
+                logger.info("Completed response: status={} duration={}ms size={}B",
+                        responseLog.status(), responseLog.responseTimeMs(), responseLog.responseSizeBytes());
+            }
+            logPerformanceIfSlow(logger, responseLog.responseTimeMs(), "request");
+        } finally {
+            MDCUtil.remove(LoggingConstants.RESPONSE_STATUS);
+            MDCUtil.remove(LoggingConstants.RESPONSE_TIME_MS);
+            MDCUtil.remove(LoggingConstants.RESPONSE_SIZE_BYTES);
+        }
+    }
+
+    private void logPerformanceIfSlow(Logger logger, long durationMs, String context) {
+        var threshold = properties.getPerformance().getThreshold();
+        if (threshold != null && durationMs > threshold.toMillis()) {
+            logger.warn("Slow {} detected: {}ms (threshold {}ms)", context, durationMs, threshold.toMillis());
+        }
+    }
+
+    /**
+     * Return {@code true} when the given path matches any of the configured
+     * excluded patterns.
+     */
+    public boolean isExcludedPath(HttpServletRequest request) {
+        if (request == null) {
+            return false;
+        }
+        String path = request.getServletPath();
+        if (!StringUtils.hasText(path)) {
+            path = request.getRequestURI();
+        }
+        for (String pattern : properties.getExcludedPaths()) {
+            if (AntPathMatcherUtil.match(pattern, path)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void clearMdc() {
+        MDCUtil.clear();
+    }
+}

@@ -3,3 +3,26 @@ spring:
     name: data-validation-service
   profiles:
     active: local
+
+# Al Ramz logging starter: structured JSON logging with correlation-id +
+# request/response logging enabled for every microservice.
+company:
+  logging:
+    json:
+      enabled: false
+      pretty-print: true
+    correlation-id:
+      response-header: true
+    request:
+      enabled: true
+      include-headers: true
+      include-payload: true
+      pretty-print: true
+    response:
+      enabled: true
+      include-payload: true
+      pretty-print: true
+    aspect:
+      enabled: true
+    performance:
+      threshold: 1000ms

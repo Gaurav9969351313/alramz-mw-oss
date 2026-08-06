@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true">
+
+    <!-- Values pulled from the Spring environment so logback starts after the
+         environment is prepared. Children can override the whole file by placing
+         their own logback-spring.xml on the classpath. -->
+    <springProperty name="APP_NAME" source="spring.application.name" defaultValue="application"/>
+    <springProperty name="JSON_ENABLED" source="company.logging.json.enabled" defaultValue="false"/>
+    <springProperty name="APPENDER_LEVEL" source="company.logging.level" defaultValue="INFO"/>
+
+    <property name="LOG_DIR" value="${LOG_PATH:-logs}"/>
+    <property name="LOG_FILE" value="${LOG_FILE:-${LOG_DIR}/${APP_NAME}.log}"/>
+
+    <!-- Plain (no ANSI) pattern shared by the file/encoder classic output so log
+         files stay clean for aggregators. -->
+    <property name="CLASSIC_PATTERN"
+              value="[%d{yyyy-MM-dd HH:mm:ss.SSS}] [%thread] %-5level [service=%X{serviceName}] [corr=%X{correlationId}] [trace=%X{traceId}] [span=%X{spanId}] [%X{method} %X{uri} %X{responseStatus} %X{responseTimeMs}ms] %logger{36} - %msg%n"/>
+
+    <!-- ANSI-colored pattern for the human-facing console only. Color codes are
+         emitted by logback when the output supports a terminal; piped/CI output
+         automatically falls back to plain text. -->
+    <property name="CONSOLE_PATTERN"
+              value="[%d{yyyy-MM-dd HH:mm:ss.SSS}] [%thread] %highlight(%5p) [service=%cyan(%X{serviceName})] [corr=%cyan(%X{correlationId})] [trace=%magenta(%X{traceId})] [span=%magenta(%X{spanId})] [%X{method} %X{uri} %X{responseStatus} %X{responseTimeMs}ms] %logger{36} - %msg%n"/>
+
+    <!-- Injects the service name into every MDC so startup logs show it too. -->
+    <turboFilter class="com.alramz.logging.logback.ServiceNameTurboFilter">
+        <serviceName>${APP_NAME}</serviceName>
+    </turboFilter>
+
+    <!-- CONSOLE: human-readable, ANSI-colored line (never written to file). -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${CONSOLE_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- FILE: structured JSON when enabled, otherwise the plain classic pattern. -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_FILE}</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/${APP_NAME}.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder class="com.alramz.logging.logback.AlramzJsonEncoder">
+            <json>${JSON_ENABLED}</json>
+            <serviceName>${APP_NAME}</serviceName>
+            <classicPattern>${CLASSIC_PATTERN}</classicPattern>
+            <prettyPrint>false</prettyPrint>
+        </encoder>
+    </appender>
+
+    <!-- logback's classic AsyncAppender attaches a single target, so use one
+         async wrapper per appender to guarantee BOTH console and file receive
+         every log event. -->
+    <appender name="ASYNC_CONSOLE" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>1024</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <includeCallerData>false</includeCallerData>
+        <appender-ref ref="CONSOLE"/>
+    </appender>
+
+    <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>1</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <includeCallerData>false</includeCallerData>
+        <appender-ref ref="FILE"/>
+    </appender>
+
+    <!-- Root logger. The threshold can be overridden per-package in the child. -->
+    <root level="${APPENDER_LEVEL}">
+        <appender-ref ref="ASYNC_CONSOLE"/>
+        <appender-ref ref="ASYNC_FILE"/>
+    </root>
+
+    <logger name="org.springframework" level="WARN"/>
+    <logger name="org.hibernate.engine" level="WARN"/>
+</configuration>
