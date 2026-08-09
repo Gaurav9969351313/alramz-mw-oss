@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+    <entry key="schedule.job.select.by.group">
+        SELECT * FROM schedule_job WHERE job_group_name = ? AND enable = 'Y'
+    </entry>
+    <entry key="schedule.job.count.by.group">
+        SELECT COUNT(*) FROM schedule_job WHERE job_group_name = ?
+    </entry>
+</properties>

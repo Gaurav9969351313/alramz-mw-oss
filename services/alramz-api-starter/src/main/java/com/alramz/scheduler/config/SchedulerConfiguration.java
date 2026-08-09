@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
+import com.alramz.scheduler.repository.ScheduleJobRepository;
 import com.alramz.scheduler.service.ISchedulerService;
 import com.alramz.scheduler.service.impl.JobScheduleManager;
 
@@ -32,15 +33,30 @@ public class SchedulerConfiguration {
     @Bean
     public ISchedulerService schedulerService(final ThreadPoolTaskScheduler threadPoolTaskScheduler,
                                               final BeanFactory beanFactory,
-                                              final SchedulerProperties properties) {
+                                              final SchedulerProperties properties,
+                                              final org.springframework.core.env.Environment environment) {
 
-        ISchedulerService schedulerService = new JobScheduleManager(threadPoolTaskScheduler, beanFactory, properties);
+        ScheduleJobRepository scheduleJobRepository = null;
+        try {
+            if (environment.getProperty("spring.datasource.url") != null
+                    || environment.getProperty("spring.datasource.driver-class-name") != null) {
+                scheduleJobRepository = beanFactory.getBean(ScheduleJobRepository.class);
+            }
+        } catch (Exception e) {
+            logger.debug("ScheduleJobRepository not available, falling back to YAML properties for scheduler jobs");
+        }
 
-        Optional.ofNullable(System.getProperty("JobGroupName")).ifPresent(jobGroupName -> {
-            logger.debug("@Bean=schedulerService created");
-            schedulerService.schedule(jobGroupName);
-            logger.info("Scheduler is started for the group: {}", jobGroupName);
-        });
-        return schedulerService;
+        return new JobScheduleManager(threadPoolTaskScheduler, beanFactory, properties, scheduleJobRepository);
+    }
+
+    @Bean
+    public org.springframework.boot.ApplicationRunner schedulerStartupRunner(ISchedulerService schedulerService) {
+        return args -> {
+            String jobGroupName = System.getProperty("JobGroupName");
+            if (jobGroupName != null) {
+                schedulerService.schedule(jobGroupName);
+                logger.info("Scheduler is started for the group: {}", jobGroupName);
+            }
+        };
     }
 }

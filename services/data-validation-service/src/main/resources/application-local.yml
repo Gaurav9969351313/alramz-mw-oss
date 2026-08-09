@@ -10,7 +10,7 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: validate
 
   h2:
     console:
@@ -41,10 +41,3 @@ company:
     pool-size: 5
     thread-group-name: DataValidation-Scheduled-Tasks
     thread-name-prefix: DataValidation-TaskScheduler-Worker-
-    jobs:
-      - schedule-id: dataValidationHealthCheck
-        worker-bean-name: dataValidationJobRunner
-        job-bean-names: dataValidationJobRunner
-        schedule-mode: CRON_EXP
-        cron-expr: "0 */5 * * * *"
-        enable: Y

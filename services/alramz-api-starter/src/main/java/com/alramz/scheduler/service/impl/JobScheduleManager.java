@@ -24,8 +24,10 @@ import jakarta.annotation.PreDestroy;
 
 import com.alramz.scheduler.constants.SchedulerConstants;
 import com.alramz.scheduler.config.SchedulerProperties;
+import com.alramz.scheduler.entity.ScheduleJobEntity;
 import com.alramz.scheduler.model.ScheduleInfoBean;
 import com.alramz.scheduler.model.SchedStatus;
+import com.alramz.scheduler.repository.ScheduleJobRepository;
 import com.alramz.scheduler.service.ISchedulerService;
 import com.alramz.scheduler.service.Schedulable;
 
@@ -35,11 +37,14 @@ public class JobScheduleManager implements ISchedulerService {
     private final ThreadPoolTaskScheduler threadPoolTaskScheduler;
     private final BeanFactory beanFactory;
     private final SchedulerProperties properties;
+    private final ScheduleJobRepository scheduleJobRepository;
 
-    public JobScheduleManager(ThreadPoolTaskScheduler threadPoolTaskScheduler, BeanFactory beanFactory, SchedulerProperties properties) {
+    public JobScheduleManager(ThreadPoolTaskScheduler threadPoolTaskScheduler, BeanFactory beanFactory, SchedulerProperties properties,
+                              ScheduleJobRepository scheduleJobRepository) {
         this.threadPoolTaskScheduler = threadPoolTaskScheduler;
         this.beanFactory = beanFactory;
         this.properties = properties;
+        this.scheduleJobRepository = scheduleJobRepository;
     }
 
     private Map<ScheduleInfoBean, ScheduledFuture<Schedulable>> scheduledTasks = new ConcurrentHashMap<>();
@@ -169,30 +174,60 @@ public class JobScheduleManager implements ISchedulerService {
         ScheduledFuture<Schedulable> future = null;
         List<ScheduleInfoBean> scheduledJobs = new ArrayList<>();
         try {
-            for (SchedulerProperties.ScheduleJobProperties jobProps : properties.getJobs()) {
-                if (!"Y".equalsIgnoreCase(jobProps.getEnable())) {
-                    continue;
-                }
-                if (jobIds != null && jobIds.length > 0) {
-                    boolean matched = Arrays.stream(jobIds).anyMatch(id -> id.equalsIgnoreCase(jobProps.getScheduleId()));
-                    if (!matched) {
+            List<ScheduleJobEntity> dbJobs = new ArrayList<>();
+            if (scheduleJobRepository != null) {
+                dbJobs = scheduleJobRepository.findByJobGroupNameAndEnable(jobGroupName, "Y");
+                log.info("Loaded {} scheduled jobs from database for jobGroupName={}", dbJobs.size(), jobGroupName);
+            }
+            if (dbJobs.isEmpty()) {
+                for (SchedulerProperties.ScheduleJobProperties jobProps : properties.getJobs()) {
+                    if (!"Y".equalsIgnoreCase(jobProps.getEnable())) {
                         continue;
                     }
+                    if (jobIds != null && jobIds.length > 0) {
+                        boolean matched = Arrays.stream(jobIds).anyMatch(id -> id.equalsIgnoreCase(jobProps.getScheduleId()));
+                        if (!matched) {
+                            continue;
+                        }
+                    }
+                    java.sql.Timestamp startTime = null;
+                    ScheduleInfoBean b = new ScheduleInfoBean(
+                            jobProps.getWorkerBeanName(),
+                            jobProps.getJobBeanNames(),
+                            jobProps.getJobParameter(),
+                            jobProps.getScheduleMode(),
+                            startTime,
+                            jobProps.getCronExpr(),
+                            jobProps.getDelay(),
+                            jobProps.getInterval(),
+                            jobProps.getEnable()
+                    );
+                    b.setScheduleId(jobProps.getScheduleId());
+                    scheduledJobs.add(b);
                 }
-                java.sql.Timestamp startTime = null;
-                ScheduleInfoBean b = new ScheduleInfoBean(
-                        jobProps.getWorkerBeanName(),
-                        jobProps.getJobBeanNames(),
-                        jobProps.getJobParameter(),
-                        jobProps.getScheduleMode(),
-                        startTime,
-                        jobProps.getCronExpr(),
-                        jobProps.getDelay(),
-                        jobProps.getInterval(),
-                        jobProps.getEnable()
-                );
-                b.setScheduleId(jobProps.getScheduleId());
-                scheduledJobs.add(b);
+            } else {
+                for (ScheduleJobEntity entity : dbJobs) {
+                    if (jobIds != null && jobIds.length > 0) {
+                        boolean matched = Arrays.stream(jobIds).anyMatch(id -> id.equalsIgnoreCase(entity.getScheduleId()));
+                        if (!matched) {
+                            continue;
+                        }
+                    }
+                    java.sql.Timestamp startTime = null;
+                    ScheduleInfoBean b = new ScheduleInfoBean(
+                            entity.getWorkerBeanName(),
+                            entity.getJobBeanNames() != null ? entity.getJobBeanNames() : "",
+                            entity.getJobParameter() != null ? entity.getJobParameter() : "",
+                            entity.getScheduleMode(),
+                            startTime,
+                            entity.getCronExpr(),
+                            entity.getDelay(),
+                            entity.getIntervalSeconds(),
+                            entity.getEnable()
+                    );
+                    b.setScheduleId(entity.getScheduleId());
+                    scheduledJobs.add(b);
+                }
             }
 
             for (final ScheduleInfoBean scheduleInfoBean : scheduledJobs) {

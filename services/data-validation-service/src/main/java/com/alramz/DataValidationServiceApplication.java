@@ -1,5 +1,7 @@
 package com.alramz;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -12,9 +14,10 @@ import com.alramz.scheduler.EnableScheduler;
 @EnableScheduler(jobGroupName = "dataValidation")
 public class DataValidationServiceApplication {
 
+	private static final Logger log = LoggerFactory.getLogger(DataValidationServiceApplication.class);
+
 	// http://localhost:8080/api/v1/info
 	public static void main(String[] args) {
-		System.out.println("Gaurav Ta");
 		SpringApplication.run(DataValidationServiceApplication.class, args);
 	}
 
@@ -24,11 +27,11 @@ public class DataValidationServiceApplication {
 			String port = env.getProperty("server.port", "8080");
 			String host = env.getProperty("server.address", "localhost");
 			String appName = env.getProperty("spring.application.name", "unknown");
-			System.out.println("========================================");
-			System.out.println("Application: " + appName);
-			System.out.println("Host:        " + host);
-			System.out.println("Port:        " + port);
-			System.out.println("========================================");
+			log.info("========================================");
+			log.info("Application: {}", appName);
+			log.info("Host:        {}", host);
+			log.info("Port:        {}", port);
+			log.info("========================================");
 		};
 	}
 

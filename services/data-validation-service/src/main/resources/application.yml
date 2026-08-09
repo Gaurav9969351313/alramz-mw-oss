@@ -3,6 +3,14 @@ spring:
     name: data-validation-service
   profiles:
     active: local
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+
+sql:
+  file: classpath:sql/sql-queries.xml
 
 # Al Ramz logging starter: structured JSON logging with correlation-id +
 # request/response logging enabled for every microservice.
