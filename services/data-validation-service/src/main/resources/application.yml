@@ -1,3 +1,6 @@
+server:
+  host: localhost
+
 spring:
   application:
     name: data-validation-service
@@ -18,19 +21,28 @@ company:
   logging:
     json:
       enabled: false
-      pretty-print: true
+      pretty-print: false
     correlation-id:
-      response-header: true
+      response-header: false
     request:
       enabled: true
-      include-headers: true
+      include-headers: false
       include-payload: true
-      pretty-print: true
     response:
       enabled: true
       include-payload: true
-      pretty-print: true
     aspect:
-      enabled: true
+      enabled: false
     performance:
       threshold: 1000ms
+  jwt:
+    enabled: true
+    secret: ${JWT_SECRET:defaultSecretKeyChangeMeInProduction1234567890}
+    login-url: /api/auth/login
+    register-url: /api/auth/register
+    refresh-url: /api/auth/refresh
+    logout-url: /api/auth/logout
+    validate-url: /api/auth/validate
+    permit-all-urls:
+      - /api/v1/info
+      - /h2-console/**

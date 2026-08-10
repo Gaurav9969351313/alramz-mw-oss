@@ -1,6 +1,48 @@
-@baseUrl=http://localhost:5001
+@baseUrl=http://localhost:8080
 
-GET {{baseUrl}}/api/v1/info HTTP/1.1
+@authToken=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJkYXRhX3ZhbGlkYXRpb25fYXBwIiwiaWF0IjoxNzg2Mzg0MzcyLCJleHAiOjE3ODYzODUyNzIsInJvbGVzIjpbIkFQUF9EQVRBX1ZBTElEQVRJT04iXSwiYXBwbGljYXRpb24iOiJkYXRhLXZhbGlkYXRpb24tc2VydmljZSIsImVudmlyb25tZW50IjoibG9jYWwifQ.jYGybAm4M6p4RbPwswdnZRCJAJm3_tx3TUPC_hXRqF0
+### Register the app (run once)
+POST {{baseUrl}}/api/auth/register
 Content-Type: application/json
 
-GET OOO HTTP/1.1
+{
+    "username": "data_validation_app",
+    "email": "data.validation@alramz.ae",
+    "password": "password123",
+    "roles": ["APP_DATA_VALIDATION"],
+    "application": "data-validation-service",
+    "environment": "local"
+}
+
+###
+
+### Login to get JWT token
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+    "username": "data_validation_app",
+    "password": "password123"
+}
+
+###
+
+### Validate IBAN
+POST {{baseUrl}}/api/v1/iban/validate
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "IBAN": "AE460260001015862843301"
+}
+
+###
+
+### Verify Phone
+POST {{baseUrl}}/api/v1/veriphone/verify
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "phone": "971502540238"
+}

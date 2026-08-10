@@ -1,5 +1,6 @@
 package com.alramz.controllers;
 
+import com.alramz.jwt.annotation.JwtSecured;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,11 +24,13 @@ public class DataValidationController implements IbanApi, VeriPhoneApi {
     private final PhoneValidationService phoneValidationService;
 
     @Override
+    @JwtSecured(roles = "APP_DATA_VALIDATION")
     public ResponseEntity<GenericResponse> validateIBAN(IBANRequest ibANRequest) {
         return ResponseEntity.ok(ibanValidationService.validate(ibANRequest));
     }
 
     @Override
+    @JwtSecured(roles = "APP_DATA_VALIDATION")
     public ResponseEntity<GenericResponse> verifyPhone(PhoneRequest phoneRequest) {
         return ResponseEntity.ok(phoneValidationService.validate(phoneRequest));
     }

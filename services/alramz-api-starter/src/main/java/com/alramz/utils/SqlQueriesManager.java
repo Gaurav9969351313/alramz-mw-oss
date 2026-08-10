@@ -37,7 +37,12 @@ public class SqlQueriesManager {
         try {
             log.info("Initializing SQL Query Manager");
             
-            InputStream in = getClass().getClassLoader().getResourceAsStream(environment.getRequiredProperty("sql.file"));
+            String sqlFile = environment.getRequiredProperty("sql.file");
+            if (sqlFile.startsWith("classpath:")) {
+                sqlFile = sqlFile.substring("classpath:".length());
+            }
+            
+            InputStream in = getClass().getClassLoader().getResourceAsStream(sqlFile);
         
             if (in == null) {
                 throw new IOException("Error: InputStream is null.");

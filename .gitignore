@@ -131,3 +131,20 @@ notes.md
 
 # Logs
 *.log
+*.class
+*.jar
+*.gz
+*.lst
+services/alramz-api-starter/target/classes/com/alramz/App.class
+services/alramz-api-starter/target/classes/com/alramz/client/AbstractRestClient.class
+services/alramz-api-starter/target/classes/com/alramz/client/UserRequestContext.class
+services/alramz-api-starter/target/classes/com/alramz/exceptions/ApiCallFailedException.class
+services/alramz-api-starter/target/classes/com/alramz/exceptions/InvalidHttpRequestException.class
+services/alramz-api-starter/target/classes/com/alramz/models/UserRequestDetails$UserRequestDetailsBuilder.class
+services/alramz-api-starter/target/classes/com/alramz/models/UserRequestDetails.class
+services/alramz-api-starter/target/maven-archiver/pom.properties
+services/alramz-api-starter/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst
+services/alramz-api-starter/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst
+services/alramz-api-starter/target/maven-status/maven-compiler-plugin/testCompile/default-testCompile/createdFiles.lst
+services/alramz-api-starter/target/maven-status/maven-compiler-plugin/testCompile/default-testCompile/inputFiles.lst
+services/alramz-api-starter/target/alramz-api-starter-1.0-SNAPSHOT.jar

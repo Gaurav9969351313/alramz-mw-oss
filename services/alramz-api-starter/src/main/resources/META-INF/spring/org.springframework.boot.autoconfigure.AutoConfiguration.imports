@@ -1,2 +1,3 @@
 com.alramz.logging.config.LoggingAutoConfiguration
 com.alramz.scheduler.config.SchedulerAutoConfiguration
+com.alramz.jwt.config.JwtAutoConfiguration
