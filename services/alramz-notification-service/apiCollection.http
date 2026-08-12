@@ -1,0 +1,38 @@
+@baseUrl=http://localhost:8082
+
+### Info
+GET {{baseUrl}}/api/v1/info
+
+###
+
+### Send Email - Simple
+POST {{baseUrl}}/api/v1/email/send
+Content-Type: application/json
+
+{
+    "to": "gtalele@alramz.ae",
+    "subject": "Test Email from Spring Boot",
+    "from": "notification@alramz.ae",
+    "body": "This is a Gaurav test email body."
+}
+
+###
+
+### Send Email - With Attachment
+POST {{baseUrl}}/api/v1/email/send
+Content-Type: application/json
+
+{
+    "to": "recipient@example.com",
+    "subject": "Test Email with Attachment",
+    "from": "sender@example.com",
+    "body": "<h1>Hello</h1><p>Please find the attachment.</p>",
+    "attachments": [
+        {
+            "name": "document.pdf",
+            "content": "base64-encoded-pdf-data"
+        }
+    ]
+}
+
+###
