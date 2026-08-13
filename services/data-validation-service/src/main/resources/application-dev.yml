@@ -1,0 +1,76 @@
+spring:
+  application:
+    name: data-validation-service
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: validate
+
+  h2:
+    console:
+      enabled: true
+
+server:
+  address: 0.0.0.0
+  port: 8085
+  host: localhost
+  
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+adapter:
+  external-iban-service:
+    base-url: https://api.iban.com/clients/api/v4/iban
+    api-key: ${IBAN_API_KEY:}
+    request-timeout: 10
+  external-veriphone-service:
+    base-url: https://api.veriphone.io
+    api-key: ${VERIPHONE_API_KEY:}
+    request-timeout: 10
+  etrade:
+    base-url: ${ETRADE_BASE_URL:https://etradeqa.alramz.ae}
+    client-id: "1"
+    client-secret: "R@mZS4qR5t"
+    request-timeout: "30"
+    token-ttl-seconds: 3000
+    token-path: /IntegrationAPI/IntegrationWServices/GetClientToken
+    validations:
+      EMAIL_EXISTS:
+        path: /IntegrationAPI/IntegrationWServices/IfEmailExists
+        method: POST
+        request-mapping:
+          IslamicMode: islamicMode
+          Lang: language
+          Reference_No: referenceNo
+          emailAddress: email
+      PASSPORT_EXISTS:
+        path: /IntegrationAPI/IntegrationWServices/IfPassportExists
+        method: POST
+        request-mapping:
+          IslamicMode: islamicMode
+          Lang: language
+          Reference_No: referenceNo
+          pp_number: passportNumber
+      NIN_EXISTS:
+        path: /IntegrationAPI/IntegrationWServices/IfNinExists
+        method: POST
+        request-mapping:
+          IslamicMode: islamicMode
+          Lang: language
+          Reference_No: referenceNo
+          nin: nin
+
+company:
+  scheduler:
+    pool-size: 5
+    thread-group-name: DataValidation-Scheduled-Tasks
+    thread-name-prefix: DataValidation-TaskScheduler-Worker-

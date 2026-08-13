@@ -1,6 +1,11 @@
-@baseUrl=http://localhost:8080
+@baseUrl=http://localhost:8085
 
-@authToken=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJkYXRhX3ZhbGlkYXRpb25fYXBwIiwiaWF0IjoxNzg2Mzg0MzcyLCJleHAiOjE3ODYzODUyNzIsInJvbGVzIjpbIkFQUF9EQVRBX1ZBTElEQVRJT04iXSwiYXBwbGljYXRpb24iOiJkYXRhLXZhbGlkYXRpb24tc2VydmljZSIsImVudmlyb25tZW50IjoibG9jYWwifQ.jYGybAm4M6p4RbPwswdnZRCJAJm3_tx3TUPC_hXRqF0
+@authToken=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJkYXRhX3ZhbGlkYXRpb25fYXBwIiwiaWF0IjoxNzg2NTU3MjQ2LCJleHAiOjE3ODY1NTgxNDYsInJvbGVzIjpbIkFQUF9EQVRBX1ZBTElEQVRJT04iXSwiYXBwbGljYXRpb24iOiJkYXRhLXZhbGlkYXRpb24tc2VydmljZSIsImVudmlyb25tZW50IjoibG9jYWwifQ.9Cd_8q37dbPdVYwz7SUsLNp9rIvbojTR0gPuTCGgM-s
+
+### Info
+GET {{baseUrl}}/api/v1/info
+
+
 ### Register the app (run once)
 POST {{baseUrl}}/api/auth/register
 Content-Type: application/json
@@ -46,3 +51,50 @@ Authorization: Bearer {{authToken}}
 {
     "phone": "971502540238"
 }
+
+###
+
+### Validate Existing Data - Email
+POST {{baseUrl}}/api/v1/existing-data/validation
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "validationType": "EMAIL_EXISTS",
+    "referenceNo": "1",
+    "email": "gtalele@alramz.ae",
+    "language": "EN",
+    "islamicMode": "Y"
+}
+
+###
+
+### Validate Existing Data - Passport
+POST {{baseUrl}}/api/v1/existing-data/validation
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "validationType": "PASSPORT_EXISTS",
+    "referenceNo": "100",
+    "passportNumber": "ZA1152111",
+    "language": "EN",
+    "islamicMode": "Y"
+}
+
+###
+
+### Validate Existing Data - NIN
+POST {{baseUrl}}/api/v1/existing-data/validation
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "validationType": "NIN_EXISTS",
+    "referenceNo": "200",
+    "nin": "1234567890",
+    "language": "EN",
+    "islamicMode": "Y"
+}
+
+###

@@ -5,23 +5,27 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.alramz.api.ExistingDataApi;
 import com.alramz.api.IbanApi;
 import com.alramz.api.VeriPhoneApi;
 import com.alramz.model.GenericResponse;
 import com.alramz.model.IBANRequest;
 import com.alramz.model.PhoneRequest;
+import com.alramz.model.ValidationRequest;
 import com.alramz.service.IBANValidationService;
 import com.alramz.service.PhoneValidationService;
+import com.alramz.service.ValidationService;
 
 import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
-public class DataValidationController implements IbanApi, VeriPhoneApi {
+public class DataValidationController implements IbanApi, VeriPhoneApi, ExistingDataApi {
 
     private final IBANValidationService ibanValidationService;
     private final PhoneValidationService phoneValidationService;
+    private final ValidationService validationService;
 
     @Override
     @JwtSecured(roles = "APP_DATA_VALIDATION")
@@ -33,5 +37,11 @@ public class DataValidationController implements IbanApi, VeriPhoneApi {
     @JwtSecured(roles = "APP_DATA_VALIDATION")
     public ResponseEntity<GenericResponse> verifyPhone(PhoneRequest phoneRequest) {
         return ResponseEntity.ok(phoneValidationService.validate(phoneRequest));
+    }
+
+    @Override
+    @JwtSecured(roles = "APP_DATA_VALIDATION")
+    public ResponseEntity<GenericResponse> validateExistingData(ValidationRequest validationRequest) {
+        return ResponseEntity.ok(validationService.validate(validationRequest));
     }
 }

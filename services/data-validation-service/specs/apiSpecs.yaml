@@ -127,10 +127,71 @@ paths:
         '500':
           description: Internal server error
 
+  /existing-data/validation:
+    post:
+      tags:
+        - ExistingData
+      summary: Validate existing data
+      description: Checks if an email, passport, or NIN exists in the external system.
+      operationId: validateExistingData
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidationRequest'
+            examples:
+              email:
+                summary: Email exists validation
+                value:
+                  validationType: "EMAIL_EXISTS"
+                  referenceNo: "1"
+                  email: "solattupuram@alramz.ae"
+                  language: "EN"
+                  islamicMode: "Y"
+              passport:
+                summary: Passport exists validation
+                value:
+                  validationType: "PASSPORT_EXISTS"
+                  referenceNo: "100"
+                  passportNumber: "XY1152302"
+                  language: "EN"
+                  islamicMode: "Y"
+              nin:
+                summary: NIN exists validation
+                value:
+                  validationType: "NIN_EXISTS"
+                  referenceNo: "200"
+                  nin: "1234567890"
+                  language: "EN"
+                  islamicMode: "Y"
+
+      responses:
+        '200':
+          description: Validation completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+              example:
+                responseCode: "200"
+                responseMessage: "OK"
+                response:
+                  validationType: "EMAIL_EXISTS"
+                  exists: true
+                  valid: true
+                  message: "Email already exists"
+                  referenceNo: "1"
+
+        '400':
+          description: Invalid request
+
+        '500':
+          description: Internal server error
 
 components:
   schemas:
-    
     IBANRequest:
       type: object
       required:
@@ -366,7 +427,57 @@ components:
           type: string
           example: du
 
+    ValidationRequest:
+      type: object
+      required:
+        - validationType
+        - referenceNo
+        - language
+        - islamicMode
+      properties:
+        validationType:
+          type: string
+          enum: [EMAIL_EXISTS, PASSPORT_EXISTS, NIN_EXISTS]
+          description: Type of validation to perform
+        referenceNo:
+          type: string
+          description: Client reference number
+        language:
+          type: string
+          example: "EN"
+        islamicMode:
+          type: string
+          example: "Y"
+        email:
+          type: string
+          format: email
+          description: Email address to validate (required for EMAIL_EXISTS)
+        passportNumber:
+          type: string
+          description: Passport number to validate (required for PASSPORT_EXISTS)
+        emiratesId:
+          type: string
+          description: Emirates ID to validate (reserved for future)
+        nin:
+          type: string
+          description: National ID to validate (required for NIN_EXISTS)
 
-
-
-  
+    ValidationResponse:
+      type: object
+      required:
+        - validationType
+        - exists
+        - valid
+        - message
+        - referenceNo
+      properties:
+        validationType:
+          type: string
+        exists:
+          type: boolean
+        valid:
+          type: boolean
+        message:
+          type: string
+        referenceNo:
+          type: string
