@@ -132,7 +132,7 @@ paths:
       tags:
         - ExistingData
       summary: Validate existing data
-      description: Checks if an email, passport, or NIN exists in the external system.
+      description: Checks if an email, passport, NIN, username, EID, third-party UUID, or mobile number exists in the external system.
       operationId: validateExistingData
 
       requestBody:
@@ -166,6 +166,37 @@ paths:
                   nin: "1234567890"
                   language: "EN"
                   islamicMode: "Y"
+              username:
+                summary: Username exists validation
+                value:
+                  validationType: "USERNAME_EXISTS"
+                  referenceNo: "300"
+                  username: "yasser1"
+                  language: "EN"
+                  islamicMode: "Y"
+              eid:
+                summary: EID exists validation
+                value:
+                  validationType: "EID_EXISTS"
+                  referenceNo: "400"
+                  eidNumber: "784-1989-0751424-8"
+                  language: "EN"
+                  islamicMode: "Y"
+              tp_uuid:
+                summary: Third-party UUID exists validation
+                value:
+                  validationType: "TP_UUID_EXISTS"
+                  referenceNo: "500"
+                  uuid: "101296594260088743321545352540"
+                  thirdParty: "Google"
+                  language: "EN"
+                  islamicMode: "Y"
+              mobile:
+                summary: Mobile number exists validation
+                value:
+                  validationType: "MOBILE_EXISTS"
+                  referenceNo: "600"
+                  mobileNumber: "971502573881"
 
       responses:
         '200':
@@ -373,6 +404,7 @@ components:
         phone:
           type: string
           minLength: 3
+          maxLength: 15
           description: Phone number in international format without spaces.
           example: "971502540238"
 
@@ -437,7 +469,7 @@ components:
       properties:
         validationType:
           type: string
-          enum: [EMAIL_EXISTS, PASSPORT_EXISTS, NIN_EXISTS]
+          enum: [EMAIL_EXISTS, PASSPORT_EXISTS, NIN_EXISTS, USERNAME_EXISTS, EID_EXISTS, TP_UUID_EXISTS, MOBILE_EXISTS]
           description: Type of validation to perform
         referenceNo:
           type: string
@@ -461,6 +493,21 @@ components:
         nin:
           type: string
           description: National ID to validate (required for NIN_EXISTS)
+        username:
+          type: string
+          description: Username to validate (required for USERNAME_EXISTS)
+        eidNumber:
+          type: string
+          description: Emirates ID number to validate (required for EID_EXISTS)
+        uuid:
+          type: string
+          description: Third-party UUID to validate (required for TP_UUID_EXISTS)
+        thirdParty:
+          type: string
+          description: Third-party provider name (required for TP_UUID_EXISTS)
+        mobileNumber:
+          type: string
+          description: Mobile number to validate (required for MOBILE_EXISTS)
 
     ValidationResponse:
       type: object

@@ -117,6 +117,25 @@ public class ValidationServiceImpl implements ValidationService {
             if (request.getNin() == null || request.getNin().trim().isEmpty()) {
                 throw new ApplicationException("nin is required for NIN_EXISTS validation");
             }
+        } else if (type == ValidationTypeEnum.USERNAME_EXISTS) {
+            if (request.getUsername() == null || request.getUsername().trim().isEmpty()) {
+                throw new ApplicationException("username is required for USERNAME_EXISTS validation");
+            }
+        } else if (type == ValidationTypeEnum.EID_EXISTS) {
+            if (request.getEidNumber() == null || request.getEidNumber().trim().isEmpty()) {
+                throw new ApplicationException("eidNumber is required for EID_EXISTS validation");
+            }
+        } else if (type == ValidationTypeEnum.TP_UUID_EXISTS) {
+            if (request.getUuid() == null || request.getUuid().trim().isEmpty()) {
+                throw new ApplicationException("uuid is required for TP_UUID_EXISTS validation");
+            }
+            if (request.getThirdParty() == null || request.getThirdParty().trim().isEmpty()) {
+                throw new ApplicationException("thirdParty is required for TP_UUID_EXISTS validation");
+            }
+        } else if (type == ValidationTypeEnum.MOBILE_EXISTS) {
+            if (request.getMobileNumber() == null || request.getMobileNumber().trim().isEmpty()) {
+                throw new ApplicationException("mobileNumber is required for MOBILE_EXISTS validation");
+            }
         } else {
             throw new ApplicationException("Unsupported validation type: " + type);
         }

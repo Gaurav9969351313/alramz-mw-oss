@@ -3,7 +3,6 @@ package com.alramz.exception;
 import com.alramz.exceptions.ApiCallFailedException;
 import com.alramz.exceptions.InvalidHttpRequestException;
 import com.alramz.model.GenericResponse;
-import com.alramz.model.IBANValidationResponse;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
@@ -13,6 +12,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -25,8 +25,9 @@ public class GlobalExceptionHandler {
                 .map(fe -> fe.getField() + ": " + (fe.getDefaultMessage() != null ? fe.getDefaultMessage() : "invalid"))
                 .collect(Collectors.joining("; "));
 
-        IBANValidationResponse response = new IBANValidationResponse();
-        response.getErrors().add(Map.of("code", "400", "message", message));
+        Map<String, Object> response = Map.of(
+                "errors", List.of(Map.of("code", "400", "message", message))
+        );
 
         GenericResponse apiResponse = new GenericResponse();
         apiResponse.setResponseCode("400");
@@ -42,8 +43,9 @@ public class GlobalExceptionHandler {
                 .map(ConstraintViolation::getMessage)
                 .collect(Collectors.joining("; "));
 
-        IBANValidationResponse response = new IBANValidationResponse();
-        response.getErrors().add(Map.of("code", "400", "message", message));
+        Map<String, Object> response = Map.of(
+                "errors", List.of(Map.of("code", "400", "message", message))
+        );
 
         GenericResponse apiResponse = new GenericResponse();
         apiResponse.setResponseCode("400");
@@ -55,8 +57,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<GenericResponse> handleNotReadable(HttpMessageNotReadableException ex) {
-        IBANValidationResponse response = new IBANValidationResponse();
-        response.getErrors().add(Map.of("code", "400", "message", "Malformed JSON request"));
+        Map<String, Object> response = Map.of(
+                "errors", List.of(Map.of("code", "400", "message", "Malformed JSON request"))
+        );
 
         GenericResponse apiResponse = new GenericResponse();
         apiResponse.setResponseCode("400");
@@ -68,8 +71,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IbanValidationException.class)
     public ResponseEntity<GenericResponse> handleIbanValidation(IbanValidationException ex) {
-        IBANValidationResponse response = new IBANValidationResponse();
-        response.getErrors().add(Map.of("code", ex.getCode(), "message", ex.getMessage()));
+        Map<String, Object> response = Map.of(
+                "errors", List.of(Map.of("code", ex.getCode(), "message", ex.getMessage()))
+        );
 
         GenericResponse apiResponse = new GenericResponse();
         apiResponse.setResponseCode(ex.getCode());
@@ -81,8 +85,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ExternalSystemException.class)
     public ResponseEntity<GenericResponse> handleExternalSystem(ExternalSystemException ex) {
-        IBANValidationResponse response = new IBANValidationResponse();
-        response.getErrors().add(Map.of("code", "503", "message", ex.getMessage()));
+        Map<String, Object> response = Map.of(
+                "errors", List.of(Map.of("code", "503", "message", ex.getMessage()))
+        );
 
         GenericResponse apiResponse = new GenericResponse();
         apiResponse.setResponseCode("503");
@@ -94,8 +99,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(TechnicalException.class)
     public ResponseEntity<GenericResponse> handleTechnical(TechnicalException ex) {
-        IBANValidationResponse response = new IBANValidationResponse();
-        response.getErrors().add(Map.of("code", "503", "message", ex.getMessage()));
+        Map<String, Object> response = Map.of(
+                "errors", List.of(Map.of("code", "503", "message", ex.getMessage()))
+        );
 
         GenericResponse apiResponse = new GenericResponse();
         apiResponse.setResponseCode("503");
@@ -107,8 +113,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ApplicationException.class)
     public ResponseEntity<GenericResponse> handleApplication(ApplicationException ex) {
-        IBANValidationResponse response = new IBANValidationResponse();
-        response.getErrors().add(Map.of("code", "503", "message", ex.getMessage()));
+        Map<String, Object> response = Map.of(
+                "errors", List.of(Map.of("code", "503", "message", ex.getMessage()))
+        );
 
         GenericResponse apiResponse = new GenericResponse();
         apiResponse.setResponseCode("503");
@@ -120,8 +127,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ApiCallFailedException.class)
     public ResponseEntity<GenericResponse> handleApiCallFailed(ApiCallFailedException ex) {
-        IBANValidationResponse response = new IBANValidationResponse();
-        response.getErrors().add(Map.of("code", "503", "message", "IBAN validation service unavailable"));
+        Map<String, Object> response = Map.of(
+                "errors", List.of(Map.of("code", "503", "message", "IBAN validation service unavailable"))
+        );
 
         GenericResponse apiResponse = new GenericResponse();
         apiResponse.setResponseCode("503");
@@ -133,8 +141,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(InvalidHttpRequestException.class)
     public ResponseEntity<GenericResponse> handleInvalidHttpRequest(InvalidHttpRequestException ex) {
-        IBANValidationResponse response = new IBANValidationResponse();
-        response.getErrors().add(Map.of("code", "503", "message", ex.getMessage()));
+        Map<String, Object> response = Map.of(
+                "errors", List.of(Map.of("code", "503", "message", ex.getMessage()))
+        );
 
         GenericResponse apiResponse = new GenericResponse();
         apiResponse.setResponseCode("503");
@@ -146,8 +155,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<GenericResponse> handleGeneric(Exception ex) {
-        IBANValidationResponse response = new IBANValidationResponse();
-        response.getErrors().add(Map.of("code", "503", "message", "Internal server error"));
+        Map<String, Object> response = Map.of(
+                "errors", List.of(Map.of("code", "503", "message", "Internal server error"))
+        );
 
         GenericResponse apiResponse = new GenericResponse();
         apiResponse.setResponseCode("503");

@@ -60,14 +60,40 @@ adapter:
           Lang: language
           Reference_No: referenceNo
           pp_number: passportNumber
-      NIN_EXISTS:
-        path: /IntegrationAPI/IntegrationWServices/IfNinExists
+
+      USERNAME_EXISTS:
+        path: /IntegrationAPI/IntegrationWServices/IfUsernameExists
         method: POST
         request-mapping:
           IslamicMode: islamicMode
           Lang: language
           Reference_No: referenceNo
-          nin: nin
+          username: username
+
+      EID_EXISTS:
+        path: /IntegrationAPI/IntegrationWServices/IfEIDExists
+        method: POST
+        request-mapping:
+          IslamicMode: islamicMode
+          Lang: language
+          Reference_No: referenceNo
+          eid_number: eidNumber
+
+      TP_UUID_EXISTS:
+        path: /IntegrationAPI/IntegrationWServices/IfTPUUIDExists
+        method: POST
+        request-mapping:
+          IslamicMode: islamicMode
+          Lang: language
+          Reference_No: referenceNo
+          UUID: uuid
+          thirdParty: thirdParty
+
+      MOBILE_EXISTS:
+        path: /IntegrationAPI/IntegrationWServices/IfMobileExists
+        method: POST
+        request-mapping:
+          MobileNo: mobileNumber
 
 company:
   scheduler:

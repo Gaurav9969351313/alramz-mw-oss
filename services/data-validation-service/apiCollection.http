@@ -1,8 +1,8 @@
 @baseUrl=http://localhost:8085
 
-@authToken=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJkYXRhX3ZhbGlkYXRpb25fYXBwIiwiaWF0IjoxNzg2NTU3MjQ2LCJleHAiOjE3ODY1NTgxNDYsInJvbGVzIjpbIkFQUF9EQVRBX1ZBTElEQVRJT04iXSwiYXBwbGljYXRpb24iOiJkYXRhLXZhbGlkYXRpb24tc2VydmljZSIsImVudmlyb25tZW50IjoibG9jYWwifQ.9Cd_8q37dbPdVYwz7SUsLNp9rIvbojTR0gPuTCGgM-s
+@authToken=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJkYXRhX3ZhbGlkYXRpb25fYXBwIiwiaWF0IjoxNzg2NjE0MTcxLCJleHAiOjE3ODY2MTUwNzEsInJvbGVzIjpbIkFQUF9EQVRBX1ZBTElEQVRJT04iXSwiYXBwbGljYXRpb24iOiJkYXRhLXZhbGlkYXRpb24tc2VydmljZSIsImVudmlyb25tZW50IjoibG9jYWwifQ.lMJnODDLUhC0O9TevNVGmYMTsoiYvnHHJZYpOUu0voY
 
-### Info
+### Info 
 GET {{baseUrl}}/api/v1/info
 
 
@@ -41,15 +41,33 @@ Authorization: Bearer {{authToken}}
     "IBAN": "AE460260001015862843301"
 }
 
+### Validate IBAN -ve test case
+POST {{baseUrl}}/api/v1/iban/validate
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "IBAN": ""
+}
+
 ###
 
-### Verify Phone
+### Verify Phone 
 POST {{baseUrl}}/api/v1/veriphone/verify
 Content-Type: application/json
 Authorization: Bearer {{authToken}}
 
 {
     "phone": "971502540238"
+}
+
+### Verify Phone -ve test case
+POST {{baseUrl}}/api/v1/veriphone/verify
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "phone": ""
 }
 
 ###
@@ -82,19 +100,63 @@ Authorization: Bearer {{authToken}}
     "islamicMode": "Y"
 }
 
-###
-
-### Validate Existing Data - NIN
+### Validate Existing Data - Username
 POST {{baseUrl}}/api/v1/existing-data/validation
 Content-Type: application/json
 Authorization: Bearer {{authToken}}
 
 {
-    "validationType": "NIN_EXISTS",
-    "referenceNo": "200",
-    "nin": "1234567890",
+    "validationType": "USERNAME_EXISTS",
+    "referenceNo": "300",
+    "username": "gaurav",
     "language": "EN",
     "islamicMode": "Y"
+}
+
+###
+
+### Validate Existing Data - EID
+POST {{baseUrl}}/api/v1/existing-data/validation
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "validationType": "EID_EXISTS",
+    "referenceNo": "400",
+    "eidNumber": "784-1989-0751424-8",
+    "language": "EN",
+    "islamicMode": "Y"
+}
+
+###
+
+### Validate Existing Data - TP UUID
+POST {{baseUrl}}/api/v1/existing-data/validation
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "validationType": "TP_UUID_EXISTS",
+    "referenceNo": "500",
+    "uuid": "101296594260088743321545352540",
+    "thirdParty": "Google",
+    "language": "EN",
+    "islamicMode": "Y"
+}
+
+###
+
+### Validate Existing Data - Mobile Number
+POST {{baseUrl}}/api/v1/existing-data/validation
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "validationType": "MOBILE_EXISTS",
+    "referenceNo": "600",
+    "language": "EN",
+    "islamicMode": "Y",
+    "mobileNumber": "971502573881"
 }
 
 ###
