@@ -2,7 +2,7 @@
 --changeset gaurav:001-create-schedule-job-table
 
 CREATE TABLE schedule_job (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     job_group_name VARCHAR(100) NOT NULL,
     schedule_id VARCHAR(100) NOT NULL,
     worker_bean_name VARCHAR(100) NOT NULL,

@@ -3,6 +3,7 @@ package com.alramz.service.impl;
 import com.alramz.client.AbstractRestClient;
 import com.alramz.config.IbanServiceProperties;
 import com.alramz.exception.ApplicationException;
+import com.alramz.exception.TechnicalException;
 import com.alramz.exception.ExternalSystemException;
 import com.alramz.exception.IbanValidationException;
 import com.alramz.exceptions.ApiCallFailedException;
@@ -82,7 +83,7 @@ public class IBANValidationServiceImpl extends AbstractRestClient implements IBA
         } catch (WebClientResponseException e) {
             throw new ExternalSystemException("IBAN validation service unavailable");
         } catch (RuntimeException e) {
-            throw new ApplicationException("Internal Server Error");
+            throw new TechnicalException("Internal Server Error");
         }
 
         if (externalResponse == null) {

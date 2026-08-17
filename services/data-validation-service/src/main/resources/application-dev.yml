@@ -1,31 +1,16 @@
-spring:
-  application:
-    name: data-validation-service
-  datasource:
-    url: jdbc:h2:mem:testdb
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
-
-  jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
-    hibernate:
-      ddl-auto: validate
-
-  h2:
-    console:
-      enabled: true
-
 server:
   address: 0.0.0.0
-  port: 8085
+  port: 8080
   host: localhost
-  
+
 management:
   endpoints:
     web:
       exposure:
         include: "*"
+
+cipher:
+  password: UseMostSecretKey
 
 adapter:
   external-iban-service:
@@ -38,8 +23,8 @@ adapter:
     request-timeout: 10
   etrade:
     base-url: ${ETRADE_BASE_URL:https://etradeqa.alramz.ae}
-    client-id: "1"
-    client-secret: "R@mZS4qR5t"
+    client-id: ${ETRADE_CLIENT_ID:1}
+    client-secret: ${ETRADE_CLIENT_SECRET:R@mZS4qR5t}
     request-timeout: "30"
     token-ttl-seconds: 3000
     token-path: /IntegrationAPI/IntegrationWServices/GetClientToken
@@ -71,7 +56,7 @@ adapter:
           username: username
 
       EID_EXISTS:
-        path: /IntegrationAPI/IntegrationWServices/IfEIDExists
+        path: /IntegrationAPI/IntegrationWServices/IfEidExists
         method: POST
         request-mapping:
           IslamicMode: islamicMode
@@ -100,3 +85,47 @@ company:
     pool-size: 5
     thread-group-name: DataValidation-Scheduled-Tasks
     thread-name-prefix: DataValidation-TaskScheduler-Worker-
+
+  logging:
+    json:
+      enabled: false
+      pretty-print: false
+    correlation-id:
+      response-header: false
+    request:
+      enabled: true
+      include-headers: false
+      include-payload: true
+    response:
+      enabled: true
+      include-payload: true
+    aspect:
+      enabled: false
+    performance:
+      threshold: 1000ms
+  jwt:
+    enabled: true
+    secret: ${JWT_SECRET:defaultSecretKeyChangeMeInProduction1234567890}
+    login-url: /api/auth/login
+    register-url: /api/auth/register
+    refresh-url: /api/auth/refresh
+    logout-url: /api/auth/logout
+    validate-url: /api/auth/validate
+    permit-all-urls:
+      - /api/v1/info
+      
+  datasource:
+    middleware:
+      enabled: true
+      url: jdbc:postgresql://localhost:5432/alramzmwdb
+      username: alramzmw
+      password: alramz!321*
+      driverClassName: org.postgresql.Driver
+      startup-validation:
+        enabled: false
+      pool:
+        maximum-pool-size: 10
+        minimum-idle: 2
+      sql-logging:
+        enabled: false
+      

@@ -1,6 +1,7 @@
-@baseUrl=http://localhost:8085
+# @baseUrl=http://localhost:8085
+@baseUrl=https://gthomelab.online
 
-@authToken=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJkYXRhX3ZhbGlkYXRpb25fYXBwIiwiaWF0IjoxNzg2NjE0MTcxLCJleHAiOjE3ODY2MTUwNzEsInJvbGVzIjpbIkFQUF9EQVRBX1ZBTElEQVRJT04iXSwiYXBwbGljYXRpb24iOiJkYXRhLXZhbGlkYXRpb24tc2VydmljZSIsImVudmlyb25tZW50IjoibG9jYWwifQ.lMJnODDLUhC0O9TevNVGmYMTsoiYvnHHJZYpOUu0voY
+@authToken=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJkYXRhX3ZhbGlkYXRpb25fYXBwIiwiaWF0IjoxNzg2NzA3MjA1LCJleHAiOjE3ODY3MDgxMDUsInJvbGVzIjpbIkFQUF9EQVRBX1ZBTElEQVRJT04iXSwiYXBwbGljYXRpb24iOiJkYXRhLXZhbGlkYXRpb24tc2VydmljZSIsImVudmlyb25tZW50IjoibG9jYWwifQ.GJZCv31gLzbaBpEd-iPw7Z1xC9Q4DLP0OnJz6yelq8c
 
 ### Info 
 GET {{baseUrl}}/api/v1/info
@@ -85,6 +86,18 @@ Authorization: Bearer {{authToken}}
     "islamicMode": "Y"
 }
 
+### - Ve Test Case
+POST {{baseUrl}}/api/v1/existing-data/validation
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "validationType": "EMAIL_EXISTS",
+    "referenceNo": "1",
+    "email": "",
+    "language": "EN",
+    "islamicMode": "Y"
+}
 ###
 
 ### Validate Existing Data - Passport
@@ -95,7 +108,7 @@ Authorization: Bearer {{authToken}}
 {
     "validationType": "PASSPORT_EXISTS",
     "referenceNo": "100",
-    "passportNumber": "ZA1152111",
+    "passportNumber": "",
     "language": "EN",
     "islamicMode": "Y"
 }

@@ -76,8 +76,8 @@ public class GlobalExceptionHandler {
         );
 
         GenericResponse apiResponse = new GenericResponse();
-        apiResponse.setResponseCode(ex.getCode());
-        apiResponse.setResponseMessage(ex.getMessage());
+        apiResponse.setResponseCode("400");
+        apiResponse.setResponseMessage("Invalid request");
         apiResponse.setResponse(response);
 
         return ResponseEntity.ok(apiResponse);
@@ -113,16 +113,20 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ApplicationException.class)
     public ResponseEntity<GenericResponse> handleApplication(ApplicationException ex) {
+        String message = ex.getField() != null
+                ? ex.getField() + ": " + ex.getMessage()
+                : ex.getMessage();
+
         Map<String, Object> response = Map.of(
-                "errors", List.of(Map.of("code", "503", "message", ex.getMessage()))
+                "errors", List.of(Map.of("code", "400", "message", message))
         );
 
         GenericResponse apiResponse = new GenericResponse();
-        apiResponse.setResponseCode("503");
-        apiResponse.setResponseMessage(ex.getMessage());
+        apiResponse.setResponseCode("400");
+        apiResponse.setResponseMessage("Invalid request");
         apiResponse.setResponse(response);
 
-        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(apiResponse);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(apiResponse);
     }
 
     @ExceptionHandler(ApiCallFailedException.class)

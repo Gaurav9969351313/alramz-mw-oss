@@ -14,36 +14,3 @@ spring:
 
 sql:
   file: classpath:sql/sql-queries.xml
-
-# Al Ramz logging starter: structured JSON logging with correlation-id +
-# request/response logging enabled for every microservice.
-company:
-  logging:
-    json:
-      enabled: false
-      pretty-print: false
-    correlation-id:
-      response-header: false
-    request:
-      enabled: true
-      include-headers: false
-      include-payload: true
-    response:
-      enabled: true
-      include-payload: true
-    aspect:
-      enabled: false
-    performance:
-      threshold: 1000ms
-  jwt:
-    enabled: true
-    secret: ${JWT_SECRET:defaultSecretKeyChangeMeInProduction1234567890}
-    login-url: /api/auth/login
-    register-url: /api/auth/register
-    refresh-url: /api/auth/refresh
-    logout-url: /api/auth/logout
-    validate-url: /api/auth/validate
-    permit-all-urls:
-      - /api/v1/info
-      - /h2-console/**
-      

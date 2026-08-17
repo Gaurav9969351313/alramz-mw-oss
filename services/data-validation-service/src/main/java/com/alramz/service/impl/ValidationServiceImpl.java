@@ -107,37 +107,37 @@ public class ValidationServiceImpl implements ValidationService {
         ValidationTypeEnum type = request.getValidationType();
         if (type == ValidationTypeEnum.EMAIL_EXISTS) {
             if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
-                throw new ApplicationException("email is required for EMAIL_EXISTS validation");
+                throw new ApplicationException("email", "email is required for EMAIL_EXISTS validation");
             }
         } else if (type == ValidationTypeEnum.PASSPORT_EXISTS) {
             if (request.getPassportNumber() == null || request.getPassportNumber().trim().isEmpty()) {
-                throw new ApplicationException("passportNumber is required for PASSPORT_EXISTS validation");
+                throw new ApplicationException("passportNumber", "passportNumber is required for PASSPORT_EXISTS validation");
             }
         } else if (type == ValidationTypeEnum.NIN_EXISTS) {
             if (request.getNin() == null || request.getNin().trim().isEmpty()) {
-                throw new ApplicationException("nin is required for NIN_EXISTS validation");
+                throw new ApplicationException("nin", "nin is required for NIN_EXISTS validation");
             }
         } else if (type == ValidationTypeEnum.USERNAME_EXISTS) {
             if (request.getUsername() == null || request.getUsername().trim().isEmpty()) {
-                throw new ApplicationException("username is required for USERNAME_EXISTS validation");
+                throw new ApplicationException("username", "username is required for USERNAME_EXISTS validation");
             }
         } else if (type == ValidationTypeEnum.EID_EXISTS) {
             if (request.getEidNumber() == null || request.getEidNumber().trim().isEmpty()) {
-                throw new ApplicationException("eidNumber is required for EID_EXISTS validation");
+                throw new ApplicationException("eidNumber", "eidNumber is required for EID_EXISTS validation");
             }
         } else if (type == ValidationTypeEnum.TP_UUID_EXISTS) {
             if (request.getUuid() == null || request.getUuid().trim().isEmpty()) {
-                throw new ApplicationException("uuid is required for TP_UUID_EXISTS validation");
+                throw new ApplicationException("uuid", "uuid is required for TP_UUID_EXISTS validation");
             }
             if (request.getThirdParty() == null || request.getThirdParty().trim().isEmpty()) {
-                throw new ApplicationException("thirdParty is required for TP_UUID_EXISTS validation");
+                throw new ApplicationException("thirdParty", "thirdParty is required for TP_UUID_EXISTS validation");
             }
         } else if (type == ValidationTypeEnum.MOBILE_EXISTS) {
             if (request.getMobileNumber() == null || request.getMobileNumber().trim().isEmpty()) {
-                throw new ApplicationException("mobileNumber is required for MOBILE_EXISTS validation");
+                throw new ApplicationException("mobileNumber", "mobileNumber is required for MOBILE_EXISTS validation");
             }
         } else {
-            throw new ApplicationException("Unsupported validation type: " + type);
+            throw new ApplicationException("validationType", "Unsupported validation type: " + type);
         }
     }
 }

@@ -2,7 +2,7 @@
 --changeset gaurav:003-create-jwt-user-table
 
 CREATE TABLE jwt_user (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
@@ -16,7 +16,7 @@ CREATE TABLE jwt_user (
 --changeset gaurav:004-create-jwt-refresh-token-table
 
 CREATE TABLE jwt_refresh_token (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     token VARCHAR(500) NOT NULL UNIQUE,
     user_id VARCHAR(50) NOT NULL,
     expires_at TIMESTAMP NOT NULL,

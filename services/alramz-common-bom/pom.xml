@@ -32,7 +32,9 @@
         <maven.compiler.release>21</maven.compiler.release>
         <spring.boot.version>4.1.0</spring.boot.version>
         <spring.cloud.version>2025.1.2</spring.cloud.version>
+        <spring.framework.version>7.0.8</spring.framework.version>
         <lombok.version>1.18.38</lombok.version>
+        <hikaricp.version>7.0.2</hikaricp.version>
         <mapstruct.version>1.6.3</mapstruct.version>
         <spring.cloud.resiliance4j.version>5.0.2</spring.cloud.resiliance4j.version>
         <spring-security-oauth2-jose.version>7.1.0</spring-security-oauth2-jose.version>
@@ -41,6 +43,7 @@
         <jackson-databind-nullable.version>0.2.6</jackson-databind-nullable.version>
         <liquibase.version>4.27.0</liquibase.version>
         <jjwt.version>0.12.6</jjwt.version>
+        <datasource-proxy.version>1.10</datasource-proxy.version>
     </properties>
 
   <dependencyManagement>
@@ -64,6 +67,7 @@
       <dependency>
         <groupId>com.h2database</groupId>
         <artifactId>h2</artifactId>
+        <version>2.2.224</version>
       </dependency>
 
       <dependency>
@@ -129,6 +133,24 @@
         <artifactId>jjwt-jackson</artifactId>
         <version>${jjwt.version}</version>
         <scope>runtime</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.springframework</groupId>
+        <artifactId>spring-jdbc</artifactId>
+        <version>${spring.framework.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.zaxxer</groupId>
+        <artifactId>HikariCP</artifactId>
+        <version>${hikaricp.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>net.ttddyy</groupId>
+        <artifactId>datasource-proxy</artifactId>
+        <version>${datasource-proxy.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

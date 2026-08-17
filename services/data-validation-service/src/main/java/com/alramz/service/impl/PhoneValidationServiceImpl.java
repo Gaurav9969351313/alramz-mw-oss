@@ -11,7 +11,7 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 
 import com.alramz.client.AbstractRestClient;
 import com.alramz.config.PhoneServiceProperties;
-import com.alramz.exception.ApplicationException;
+import com.alramz.exception.TechnicalException;
 import com.alramz.exception.ExternalSystemException;
 import com.alramz.exception.IbanValidationException;
 import com.alramz.exceptions.ApiCallFailedException;
@@ -75,7 +75,7 @@ public class PhoneValidationServiceImpl extends AbstractRestClient implements Ph
         } catch (WebClientResponseException e) {
             throw new ExternalSystemException("Phone validation service unavailable");
         } catch (RuntimeException e) {
-            throw new ApplicationException("Internal Server Error");
+            throw new TechnicalException("Internal Server Error");
         }
 
         if (externalResponse == null) {
