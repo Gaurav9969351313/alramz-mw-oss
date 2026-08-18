@@ -1,20 +1,20 @@
 release:
   name: alramz-platform
   version: 1.0.0
-  generated_at: 2026-08-18T05:44:16Z
+  generated_at: 2026-08-18T05:59:15Z
   generated_by: gtalele
 
 images:
   data-validation-service:
     repository: docker.io/alramz/data-validation-service
     tag: 1.0.0
-    digest: gauravtalele1994/data-validation-service@sha256:d13419ecb83bfabdcdd6c2cf3f923f21f43df0e39ea034c210176c54b96d66da
+    digest: gauravtalele1994/data-validation-service@sha256:fcefdab9a61854bcbf3c3c536ba7ece37d0b5299243b01131dfa24ea270a14e4
     built_from: services/data-validation-service
 
   alramz-notification-service:
     repository: docker.io/alramz/alramz-notification-service
     tag: 1.0.0
-    digest: gauravtalele1994/alramz-notification-service@sha256:a70c336dccd61569cd8dbe96c4b06fdcd54d1b07f46c32806e3b84cb99846c06
+    digest: gauravtalele1994/alramz-notification-service@sha256:e745ca4a93b6128ce2118ecf330b039a535c81e11e9a319272da3235d2c6aba2
     built_from: services/alramz-notification-service
 
   postgres:

@@ -58,6 +58,17 @@ Dependencies:
 
 Network: All services communicate via a dedicated `alramz-platform_alramz-network` bridge network.
 
+## Service Endpoints
+
+| Service | Container | Port | Browser URL |
+|---------|-----------|------|-------------|
+| data-validation-service | alramz-data-validation-service | 8080 | http://localhost:8080/api/v1/info |
+| alramz-notification-service | alramz-notification-service | 8082 | http://localhost:8082/api/v1/info |
+| PostgreSQL | alramz-postgres | 5432 | `localhost:5432` (DB client) |
+| Redis | alramz-redis | 6379 | `localhost:6379` (Redis client) |
+| PgAdmin | alramz-pgadmin | 5050 | http://localhost:5050 |
+| RedisInsight | alramz-redisinsight | 5540 | http://localhost:5540 |
+
 ## Prerequisites
 
 - Docker Engine >= 20.10

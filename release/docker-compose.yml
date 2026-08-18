@@ -111,9 +111,45 @@ services:
       retries: 3
       start_period: 60s
 
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: alramz-pgadmin
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+      PGADMIN_LISTEN_PORT: 5050
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    ports:
+      - "5050:5050"
+    networks:
+      - alramz-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: alramz-redisinsight
+    restart: unless-stopped
+    volumes:
+      - redisinsight_data:/data
+    ports:
+      - "5540:5540"
+    networks:
+      - alramz-network
+    depends_on:
+      redis:
+        condition: service_healthy
+
 volumes:
   postgres_data:
   redis_data:
+  pgadmin_data:
+  redisinsight_data:
 
 networks:
   alramz-network:
