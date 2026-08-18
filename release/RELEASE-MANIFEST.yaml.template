@@ -1,0 +1,28 @@
+release:
+  name: alramz-platform
+  version: ${RELEASE_VERSION}
+  generated_at: ${GENERATED_AT}
+  generated_by: ${GENERATED_BY}
+
+images:
+  data-validation-service:
+    repository: ${REGISTRY_URL}/alramz/data-validation-service
+    tag: ${DATA_VALIDATION_SERVICE_TAG}
+    digest: ${DATA_VALIDATION_SERVICE_DIGEST}
+    built_from: services/data-validation-service
+
+  alramz-notification-service:
+    repository: ${REGISTRY_URL}/alramz/alramz-notification-service
+    tag: ${NOTIFICATION_SERVICE_TAG}
+    digest: ${NOTIFICATION_SERVICE_DIGEST}
+    built_from: services/alramz-notification-service
+
+  postgres:
+    image: ${POSTGRES_IMAGE}
+
+  redis:
+    image: ${REDIS_IMAGE}
+
+checksums:
+  sha256: ${CHECKSUMS_SHA256}
+  file: checksums.txt

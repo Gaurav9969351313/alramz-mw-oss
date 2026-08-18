@@ -211,3 +211,10 @@ Here is the CI/CD pipeline lifecycle architecture:
 1. **Least Privilege**: Deployment is governed by separate Service Principals (`GitHub Actions` SP and `ACA Pull` SP) with scoped RBAC roles.
 2. **Key Vault Isolation**: Key Vault restricts access to the public network (`public_network_access_enabled = false`) and uses Role-Based Access Control (RBAC) with the `Key Vault Secrets User` role for services instead of old-style Access Policies.
 3. **State File Protection**: Remote state is stored in encrypted Azure blob storage with locked access keys.
+
+
+cd release/scripts 
+bash release.sh --no-prompt
+
+
+docker compose --env-file .env up 
