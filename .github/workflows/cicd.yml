@@ -2,7 +2,9 @@ name: CICD (Dev)
 
 on:
   push:
-    branches: [dev]
+    branches: 
+      - dev
+      - feature/*
   workflow_dispatch:
     inputs:
       version:
