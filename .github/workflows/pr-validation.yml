@@ -25,6 +25,11 @@ jobs:
       liquibase_services: ${{ steps.filter.outputs.liquibase_services }}
       terraform_changed: ${{ steps.filter.outputs.terraform_changed }}
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Detect changed services
         id: detect
         uses: ./.github/actions/detect-services
