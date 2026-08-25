@@ -1,0 +1,72 @@
+name: Terraform Validate
+
+description: Runs terraform init, validate, and optionally plan for a working directory.
+
+inputs:
+  working-directory:
+    description: Directory containing terraform configuration
+    required: false
+    type: string
+    default: .
+  var-file:
+    description: Optional .tfvars var file (path relative to working-directory)
+    required: false
+    type: string
+    default: ''
+  generate-plan:
+    description: Whether to generate a plan artifact
+    required: false
+    type: boolean
+    default: false
+
+outputs:
+  plan-output:
+    description: Path to the generated plan file (when generate-plan is true)
+    value: ${{ steps.tf.outputs.plan-output }}
+
+runs:
+  using: composite
+
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: '~1.7'
+
+    - name: Terraform init
+      shell: bash
+      run: |
+        cd "${{ inputs.working-directory }}"
+        terraform init -input=false -backend=false -no-color
+
+    - name: Terraform validate
+      shell: bash
+      run: |
+        cd "${{ inputs.working-directory }}"
+        terraform validate -no-color
+
+    - name: Terraform plan
+      if: ${{ inputs.generate-plan }}
+      id: tf
+      shell: bash
+      run: |
+        cd "${{ inputs.working-directory }}"
+        VAR_FILE="${{ inputs.var-file }}"
+        if [ -n "$VAR_FILE" ]; then
+          TFVARS="-var-file=$VAR_FILE"
+        else
+          TFVARS=""
+        fi
+        terraform plan -input=false -no-color $TFVARS -out=tfplan
+        terraform show -json tfplan > plan.json
+        echo "plan_output=$(pwd)/plan.json" >> "$GITHUB_OUTPUT"
+
+    - name: Upload plan artifact
+      if: ${{ inputs.generate-plan }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: tfplan
+        path: ${{ inputs.working-directory }}/plan.json

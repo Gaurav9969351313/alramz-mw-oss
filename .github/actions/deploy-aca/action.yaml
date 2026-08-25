@@ -1,35 +1,67 @@
 name: Deploy to ACA
 
-description: Deploys services to Azure Container Apps using the existing render-template mechanism
+description: >
+  Deploys services to Azure Container Apps by digest. Renders the shared
+  containerapp template (with Key Vault secret references via Managed Identity)
+  and creates or updates the container app. Uses OIDC for Azure auth.
 
 inputs:
   services:
-    description: 'JSON array of service objects with name and tag'
+    description: 'JSON array of objects: {service, tag, digest}'
     required: true
-
   acr-name:
-    description: ACR Login Server
+    description: ACR Login Server (e.g. alramzregistry.azurecr.io) for registry auth
     required: true
-
+  registry-base:
+    description: 'Full registry base path for image references (e.g. ghcr.io/owner, alramzregistry.azurecr.io). Defaults to acr-name.'
+    required: false
+    type: string
+    default: ''
   resource-group:
     description: Azure Resource Group
     required: true
-
   location:
     description: Azure Location
     required: true
-
   aca-environment-id:
-    description: Container App Environment ID
+    description: Container App Environment name or resource ID
     required: true
-
   managed-identity:
-    description: User Assigned Managed Identity Client ID
+    description: User Assigned Managed Identity (resource ID, name, or client id)
     required: true
+  keyvault:
+    description: Key Vault name for DB password secret reference
+    required: true
+  environment:
+    description: Target environment name (dev, qa, preprod, prod) for logging
+    required: false
+    type: string
+    default: dev
+  spring-profile-override:
+    description: Override the springProfile from service.yaml
+    required: false
+    type: string
+    default: ''
+  azure-client-id:
+    description: Azure OIDC client id
+    required: true
+    type: string
+  azure-tenant-id:
+    description: Azure OIDC tenant id
+    required: true
+    type: string
+  azure-subscription-id:
+    description: Azure subscription id
+    required: true
+    type: string
 
-  azure-credentials:
-    description: Azure Credentials Secret
-    required: true
+outputs:
+  deployed-services:
+    description: JSON array of {service, image, url}
+    value: ${{ steps.deploy.outputs.deployed-services }}
+  deployment-urls:
+    description: JSON map of service -> public URL
+    value: ${{ steps.deploy.outputs.deployment-urls }}
 
 runs:
   using: composite
@@ -44,136 +76,121 @@ runs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Login to Azure
-      uses: azure/login@v3
+    - name: Azure OIDC login
+      uses: azure/login@v2
       with:
-        creds: ${{ inputs.azure-credentials }}
+        client-id: ${{ inputs.azure-client-id }}
+        tenant-id: ${{ inputs.azure-tenant-id }}
+        subscription-id: ${{ inputs.azure-subscription-id }}
 
-    - name: Debug Azure Context
-      shell: bash
-      run: |
-        az account show
-        az account list -o table
-
-    - name: Verify ACA Environment
-      shell: bash
-      run: |
-        az containerapp env show \
-          --name alramz-dev-container-apps-env \
-          --resource-group alramz-dev-rg
-        
-        az containerapp env list \
-          --resource-group alramz-dev-rg \
-          -o table
-
-    - name: Login to ACR
-      shell: bash
-      run: |
-        ACR_NAME="${{ inputs.acr-name }}"
-        ACR_NAME="${ACR_NAME%%.azurecr.io}"
-        az acr login --name "$ACR_NAME"
-
-    - name: Deploy Services
+    - name: Deploy services
+      id: deploy
       shell: bash
       env:
-        LOCATION: ${{ inputs.location }}
-        ACA_ENVIRONMENT_ID: "alramz-dev-container-apps-env"
-        MANAGED_IDENTITY: ${{ inputs.managed-identity }}
-        ACR_SERVER: ${{ inputs.acr-name }}
         SERVICES: ${{ inputs.services }}
+        ACR: ${{ inputs.acr-name }}
+        REGISTRY_BASE: ${{ inputs.registry-base }}
+        RG: ${{ inputs.resource-group }}
+        LOCATION: ${{ inputs.location }}
+        ACA_ENV: ${{ inputs.aca-environment-id }}
+        MANAGED_IDENTITY: ${{ inputs.managed-identity }}
+        KEYVAULT: ${{ inputs.keyvault }}
+        ENV_NAME: ${{ inputs.environment }}
+        SPRING_PROFILE_OVERRIDE: ${{ inputs.spring-profile-override }}
       run: |
-        set -e
+        set -euo pipefail
 
-        ACR="${{ inputs.acr-name }}"
-        RG="${{ inputs.resource-group }}"
+        RG="$RG"
+        ACR="$ACR"
+        REGISTRY_BASE="${REGISTRY_BASE:-$ACR}"
+        LOCATION="$LOCATION"
+        KEYVAULT="$KEYVAULT"
+        ENV_NAME="$ENV_NAME"
+
+        # Resolve ACA environment name -> resource id
+        if [[ "$ACA_ENV" == /* ]]; then
+          ENV_ID="$ACA_ENV"
+        else
+          ENV_ID=$(az containerapp env show -g "$RG" -n "$ACA_ENV" --query id -o tsv 2>/dev/null || echo "$ACA_ENV")
+        fi
+
+        # Resolve managed identity (client id / name) -> resource id
+        if [[ "$MANAGED_IDENTITY" == /* ]]; then
+          MI_ID="$MANAGED_IDENTITY"
+        else
+          MI_ID=$(az identity list -g "$RG" --query "[?clientId=='$MANAGED_IDENTITY'].id|[0]" -o tsv 2>/dev/null || true)
+          if [ -z "$MI_ID" ] || [ "$MI_ID" = "null" ]; then
+            MI_ID=$(az identity show -g "$RG" -n "$MANAGED_IDENTITY" --query id -o tsv 2>/dev/null || echo "$MANAGED_IDENTITY")
+          fi
+        fi
+
+        export LOCATION ACA_ENV_ID="$ENV_ID" MANAGED_IDENTITY="$MI_ID" ACR_SERVER="$ACR" KEYVAULT_NAME="$KEYVAULT"
+
         COUNT=$(echo "$SERVICES" | jq 'length')
-
-        echo "DEBUG: services input length=$COUNT"
-        echo "DEBUG: services=$SERVICES"
-        echo "DEBUG: ACR=$ACR"
-        echo "DEBUG: RG=$RG"
-        echo "DEBUG: ACA_ENVIRONMENT_ID=$ACA_ENVIRONMENT_ID"
-
-        echo "Deploying $COUNT service(s)..."
+        DEPLOYED="[]"
+        URLS='{}'
 
         for i in $(seq 0 $((COUNT - 1))); do
           SVC=$(echo "$SERVICES" | jq -r ".[$i].service")
           TAG=$(echo "$SERVICES" | jq -r ".[$i].tag")
+          DIGEST=$(echo "$SERVICES" | jq -r ".[$i].digest")
+          IMAGE="$REGISTRY_BASE/$SVC:$TAG@$DIGEST"
 
-          echo "=== Deploying $SVC (tag: $TAG) ==="
+          echo "=== Deploying $SVC (tag: $TAG, digest: $DIGEST) ==="
 
           SCRIPT_DIR=".github/deployment/scripts"
-          bash "${SCRIPT_DIR}/render-template.sh" "$SVC" "$ACR/$SVC:$TAG"
+          bash "${SCRIPT_DIR}/render-template.sh" "$SVC" "$IMAGE"
 
-          EXISTS=$(az containerapp show \
-            --name "$SVC" \
-            --resource-group "$RG" \
-            --query "name" \
-            -o tsv 2>/dev/null) || true
-
-          echo "DEBUG: az containerapp show exit code=$?"
-          echo "DEBUG: EXISTS=$EXISTS"
+          EXISTS=$(az containerapp show --name "$SVC" --resource-group "$RG" --query "name" -o tsv 2>/dev/null || true)
 
           if [ -n "$EXISTS" ] && [ "$EXISTS" != "null" ]; then
-            echo "DEBUG: EXISTS=$EXISTS"
-            echo "Container app exists, updating..."
-            echo "DEBUG: running: az containerapp update --name $SVC --resource-group $RG --image $ACR/$SVC:$TAG"
+            echo "Container app exists, updating image..."
             az containerapp update \
               --name "$SVC" \
               --resource-group "$RG" \
-              --image "$ACR/$SVC:$TAG"
-            echo "DEBUG: update exit code=$?"
+              --image "$IMAGE"
           else
-            echo "DEBUG: EXISTS is empty or null, proceeding with create"
             echo "Container app does not exist, creating..."
-            echo "DEBUG: running: yq '.properties.template.containers[0].cpu' containerapp.yaml"
-            CPU=$(yq '.properties.template.containers[0].cpu' containerapp.yaml)
-            echo "DEBUG: CPU=$CPU"
-
-            echo "DEBUG: running: yq '.properties.template.containers[0].memory' containerapp.yaml"
-            MEMORY=$(yq '.properties.template.containers[0].memory' containerapp.yaml)
-            echo "DEBUG: MEMORY=$MEMORY"
-
-            echo "DEBUG: running: yq '.properties.configuration.ingress.targetPort' containerapp.yaml"
-            TARGET_PORT=$(yq '.properties.configuration.ingress.targetPort' containerapp.yaml)
-            echo "DEBUG: TARGET_PORT=$TARGET_PORT"
-
-            echo "DEBUG: running: yq '.properties.configuration.ingress.external' containerapp.yaml"
-            EXTERNAL=$(yq '.properties.configuration.ingress.external' containerapp.yaml)
-            echo "DEBUG: EXTERNAL=$EXTERNAL"
-
-            echo "DEBUG: running: yq '.properties.template.scale.minReplicas' containerapp.yaml"
-            MIN_REPLICAS=$(yq '.properties.template.scale.minReplicas' containerapp.yaml)
-            echo "DEBUG: MIN_REPLICAS=$MIN_REPLICAS"
-
-            echo "DEBUG: running: yq '.properties.template.scale.maxReplicas' containerapp.yaml"
-            MAX_REPLICAS=$(yq '.properties.template.scale.maxReplicas' containerapp.yaml)
-            echo "DEBUG: MAX_REPLICAS=$MAX_REPLICAS"
-
-            INGRESS="internal"
-            echo "DEBUG: initial INGRESS=$INGRESS"
-            if [ "$EXTERNAL" = "True" ] || [ "$EXTERNAL" = "true" ]; then
-              INGRESS="external"
-            fi
-            echo "DEBUG: final INGRESS=$INGRESS"
-
-            echo "DEBUG: running: az containerapp create --name $SVC --resource-group $RG --environment ${{ inputs.aca-environment-id }} --image $ACR/$SVC:$TAG --cpu $CPU --memory $MEMORY --target-port $TARGET_PORT --ingress $INGRESS --min-replicas $MIN_REPLICAS --max-replicas $MAX_REPLICAS --registry-server $ACR"
-            az containerapp create \
-              --name "$SVC" \
+            az deployment group create \
               --resource-group "$RG" \
-              --environment alramz-dev-container-apps-env \
-              --image "$ACR/$SVC:$TAG" \
-              --cpu "$CPU" \
-              --memory "$MEMORY" \
-              --target-port "$TARGET_PORT" \
-              --ingress "$INGRESS" \
-              --min-replicas "$MIN_REPLICAS" \
-              --max-replicas "$MAX_REPLICAS" \
-              --registry-server "$ACR"
-            echo "DEBUG: create exit code=$?"
+              --name "init-$SVC-${TAG:0:10}" \
+              --template-file containerapp.yaml \
+              --no-prompt 2>/dev/null || {
+                echo "ARM template create failed, falling back to flag-based create"
+                CONFIG="services/$SVC/service.yaml"
+                CPU=$(yq '.container.cpu' "$CONFIG")
+                MEM=$(yq '.container.memory' "$CONFIG")
+                PORT=$(yq '.container.targetPort' "$CONFIG")
+                EXTERNAL=$(yq '.ingress.external' "$CONFIG")
+                MIN=$(yq '.scale.minReplicas' "$CONFIG")
+                MAX=$(yq '.scale.maxReplicas' "$CONFIG")
+                SP=$(yq '.environment.springProfile' "$CONFIG")
+                [ -n "$SPRING_PROFILE_OVERRIDE" ] && SP="$SPRING_PROFILE_OVERRIDE"
+                JAVA=$(yq '.environment.javaOpts' "$CONFIG")
+                INGRESS="internal"
+                if [ "$EXTERNAL" = "true" ] || [ "$EXTERNAL" = "True" ]; then INGRESS="external"; fi
+                az containerapp create \
+                  --name "$SVC" \
+                  --resource-group "$RG" \
+                  --environment "$ENV_ID" \
+                  --image "$IMAGE" \
+                  --cpu "$CPU" \
+                  --memory "$MEM" \
+                  --target-port "$PORT" \
+                  --ingress "$INGRESS" \
+                  --min-replicas "$MIN" \
+                  --max-replicas "$MAX" \
+                  --registry-server "$ACR" \
+                  --env "SPRING_PROFILES_ACTIVE=$SP" "JAVA_OPTS=$JAVA"
+            }
           fi
 
-          echo "=== Deployed $SVC ==="
+          URL=$(az containerapp show --name "$SVC" --resource-group "$RG" --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || true)
+
+          DEPLOYED=$(echo "$DEPLOYED" | jq -c --arg svc "$SVC" --arg img "$IMAGE" --arg url "$URL" '. + [{service:$svc, image:$img, url:$url}]')
+          URLS=$(echo "$URLS" | jq -c --arg svc "$SVC" --arg url "$URL" '.[$svc]=$url')
+          echo "=== Deployed $SVC ($URL) ==="
         done
 
-        echo "All deployments complete."
+        echo "deployed-services=$DEPLOYED" >> "$GITHUB_OUTPUT"
+        echo "deployment-urls=$URLS" >> "$GITHUB_OUTPUT"

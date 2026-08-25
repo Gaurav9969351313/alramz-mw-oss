@@ -1,0 +1,263 @@
+name: Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      service-name:
+        description: Service to roll back
+        required: true
+        type: choice
+        options:
+          - data-validation-service
+          - alramz-notification-service
+        default: data-validation-service
+      target-tag:
+        description: Target tag (or "previous" for last known-good)
+        required: false
+        type: string
+        default: previous
+      environment:
+        description: Target environment
+        required: true
+        type: choice
+        options:
+          - dev
+          - qa
+          - preprod
+          - prod
+        default: dev
+      registry-target:
+        description: 'Target registry where images are stored'
+        required: false
+        type: choice
+        options:
+          - GITHUB_REGISTRY
+          - DOCKER_REGISTRY
+          - AZURE_REGISTRY
+        default: GITHUB_REGISTRY
+
+permissions:
+  contents: read
+  id-token: write
+  packages: read
+
+env:
+  ACR_SERVER: alramzregistry.azurecr.io
+
+concurrency:
+  group: rollback-${{ inputs.service-name }}-${{ inputs.environment }}
+  cancel-in-progress: true
+
+jobs:
+
+  resolve-env:
+    runs-on: ubuntu-latest
+    outputs:
+      resource-group: ${{ steps.env.outputs.resource-group }}
+      location: ${{ steps.env.outputs.location }}
+      aca-environment-id: ${{ steps.env.outputs.aca-environment-id }}
+      managed-identity: ${{ steps.env.outputs.managed-identity }}
+      keyvault: ${{ steps.env.outputs.keyvault }}
+      spring-profile: ${{ steps.env.outputs.spring-profile }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Resolve environment parameters
+        id: env
+        shell: bash
+        run: |
+          case "${{ inputs.environment }}" in
+            dev)
+              echo "resource-group=alramz-dev-rg" >> "$GITHUB_OUTPUT"
+              echo "location=uaenorth" >> "$GITHUB_OUTPUT"
+              echo "aca-environment-id=alramz-dev-container-apps-env" >> "$GITHUB_OUTPUT"
+              echo "managed-identity=${{ secrets.MANAGED_IDENTITY_DEV }}" >> "$GITHUB_OUTPUT"
+              echo "keyvault=alramz-dev-key-vault" >> "$GITHUB_OUTPUT"
+              echo "spring-profile=dev" >> "$GITHUB_OUTPUT"
+              ;;
+            qa)
+              echo "resource-group=alramz-qa-rg" >> "$GITHUB_OUTPUT"
+              echo "location=uaenorth" >> "$GITHUB_OUTPUT"
+              echo "aca-environment-id=${{ secrets.ACA_ENV_ID_QA }}" >> "$GITHUB_OUTPUT"
+              echo "managed-identity=${{ secrets.MANAGED_IDENTITY_QA }}" >> "$GITHUB_OUTPUT"
+              echo "keyvault=alramz-qa-key-vault" >> "$GITHUB_OUTPUT"
+              echo "spring-profile=qa" >> "$GITHUB_OUTPUT"
+              ;;
+            preprod)
+              echo "resource-group=alramz-preprod-rg" >> "$GITHUB_OUTPUT"
+              echo "location=uaenorth" >> "$GITHUB_OUTPUT"
+              echo "aca-environment-id=${{ secrets.ACA_ENV_ID_PREPROD }}" >> "$GITHUB_OUTPUT"
+              echo "managed-identity=${{ secrets.MANAGED_IDENTITY_PREPROD }}" >> "$GITHUB_OUTPUT"
+              echo "keyvault=alramz-preprod-key-vault" >> "$GITHUB_OUTPUT"
+              echo "spring-profile=preprod" >> "$GITHUB_OUTPUT"
+              ;;
+            prod)
+              echo "resource-group=alramz-prod-rg" >> "$GITHUB_OUTPUT"
+              echo "location=uaeneast" >> "$GITHUB_OUTPUT"
+              echo "aca-environment-id=${{ secrets.ACA_ENV_ID_PROD }}" >> "$GITHUB_OUTPUT"
+              echo "managed-identity=${{ secrets.MANAGED_IDENTITY_PROD }}" >> "$GITHUB_OUTPUT"
+              echo "keyvault=alramz-prod-key-vault" >> "$GITHUB_OUTPUT"
+              echo "spring-profile=prod" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+
+  resolve-target:
+    needs: resolve-env
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.target.outputs.services }}
+      tag: ${{ steps.target.outputs.tag }}
+      digest: ${{ steps.target.outputs.digest }}
+    steps:
+      - name: Checkout target branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.environment }}
+          fetch-depth: 0
+      - name: Install yq
+        shell: bash
+        run: |
+          wget -q https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+          chmod +x /usr/local/bin/yq
+      - name: Resolve target tag/digest
+        id: target
+        shell: bash
+        run: |
+          SVC="${{ inputs.service-name }}"
+          REGISTER=".github/service-deployment-catalogue/service-register.yml"
+          if [ ! -f "$REGISTER" ]; then
+            echo "::error::service-register.yml not found on ${{ inputs.environment }}"
+            exit 1
+          fi
+          if [ "${{ inputs.target-tag }}" = "previous" ]; then
+            TAG=$(yq -r ".services[\"$SVC\"].history[0].tag" "$REGISTER" 2>/dev/null || echo "")
+            DIGEST=$(yq -r ".services[\"$SVC\"].history[0].digest" "$REGISTER" 2>/dev/null || echo "")
+          else
+            TAG="${{ inputs.target-tag }}"
+            DIGEST=$(yq -r ".services[\"$SVC\"].history[] | select(.tag == \"$TAG\") | .digest" "$REGISTER" 2>/dev/null | head -1)
+          fi
+          if [ -z "$TAG" ] || [ "$TAG" = "null" ]; then
+            echo "::error::Could not resolve rollback target for $SVC on ${{ inputs.environment }}"
+            exit 1
+          fi
+          IMAGE=""
+          REGISTRY_BASE="${{ inputs.registry-target == 'GITHUB_REGISTRY' && format('ghcr.io/{0}', github.repository_owner) || (inputs.registry-target == 'DOCKER_REGISTRY' && secrets.DOCKERHUB_USERNAME) || env.ACR_SERVER }}"
+          if [ -n "$DIGEST" ] && [ "$DIGEST" != "null" ]; then
+            IMAGE="$REGISTRY_BASE/$SVC:$TAG@$DIGEST"
+          else
+            IMAGE="$REGISTRY_BASE/$SVC:$TAG"
+          fi
+          echo "services=$(jq -n --arg svc "$SVC" --arg tag "$TAG" --arg digest "$DIGEST" --arg img "$IMAGE" '[{service:$svc, tag:$tag, digest:$digest, image:$img}]')" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
+
+  deploy-rollback:
+    needs: [resolve-env, resolve-target]
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.environment }}
+      - name: Deploy previous revision
+        id: deploy
+        uses: ./.github/actions/deploy-aca
+        with:
+          services: ${{ needs.resolve-target.outputs.services }}
+          acr-name: ${{ env.ACR_SERVER }}
+          registry-base: ${{ inputs.registry-target == 'GITHUB_REGISTRY' && format('ghcr.io/{0}', github.repository_owner) || (inputs.registry-target == 'DOCKER_REGISTRY' && secrets.DOCKERHUB_USERNAME) || env.ACR_SERVER }}
+          resource-group: ${{ needs.resolve-env.outputs.resource-group }}
+          location: ${{ needs.resolve-env.outputs.location }}
+          aca-environment-id: ${{ needs.resolve-env.outputs.aca-environment-id }}
+          managed-identity: ${{ needs.resolve-env.outputs.managed-identity }}
+          keyvault: ${{ needs.resolve-env.outputs.keyvault }}
+          environment: ${{ inputs.environment }}
+          spring-profile-override: ''
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Write deploy output
+        shell: bash
+        run: |
+          SVC="${{ inputs.service-name }}"
+          URLS="${{ steps.deploy.outputs.deployment-urls }}"
+          URL=$(echo "$URLS" | jq -r --arg svc "$SVC" '.[$svc] // ""')
+          jq -n --arg svc "$SVC" --arg url "$URL" --arg tag "${{ needs.resolve-target.outputs.tag }}" '{service:$svc, url:$url, tag:$tag}' > deploy-output.json
+          cat deploy-output.json
+      - name: Upload deploy output
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-output-${{ inputs.service-name }}
+          path: deploy-output.json
+          retention-days: 1
+
+  smoke-test:
+    needs: deploy-rollback
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.environment }}
+      - name: Download deploy output
+        uses: actions/download-artifact@v4
+        with:
+          name: deploy-output-${{ inputs.service-name }}
+          path: ./deploy-output
+          if-no-files-found: ignore
+      - name: Read URL
+        id: deploy
+        shell: bash
+        run: |
+          URL=""
+          [ -f deploy-output/deploy-output.json ] && URL=$(jq -r '.url' deploy-output/deploy-output.json)
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+      - name: Run smoke test
+        continues-on-error: true
+        uses: ./.github/actions/smoke-test
+        with:
+          service-name: ${{ inputs.service-name }}
+          expected-url: ${{ format('https://{0}', steps.deploy.outputs.url) }}
+
+  notify:
+    needs: [deploy-rollback, smoke-test]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.environment }}
+      - name: Post rollback status
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const svc = '${{ inputs.service-name }}';
+            const env = '${{ inputs.environment }}';
+            const tag = '${{ needs.resolve-target.outputs.tag }}';
+            const deploy = '${{ needs.deploy-rollback.result || "skipped" }}';
+            const smoke = '${{ needs.smoke-test.result || "skipped" }}';
+            const body = [
+              '## Rollback Summary',
+              '',
+              '- Service: `' + svc + '` (environment: `' + env + '`)',
+              '- Rolled back to tag: `' + tag + '`',
+              '- Deploy: ' + deploy,
+              '- Smoke: ' + smoke,
+            ].join('\n');
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: (deploy === 'success' || deploy === 'skipped') ? 'success' : 'failure',
+              target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}',
+              context: 'alramz/rollback',
+              description: ('deploy=' + deploy + ' smoke=' + smoke).slice(0, 255),
+            });

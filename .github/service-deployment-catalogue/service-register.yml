@@ -1,3 +1,11 @@
 services:
   data-validation-service:
     tag: "ada42"
+    digest: ""
+    image: "alramzregistry.azurecr.io/data-validation-service:ada42"
+    history: []
+  alramz-notification-service:
+    tag: "ada42"
+    digest: ""
+    image: "alramzregistry.azurecr.io/alramz-notification-service:ada42"
+    history: []

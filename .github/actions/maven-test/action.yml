@@ -1,13 +1,13 @@
 name: Maven Test
 
-description: Run Maven tests for a Spring Boot service
+description: Run Maven tests for a Spring Boot service or library
 
 inputs:
   service-name:
-    description: Service directory name
+    description: Service directory name under services/
     required: true
   github-token:
-    description: 'GitHub token for authentication'
+    description: GitHub token for accessing GitHub Packages
     required: true
     type: string
 
@@ -26,7 +26,7 @@ runs:
         restore-keys: |
           ${{ runner.os }}-maven-
 
-    - name: Setup Java
+    - name: Set up Java
       uses: actions/setup-java@v4
       with:
         distribution: temurin
@@ -36,9 +36,6 @@ runs:
     - name: Configure Maven settings
       shell: bash
       run: |
-        echo "========================================"
-        echo "DEBUG: Configuring Maven settings for GitHub Packages"
-        echo "========================================"
         mkdir -p $HOME/.m2
         cat > $HOME/.m2/settings.xml <<EOF
         <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
@@ -53,26 +50,15 @@ runs:
           </servers>
         </settings>
         EOF
-        echo "Maven settings configured."
-        echo "========================================"
 
     - name: Install BOM locally
       shell: bash
       run: |
-        echo "========================================"
-        echo "DEBUG: Installing alramz-common-bom locally"
-        echo "========================================"
         cd services/alramz-common-bom
-        mvn -B install -DskipTests
-        echo "========================================"
-        echo "SUCCESS: BOM installed locally"
-        echo "========================================"
+        mvn -B -ntp install -DskipTests
 
     - name: Run Maven Tests
       shell: bash
       run: |
         cd services/${{ inputs.service-name }}
-
-        echo "Running tests for ${{ inputs.service-name }}"
-
-        mvn -B -s $HOME/.m2/settings.xml clean test
+        mvn -B -ntp -s $HOME/.m2/settings.xml clean test

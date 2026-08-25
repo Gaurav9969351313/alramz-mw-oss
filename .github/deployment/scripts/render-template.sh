@@ -2,8 +2,8 @@
 
 set -e
 
-SERVICE=$1
-IMAGE=$2
+SERVICE="$1"
+IMAGE="$2"
 
 # Dynamically locate the service config file (supporting service.yaml, service.yml, and deployment.yaml)
 CONFIG="services/${SERVICE}/service.yaml"
@@ -19,31 +19,26 @@ if [ ! -f "$CONFIG" ]; then
   exit 1
 fi
 
-export IMAGE=$IMAGE
-export CONTAINER_NAME=$SERVICE
+export SERVICE
+export IMAGE
+export CONTAINER_NAME="$SERVICE"
 
-export CPU=$(yq '.container.cpu' $CONFIG)
-export MEMORY=$(yq '.container.memory' $CONFIG)
-export TARGET_PORT=$(yq '.container.targetPort' $CONFIG)
+export CPU=$(yq '.container.cpu' "$CONFIG")
+export MEMORY=$(yq '.container.memory' "$CONFIG")
+export TARGET_PORT=$(yq '.container.targetPort' "$CONFIG")
 
-export MIN_REPLICAS=$(yq '.scale.minReplicas' $CONFIG)
-export MAX_REPLICAS=$(yq '.scale.maxReplicas' $CONFIG)
+export MIN_REPLICAS=$(yq '.scale.minReplicas' "$CONFIG")
+export MAX_REPLICAS=$(yq '.scale.maxReplicas' "$CONFIG")
 
-export INGRESS_EXTERNAL=$(yq '.ingress.external' $CONFIG)
+export INGRESS_EXTERNAL=$(yq '.ingress.external' "$CONFIG")
 
-export SPRING_PROFILE=$(yq '.environment.springProfile' $CONFIG)
-export JAVA_OPTS=$(yq '.environment.javaOpts' $CONFIG)
+SPRING_PROFILE=$(yq '.environment.springProfile' "$CONFIG")
+if [ -n "${SPRING_PROFILE_OVERRIDE:-}" ]; then
+  SPRING_PROFILE="$SPRING_PROFILE_OVERRIDE"
+fi
+export SPRING_PROFILE
+export JAVA_OPTS=$(yq '.environment.javaOpts' "$CONFIG")
 
-#
-# Global variables
-#
-
-export LOCATION=$LOCATION
-export ACA_ENVIRONMENT_ID=$ACA_ENVIRONMENT_ID
-export MANAGED_IDENTITY=$MANAGED_IDENTITY
-export ACR_SERVER=$ACR_SERVER
-
-# Resolve template path relative to the script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TEMPLATE_PATH="$SCRIPT_DIR/../templates/containerapp-template.yaml"
 
@@ -52,4 +47,4 @@ if [ ! -f "$TEMPLATE_PATH" ]; then
   exit 1
 fi
 
-envsubst < "$TEMPLATE_PATH" > containerapp.yaml
+envsubst '${LOCATION} ${ACA_ENVIRONMENT_ID} ${MANAGED_IDENTITY} ${ACR_SERVER} ${SPRING_PROFILE} ${JAVA_OPTS} ${CONTAINER_NAME} ${IMAGE} ${INGRESS_EXTERNAL} ${CPU} ${MEMORY} ${TARGET_PORT} ${MIN_REPLICAS} ${MAX_REPLICAS} ${KEYVAULT_NAME}' < "$TEMPLATE_PATH" > containerapp.yaml

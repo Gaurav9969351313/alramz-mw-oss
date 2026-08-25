@@ -1,0 +1,469 @@
+name: Feature Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      service-name:
+        description: Service to deploy
+        required: true
+        type: choice
+        options:
+          - data-validation-service
+          - alramz-notification-service
+        default: data-validation-service
+      branch:
+        description: Source branch to build from (e.g. dev or feature/foo)
+        required: true
+        type: string
+        default: dev
+      environment:
+        description: Target environment
+        required: true
+        type: choice
+        options:
+          - dev
+          - qa
+          - preprod
+          - prod
+        default: dev
+      spring-profile-override:
+        description: Override springProfile (optional, e.g. qa)
+        required: false
+        type: string
+        default: ''
+      skip-liquibase:
+        description: Skip database migration for this feature deploy
+        required: false
+        type: boolean
+        default: true
+      registry-target:
+        description: 'Target registry to push images'
+        required: false
+        type: choice
+        options:
+          - GITHUB_REGISTRY
+          - DOCKER_REGISTRY
+          - AZURE_REGISTRY
+        default: GITHUB_REGISTRY
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+concurrency:
+  group: feature-${{ inputs.service-name }}-${{ inputs.environment }}
+  cancel-in-progress: true
+
+env:
+  ACR_SERVER: alramzregistry.azurecr.io
+
+jobs:
+
+  validate-inputs:
+    runs-on: ubuntu-latest
+    outputs:
+      branch: ${{ steps.validate.outputs.branch }}
+      environment: ${{ steps.validate.outputs.environment }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+      - name: Validate inputs
+        id: validate
+        shell: bash
+        run: |
+          SVC="${{ inputs.service-name }}"
+          BRANCH="${{ inputs.branch }}"
+          # Verify branch exists
+          if ! git ls-remote --heads --exit-code origin "$BRANCH" >/dev/null 2>&1; then
+            echo "::error::Branch '$BRANCH' does not exist"
+            exit 1
+          fi
+          echo "Service: $SVC (ok: present in register)"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "environment=${{ inputs.environment }}" >> "$GITHUB_OUTPUT"
+
+  resolve-env:
+    needs: validate-inputs
+    runs-on: ubuntu-latest
+    outputs:
+      resource-group: ${{ steps.env.outputs.resource-group }}
+      location: ${{ steps.env.outputs.location }}
+      aca-environment-id: ${{ steps.env.outputs.aca-environment-id }}
+      managed-identity: ${{ steps.env.outputs.managed-identity }}
+      keyvault: ${{ steps.env.outputs.keyvault }}
+      spring-profile: ${{ steps.env.outputs.spring-profile }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+      - name: Resolve environment parameters
+        id: env
+        shell: bash
+        run: |
+          case "${{ inputs.environment }}" in
+            dev)
+              echo "resource-group=alramz-dev-rg" >> "$GITHUB_OUTPUT"
+              echo "location=uaenorth" >> "$GITHUB_OUTPUT"
+              echo "aca-environment-id=alramz-dev-container-apps-env" >> "$GITHUB_OUTPUT"
+              echo "managed-identity=${{ secrets.MANAGED_IDENTITY_DEV }}" >> "$GITHUB_OUTPUT"
+              echo "keyvault=alramz-dev-key-vault" >> "$GITHUB_OUTPUT"
+              echo "spring-profile=${{ inputs.spring-profile-override }}" >> "$GITHUB_OUTPUT"
+              ;;
+            qa)
+              echo "resource-group=alramz-qa-rg" >> "$GITHUB_OUTPUT"
+              echo "location=uaenorth" >> "$GITHUB_OUTPUT"
+              echo "aca-environment-id=${{ secrets.ACA_ENV_ID_QA }}" >> "$GITHUB_OUTPUT"
+              echo "managed-identity=${{ secrets.MANAGED_IDENTITY_QA }}" >> "$GITHUB_OUTPUT"
+              echo "keyvault=alramz-qa-key-vault" >> "$GITHUB_OUTPUT"
+              echo "spring-profile=${{ inputs.spring-profile-override }}" >> "$GITHUB_OUTPUT"
+              ;;
+            preprod)
+              echo "resource-group=alramz-preprod-rg" >> "$GITHUB_OUTPUT"
+              echo "location=uaenorth" >> "$GITHUB_OUTPUT"
+              echo "aca-environment-id=${{ secrets.ACA_ENV_ID_PREPROD }}" >> "$GITHUB_OUTPUT"
+              echo "managed-identity=${{ secrets.MANAGED_IDENTITY_PREPROD }}" >> "$GITHUB_OUTPUT"
+              echo "keyvault=alramz-preprod-key-vault" >> "$GITHUB_OUTPUT"
+              echo "spring-profile=${{ inputs.spring-profile-override }}" >> "$GITHUB_OUTPUT"
+              ;;
+            prod)
+              echo "resource-group=alramz-prod-rg" >> "$GITHUB_OUTPUT"
+              echo "location=uaeneast" >> "$GITHUB_OUTPUT"
+              echo "aca-environment-id=${{ secrets.ACA_ENV_ID_PROD }}" >> "$GITHUB_OUTPUT"
+              echo "managed-identity=${{ secrets.MANAGED_IDENTITY_PROD }}" >> "$GITHUB_OUTPUT"
+              echo "keyvault=alramz-prod-key-vault" >> "$GITHUB_OUTPUT"
+              echo "spring-profile=${{ inputs.spring-profile-override }}" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+
+  publish-maven:
+    needs: validate-inputs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+      - name: Publish to GitHub Packages
+        uses: ./.github/actions/maven-publish
+        with:
+          service-path: services/${{ inputs.service-name }}
+          version: ''
+          java-version: '21'
+          skip-tests: true
+          github-token: ${{ secrets.GH_TOKEN }}
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.service-name }}-jar
+          path: services/${{ inputs.service-name }}/target/${{ inputs.service-name }}-*.jar
+          retention-days: 1
+          if-no-files-found: ignore
+
+  build:
+    needs: [validate-inputs, publish-maven]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.service-name }}-jar
+          path: ./jar-download
+          if-no-files-found: ignore
+      - name: Place JAR in target
+        shell: bash
+        run: |
+          SVC="${{ inputs.service-name }}"
+          mkdir -p "services/$SVC/target"
+          if ls jar-download/*.jar >/dev/null 2>&1; then
+            cp jar-download/*.jar "services/$SVC/target/"
+          else
+            echo "::error::No JAR artifact found for $SVC"
+            exit 1
+          fi
+      - name: Generate image tag
+        id: tag
+        shell: bash
+        run: |
+          BR=$(echo "${{ inputs.branch }}" | tr '/' '-')
+          echo "tag=feature-${BR}-${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
+      - name: Build and push image
+        id: build
+        uses: ./.github/actions/build-service
+        with:
+          service-name: ${{ inputs.service-name }}
+          acr-name: ${{ env.ACR_SERVER }}
+          image-tag: ${{ steps.tag.outputs.tag }}
+          github-token: ${{ secrets.GH_TOKEN }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          registry-target: ${{ inputs.registry-target }}
+          dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
+          dockerhub-password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          scan-trivy: false
+      - name: Write build output
+        shell: bash
+        run: |
+          jq -n --arg svc "${{ inputs.service-name }}" \
+            --arg tag "${{ steps.tag.outputs.tag }}" \
+            --arg img "${{ steps.build.outputs.image }}" \
+            --arg digest "${{ steps.build.outputs.image-digest }}" \
+            '{service:$svc, tag:$tag, image:$img, digest:$digest}' > build-output.json
+          cat build-output.json
+      - name: Upload build output
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output-${{ inputs.service-name }}
+          path: build-output.json
+          retention-days: 1
+
+  db-migrate:
+    needs: [validate-inputs, build]
+    if: ${{ inputs.skip-liquibase == false }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+      - name: Azure OIDC login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Configure Maven settings
+        shell: bash
+        run: |
+          mkdir -p $HOME/.m2
+          cat > $HOME/.m2/settings.xml <<'EOF'
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
+            <servers>
+              <server>
+                <id>github</id>
+                <username>x-access-token</username>
+                <password>${{ secrets.GH_TOKEN }}</password>
+              </server>
+            </servers>
+          </settings>
+          EOF
+      - name: Run Liquibase migration
+        shell: bash
+        env:
+          KV_NAME: ${{ needs.resolve-env.outputs.keyvault }}
+          DB_URL: ${{ inputs.environment == 'dev' && secrets.DB_URL_DEV || inputs.environment == 'qa' && secrets.DB_URL_QA || inputs.environment == 'preprod' && secrets.DB_URL_PREPROD || inputs.environment == 'prod' && secrets.DB_URL_PROD || '' }}
+          DB_USERNAME: ${{ inputs.environment == 'dev' && secrets.DB_USERNAME_DEV || inputs.environment == 'qa' && secrets.DB_USERNAME_QA || inputs.environment == 'preprod' && secrets.DB_USERNAME_PREPROD || inputs.environment == 'prod' && secrets.DB_USERNAME_PROD || '' }}
+        run: |
+          set -e
+          SVC="${{ inputs.service-name }}"
+          if [ ! -d "services/$SVC/src/main/resources/db/changelog" ]; then
+            echo "No changelog for $SVC, skipping migration"
+            exit 0
+          fi
+          DB_PASS=$(az keyvault secret show --vault-name "$KV_NAME" --name "DB_PASSWORD" --query value -o tsv 2>/dev/null || echo "")
+          if [ -z "$DB_PASS" ] || [ -z "$DB_URL" ] || [ -z "$DB_USERNAME" ]; then
+            echo "::error::DB credentials unavailable for $SVC on ${{ inputs.environment }}"
+            exit 1
+          fi
+          cd "services/$SVC"
+          cat > liquibase.properties <<EOF
+          driver: org.postgresql.Driver
+          classpath: target/classes
+          url: $DB_URL
+          username: $DB_USERNAME
+          password: $DB_PASS
+          changeLogFile: src/main/resources/db/changelog/db.changelog-master.yaml
+          contexts: ${{ needs.resolve-env.outputs.spring-profile }}
+          EOF
+          mvn -B -ntp -s $HOME/.m2/settings.xml liquibase:update
+
+  deploy:
+    needs: [validate-inputs, build, db-migrate]
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+      - name: Download build output
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output-${{ inputs.service-name }}
+          path: ./build-output
+      - name: Build services JSON
+        id: svc
+        shell: bash
+        run: |
+          SVC="${{ inputs.service-name }}"
+          TAG=$(jq -r '.tag' build-output/build-output.json)
+          DIGEST=$(jq -r '.digest' build-output/build-output.json)
+          jq -n --arg svc "$SVC" --arg tag "$TAG" --arg digest "$DIGEST" '[{service:$svc, tag:$tag, digest:$digest}]' > svc.json
+          echo "svc_json=$(cat svc.json)" >> "$GITHUB_ENV"
+      - name: Deploy to ACA
+        id: deploy
+        uses: ./.github/actions/deploy-aca
+        with:
+          services: ${{ env.svc_json }}
+          acr-name: ${{ env.ACR_SERVER }}
+          registry-base: ${{ inputs.registry-target == 'GITHUB_REGISTRY' && format('ghcr.io/{0}', github.repository_owner) || (inputs.registry-target == 'DOCKER_REGISTRY' && secrets.DOCKERHUB_USERNAME) || env.ACR_SERVER }}
+          resource-group: ${{ needs.resolve-env.outputs.resource-group }}
+          location: ${{ needs.resolve-env.outputs.location }}
+          aca-environment-id: ${{ needs.resolve-env.outputs.aca-environment-id }}
+          managed-identity: ${{ needs.resolve-env.outputs.managed-identity }}
+          keyvault: ${{ needs.resolve-env.outputs.keyvault }}
+          environment: ${{ inputs.environment }}
+          spring-profile-override: ${{ needs.resolve-env.outputs.spring-profile }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Write deploy output
+        shell: bash
+        run: |
+          SVC="${{ inputs.service-name }}"
+          URLS="${{ steps.deploy.outputs.deployment-urls }}"
+          URL=$(echo "$URLS" | jq -r --arg svc "$SVC" '.[$svc] // ""')
+          TAG=$(jq -r '.tag' build-output/build-output.json)
+          IMG=$(jq -r '.image' build-output/build-output.json)
+          jq -n --arg svc "$SVC" --arg url "$URL" --arg tag "$TAG" --arg img "$IMG" '{service:$svc, url:$url, tag:$tag, image:$img}' > deploy-output.json
+          cat deploy-output.json
+      - name: Upload deploy output
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-output-${{ inputs.service-name }}
+          path: deploy-output.json
+          retention-days: 1
+
+  smoke-test:
+    needs: [deploy]
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+      - name: Download deploy output
+        uses: actions/download-artifact@v4
+        with:
+          name: deploy-output-${{ inputs.service-name }}
+          path: ./deploy-output
+          if-no-files-found: ignore
+      - name: Read URL
+        id: deploy
+        shell: bash
+        run: |
+          URL=""
+          [ -f deploy-output/deploy-output.json ] && URL=$(jq -r '.url' deploy-output/deploy-output.json)
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+      - name: Run smoke test
+        continues-on-error: true
+        uses: ./.github/actions/smoke-test
+        with:
+          service-name: ${{ inputs.service-name }}
+          expected-url: ${{ format('https://{0}', steps.deploy.outputs.url) }}
+
+  drift-detect:
+    needs: [smoke-test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+      - name: Download build output
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output-${{ inputs.service-name }}
+          path: ./build-output
+      - name: Build drift services JSON
+        id: drift-svc
+        shell: bash
+        run: |
+          SVC="${{ inputs.service-name }}"
+          TAG=$(jq -r '.tag' build-output/build-output.json)
+          DIGEST=$(jq -r '.digest' build-output/build-output.json)
+          jq -n --arg svc "$SVC" --arg tag "$TAG" --arg digest "$DIGEST" '[{service:$svc, tag:$tag, digest:$digest}]' > svc.json
+          echo "svc_json=$(cat svc.json)" >> "$GITHUB_ENV"
+      - name: Run drift detection
+        uses: ./.github/actions/drift-detect
+        with:
+          services: ${{ env.svc_json }}
+          acr-name: ${{ env.ACR_SERVER }}
+          registry-base: ${{ inputs.registry-target == 'GITHUB_REGISTRY' && format('ghcr.io/{0}', github.repository_owner) || (inputs.registry-target == 'DOCKER_REGISTRY' && secrets.DOCKERHUB_USERNAME) || env.ACR_SERVER }}
+          resource-group: ${{ needs.resolve-env.outputs.resource-group }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+  notify:
+    needs: [deploy, smoke-test, drift-detect]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+      - name: Post deploy summary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const svc = '${{ inputs.service-name }}';
+            const env = '${{ inputs.environment }}';
+            const deploy = '${{ needs.deploy.result || "skipped" }}';
+            const smoke = '${{ needs.smoke-test.result || "skipped" }}';
+            const body = [
+              '## Feature Deploy Summary',
+              '',
+              '- Service: `' + svc + '`',
+              '- Environment: `' + env + '`',
+              '- Branch: `${{ inputs.branch }}`',
+              '- Deploy: ' + deploy,
+              '- Smoke: ' + smoke,
+              '',
+              'Feature deploys are transient and are **not** tracked in `service-register.yml`.',
+            ].join('\n');
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: (deploy === 'success' || deploy === 'skipped') ? 'success' : 'failure',
+              target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}',
+              context: 'alramz/feature-deploy',
+              description: ('deploy=' + deploy + ' smoke=' + smoke).slice(0, 255),
+            });

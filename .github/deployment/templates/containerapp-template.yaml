@@ -1,33 +1,45 @@
-location: "${LOCATION}"
-
-identity:
-  type: UserAssigned
-  userAssignedIdentities:
-    "${MANAGED_IDENTITY}": {}
-
-properties:
-  managedEnvironmentId: "${ACA_ENVIRONMENT_ID}"
-  configuration:
-    activeRevisionsMode: Single
-    registries:
-      - server: "${ACR_SERVER}"
-        identity: "${MANAGED_IDENTITY}"
-    ingress:
-      external: ${INGRESS_EXTERNAL}
-      targetPort: ${TARGET_PORT}
-      transport: auto
-
-  template:
-    containers:
-      - name: "${CONTAINER_NAME}"
-        image: "${IMAGE}"
-        cpu: "${CPU}"
-        memory: "${MEMORY}"
-        env:
-          - name: SPRING_PROFILES_ACTIVE
-            value: "${SPRING_PROFILE}"
-          - name: JAVA_OPTS
-            value: "${JAVA_OPTS}"
-    scale:
-      minReplicas: ${MIN_REPLICAS}
-      maxReplicas: ${MAX_REPLICAS}
+$schema: https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#
+contentVersion: 1.0.0.0
+resources:
+  - type: Microsoft.App/containerApps
+    apiVersion: 2023-05-01
+    name: "${CONTAINER_NAME}"
+    location: "${LOCATION}"
+    kind: containerApp
+    identity:
+      type: UserAssigned
+      userAssignedIdentities:
+        "${MANAGED_IDENTITY}": {}
+    properties:
+      managedEnvironmentId: "${ACA_ENVIRONMENT_ID}"
+      activeRevisionsMode: Single
+      configuration:
+        activeRevisionsMode: Single
+        registries:
+          - server: "${ACR_SERVER}"
+            identity: "${MANAGED_IDENTITY}"
+        secrets:
+          - name: db-password
+            keyVaultUrl: "https://${KEYVAULT_NAME}.vault.azure.net/secrets/DB_PASSWORD"
+            identity: "${MANAGED_IDENTITY}"
+        ingress:
+          external: ${INGRESS_EXTERNAL}
+          targetPort: ${TARGET_PORT}
+          transport: http
+      template:
+        containers:
+          - name: "${CONTAINER_NAME}"
+            image: "${IMAGE}"
+            resources:
+              cpu: ${CPU}
+              memory: ${MEMORY}
+            env:
+              - name: SPRING_PROFILES_ACTIVE
+                value: "${SPRING_PROFILE}"
+              - name: JAVA_OPTS
+                value: "${JAVA_OPTS}"
+              - name: SPRING_DATASOURCE_PASSWORD
+                secretRef: db-password
+        scale:
+          minReplicas: ${MIN_REPLICAS}
+          maxReplicas: ${MAX_REPLICAS}

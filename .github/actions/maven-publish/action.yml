@@ -1,32 +1,35 @@
-name: 'Maven Publish to GitHub Packages'
-description: 'Publish a Maven artifact to GitHub Packages'
+name: Maven Publish to GitHub Packages
+
+description: Build and publish a Maven artifact to GitHub Packages
+
 inputs:
   service-path:
-    description: 'Path to the service directory containing pom.xml'
+    description: Path to the service directory containing pom.xml
     required: true
     type: string
   version:
-    description: 'Version to publish (e.g. 1.0.0 or 1.0-SNAPSHOT). Leave empty to use current POM version.'
+    description: Version to publish (e.g. 1.0.0 or 1.0-SNAPSHOT). Leave empty to use current POM version.
     required: false
     type: string
     default: ''
   java-version:
-    description: 'Java version to use'
+    description: Java version to use
     required: false
     type: string
     default: '21'
   skip-tests:
-    description: 'Skip tests during publish'
+    description: Skip tests during publish
     required: false
     type: boolean
     default: true
   github-token:
-    description: 'GitHub token for authentication'
+    description: GitHub token for authentication
     required: true
     type: string
 
 runs:
   using: 'composite'
+
   steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -48,23 +51,24 @@ runs:
         java-version: ${{ inputs.java-version }}
         cache: maven
 
+    - name: Install BOM and API starter locally
+      shell: bash
+      run: |
+        cd services/alramz-common-bom
+        mvn -B -ntp install -DskipTests -N
+        cd ../alramz-api-starter
+        mvn -B -ntp install -DskipTests
+
     - name: Set version
       if: ${{ inputs.version != '' }}
       shell: bash
       run: |
-        echo "========================================"
-        echo "DEBUG: Setting version to ${{ inputs.version }}"
-        echo "========================================"
         cd ${{ inputs.service-path }}
-        mvn versions:set -DnewVersion=${{ inputs.version }} -DgenerateBackupPoms=false
-        echo "========================================"
+        mvn -B -ntp versions:set -DnewVersion=${{ inputs.version }} -DgenerateBackupPoms=false
 
     - name: Configure Maven settings
       shell: bash
       run: |
-        echo "========================================"
-        echo "DEBUG: Configuring Maven settings for GitHub Packages"
-        echo "========================================"
         mkdir -p $HOME/.m2
         cat > $HOME/.m2/settings.xml <<EOF
         <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
@@ -79,23 +83,14 @@ runs:
           </servers>
         </settings>
         EOF
-        echo "Maven settings configured."
-        echo "========================================"
 
     - name: Publish to GitHub Packages
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.github-token }}
       run: |
-        echo "========================================"
-        echo "DEBUG: Publishing to GitHub Packages"
-        echo "========================================"
         cd ${{ inputs.service-path }}
-        mvn deploy -B \
-          -s $HOME/.m2/settings.xml \
+        mvn -B -ntp -s $HOME/.m2/settings.xml deploy \
           -DskipTests=${{ inputs.skip-tests }} \
           -Dgpg.skip=true \
-          -DaltDeploymentRepository=github::default::https://maven.pkg.github.com/Gaurav9969351313/alramz-mw-oss/
-        echo "========================================"
-        echo "SUCCESS: Published to GitHub Packages"
-        echo "========================================"
+          -DaltDeploymentRepository=github::default::https://maven.pkg.github.com/${{ github.repository }}/

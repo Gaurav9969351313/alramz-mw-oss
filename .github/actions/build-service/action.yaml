@@ -1,93 +1,168 @@
 name: Build Service
 
+description: >
+  Builds a single service from its precompiled JAR into a shared Dockerfile,
+  pushes to the configured registry (GITHUB_REGISTRY, DOCKER_REGISTRY, or AZURE_REGISTRY),
+  captures the image digest, and performs optional security scanning / signing.
+
 inputs:
   service-name:
-    description: Service Name
+    description: Service directory name under services/
     required: true
-
   acr-name:
-    description: ACR Login Server
-    required: true
-  
+    description: ACR Login Server (e.g. alramzregistry.azurecr.io)
+    required: false
   image-tag:
+    description: Image tag to apply
     required: true
-
   github-token:
-    description: 'GitHub token for authentication'
+    description: GitHub token for registry authentication
     required: true
     type: string
+  azure-client-id:
+    description: Azure OIDC client id
+    required: false
+    type: string
+  azure-tenant-id:
+    description: Azure OIDC tenant id
+    required: false
+    type: string
+  azure-subscription-id:
+    description: Azure subscription id
+    required: false
+    type: string
+  registry-target:
+    description: Target registry to push images (GITHUB_REGISTRY, DOCKER_REGISTRY, AZURE_REGISTRY)
+    required: false
+    type: string
+    default: GITHUB_REGISTRY
+  dockerhub-username:
+    description: Docker Hub username (required when registry-target is DOCKER_REGISTRY)
+    required: false
+    type: string
+    default: ''
+  dockerhub-password:
+    description: Docker Hub password/token (required when registry-target is DOCKER_REGISTRY)
+    required: false
+    type: string
+    default: ''
+  scan-trivy:
+    description: Run Trivy vulnerability scan (fails on CRITICAL/HIGH)
+    required: false
+    type: boolean
+    default: false
+  sign-cosign:
+    description: Sign the image with cosign (keyless)
+    required: false
+    type: boolean
+    default: false
 
-permissions:
-  contents: read
+outputs:
+  image:
+    description: Full image reference with digest
+    value: ${{ steps.build.outputs.image }}
+  image-digest:
+    description: Image digest (sha256:...)
+    value: ${{ steps.build.outputs.image-digest }}
 
 runs:
   using: composite
 
   steps:
-    - name: Generate Image Tag
-      shell: bash
-      run: |
-        echo "IMAGE_TAG=$(git rev-parse --short=5 HEAD)" >> $GITHUB_ENV
-
-    - name: Check for Dockerfile
-      id: dockerfile-check
-      shell: bash
-      run: |
-        if [ -f "services/${{ inputs.service-name }}/Dockerfile" ]; then
-          echo "exists=true" >> $GITHUB_OUTPUT
-        else
-          echo "exists=false" >> $GITHUB_OUTPUT
-        fi
-
-    - name: Skip build (no Dockerfile)
-      if: ${{ steps.dockerfile-check.outputs.exists != 'true' }}
-      shell: bash
-      run: |
-        echo "========================================"
-        echo "SKIP: No Dockerfile found for ${{ inputs.service-name }}"
-        echo "========================================"
+    - name: Azure OIDC login
+      if: ${{ inputs.registry-target == 'AZURE_REGISTRY' && inputs.azure-client-id != '' }}
+      uses: azure/login@v2
+      with:
+        client-id: ${{ inputs.azure-client-id }}
+        tenant-id: ${{ inputs.azure-tenant-id }}
+        subscription-id: ${{ inputs.azure-subscription-id }}
 
     - name: Login to ACR
-      if: ${{ steps.dockerfile-check.outputs.exists == 'true' }}
+      if: ${{ inputs.registry-target == 'AZURE_REGISTRY' }}
       shell: bash
       run: |
-        az acr login --name alramzregistry
+        ACR_NAME="${{ inputs.acr-name }}"
+        ACR_NAME="${ACR_NAME%%.azurecr.io}"
+        az acr login --name "$ACR_NAME"
 
-    - name: Check for Dockerfile
-      shell: bash
-      run: |
-        if [ ! -f "services/${{ inputs.service-name }}/Dockerfile" ]; then
-          echo "No Dockerfile found for ${{ inputs.service-name }}, skipping build and push"
-          echo "skip=true" >> $GITHUB_ENV
-        else
-          echo "skip=false" >> $GITHUB_ENV
-        fi
+    - name: Login to GHCR
+      if: ${{ inputs.registry-target == 'GITHUB_REGISTRY' }}
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ inputs.github-token }}
 
-    - name: Build Docker Image
-      if: ${{ steps.dockerfile-check.outputs.exists == 'true' }}
+    - name: Login to Docker Hub
+      if: ${{ inputs.registry-target == 'DOCKER_REGISTRY' }}
+      uses: docker/login-action@v3
+      with:
+        username: ${{ inputs.dockerhub-username }}
+        password: ${{ inputs.dockerhub-password }}
+
+    - name: Build and push image
+      id: build
       shell: bash
       env:
         DOCKER_BUILDKIT: '1'
-        GH_TOKEN: ${{ inputs.github-token }}
       run: |
-        echo "========================================"
-        echo "DEBUG: Building Docker image for ${{ inputs.service-name }}"
-        echo "========================================"
-        MAVEN_SETTINGS='<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd"><servers><server><id>github</id><username>x-access-token</username><password>'$GH_TOKEN'</password></server></servers></settings>'
+        set -euo pipefail
 
-        echo "$MAVEN_SETTINGS" | base64
-        echo "$MAVEN_SETTINGS" | base64 > /tmp/maven_settings_b64
+        SVC="${{ inputs.service-name }}"
+        TAG="${{ inputs.image-tag }}"
+        TARGET="${{ inputs.registry-target }}"
+
+        case "$TARGET" in
+          GITHUB_REGISTRY)
+            OWNER="${{ github.repository_owner }}"
+            IMAGE="ghcr.io/$OWNER/$SVC:$TAG"
+            ;;
+          DOCKER_REGISTRY)
+            IMAGE="${{ inputs.dockerhub-username }}/$SVC:$TAG"
+            ;;
+          AZURE_REGISTRY)
+            ACR="${{ inputs.acr-name }}"
+            IMAGE="$ACR/$SVC:$TAG"
+            ;;
+          *)
+            echo "::error::Invalid registry-target: $TARGET (expected GITHUB_REGISTRY, DOCKER_REGISTRY, or AZURE_REGISTRY)"
+            exit 1
+            ;;
+        esac
 
         docker build \
-          --build-arg MAVEN_SETTINGS="$(cat /tmp/maven_settings_b64)" \
-          -t ${{ inputs.acr-name }}/${{ inputs.service-name }}:$IMAGE_TAG \
-          ./services/${{ inputs.service-name }}
-        echo "========================================"
-        echo "SUCCESS: Built Docker image"
-        echo "========================================"
+          --build-arg SERVICE_NAME="$SVC" \
+          --build-arg JAR_FILE="target/${SVC}-*.jar" \
+          -t "$IMAGE" \
+          -f .github/docker/Dockerfile \
+          "services/$SVC"
 
-    - name: Push Docker Image
-      if: ${{ steps.dockerfile-check.outputs.exists == 'true' }}
+        docker push "$IMAGE"
+
+        DIGEST="$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE")"
+        DIGEST="${DIGEST##*@}"
+        FULL_IMAGE="$IMAGE@$DIGEST"
+
+        echo "image=$FULL_IMAGE" >> "$GITHUB_OUTPUT"
+        echo "image-digest=$DIGEST" >> "$GITHUB_OUTPUT"
+
+    - name: Trivy scan
+      if: ${{ inputs.scan-trivy }}
+      uses: AquaSecurity/trivy-action@master
+      with:
+        image-ref: ${{ steps.build.outputs.image }}
+        format: 'table'
+        exit-code: '1'
+        severity: 'CRITICAL,HIGH'
+        ignore-unfixed: true
+
+    - name: Cosign sign
+      if: ${{ inputs.sign-cosign }}
+      uses: sigstore/cosign-installer@v3.7.0
+      with:
+        cosign-installation: cosign
+    - name: Cosign sign image
+      if: ${{ inputs.sign-cosign }}
       shell: bash
       run: |
-        docker push ${{ inputs.acr-name }}/${{ inputs.service-name }}:$IMAGE_TAG
+        cosign sign --yes "${{ steps.build.outputs.image }}"

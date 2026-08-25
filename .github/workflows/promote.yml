@@ -1,0 +1,367 @@
+name: Promote
+
+on:
+  push:
+    branches: [qa, preprod, prod]
+  workflow_dispatch:
+    inputs:
+      registry-target:
+        description: 'Target registry where images are stored'
+        required: false
+        type: choice
+        options:
+          - GITHUB_REGISTRY
+          - DOCKER_REGISTRY
+          - AZURE_REGISTRY
+        default: GITHUB_REGISTRY
+
+permissions:
+  contents: read
+  id-token: write
+  packages: read
+
+concurrency:
+  group: ${{ github.ref_name }}-${{ github.sha }}
+  cancel-in-progress: true
+
+env:
+  ACR_SERVER: alramzregistry.azurecr.io
+  REGISTRY_TARGET: ${{ github.event.inputs.registry-target || 'GITHUB_REGISTRY' }}
+
+jobs:
+
+  resolve-env:
+    runs-on: ubuntu-latest
+    outputs:
+      resource-group: ${{ steps.env.outputs.resource-group }}
+      location: ${{ steps.env.outputs.location }}
+      aca-environment-id: ${{ steps.env.outputs.aca-environment-id }}
+      managed-identity: ${{ steps.env.outputs.managed-identity }}
+      keyvault: ${{ steps.env.outputs.keyvault }}
+      spring-profile: ${{ steps.env.outputs.spring-profile }}
+      environment: ${{ steps.env.outputs.environment }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Resolve environment parameters
+        id: env
+        shell: bash
+        run: |
+          case "$GITHUB_REF_NAME" in
+            qa)
+              echo "resource-group=alramz-qa-rg" >> "$GITHUB_OUTPUT"
+              echo "location=uaenorth" >> "$GITHUB_OUTPUT"
+              echo "aca-environment-id=${{ secrets.ACA_ENV_ID_QA }}" >> "$GITHUB_OUTPUT"
+              echo "managed-identity=${{ secrets.MANAGED_IDENTITY_QA }}" >> "$GITHUB_OUTPUT"
+              echo "keyvault=alramz-qa-key-vault" >> "$GITHUB_OUTPUT"
+              echo "spring-profile=qa" >> "$GITHUB_OUTPUT"
+              echo "environment=qa" >> "$GITHUB_OUTPUT"
+              ;;
+            preprod)
+              echo "resource-group=alramz-preprod-rg" >> "$GITHUB_OUTPUT"
+              echo "location=uaenorth" >> "$GITHUB_OUTPUT"
+              echo "aca-environment-id=${{ secrets.ACA_ENV_ID_PREPROD }}" >> "$GITHUB_OUTPUT"
+              echo "managed-identity=${{ secrets.MANAGED_IDENTITY_PREPROD }}" >> "$GITHUB_OUTPUT"
+              echo "keyvault=alramz-preprod-key-vault" >> "$GITHUB_OUTPUT"
+              echo "spring-profile=preprod" >> "$GITHUB_OUTPUT"
+              echo "environment=preprod" >> "$GITHUB_OUTPUT"
+              ;;
+            prod)
+              echo "resource-group=alramz-prod-rg" >> "$GITHUB_OUTPUT"
+              echo "location=uaeneast" >> "$GITHUB_OUTPUT"
+              echo "aca-environment-id=${{ secrets.ACA_ENV_ID_PROD }}" >> "$GITHUB_OUTPUT"
+              echo "managed-identity=${{ secrets.MANAGED_IDENTITY_PROD }}" >> "$GITHUB_OUTPUT"
+              echo "keyvault=alramz-prod-key-vault" >> "$GITHUB_OUTPUT"
+              echo "spring-profile=prod" >> "$GITHUB_OUTPUT"
+              echo "environment=prod" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "::error::Unknown promotion target: $GITHUB_REF_NAME"
+              exit 1
+              ;;
+          esac
+
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      deploy_services: ${{ steps.detect.outputs.deploy_services }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install yq
+        shell: bash
+        run: |
+          wget -q https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+          chmod +x /usr/local/bin/yq
+      - name: Detect changed deployable services
+        id: detect
+        shell: bash
+        run: |
+          BASE="${{ github.event.before }}"
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            BASE=$(git rev-parse "HEAD^")
+          fi
+          REGISTER=".github/service-deployment-catalogue/service-register.yml"
+
+          # Get previous and current versions
+          PREV_FILE=$(mktemp)
+          CURR_FILE=$(mktemp)
+          git show "$BASE:$REGISTER" > "$PREV_FILE" 2>/dev/null || echo "{}" > "$PREV_FILE"
+          cat "$REGISTER" > "$CURR_FILE"
+
+          SERVICES_JSON="[]"
+          # Get all service names from current register
+          for svc in $(yq -r '.services | keys | .[]' "$CURR_FILE" 2>/dev/null); do
+            PREV_TAG=$(yq -r ".services[\"$svc\"].tag // \"\"" "$PREV_FILE")
+            CURR_TAG=$(yq -r ".services[\"$svc\"].tag // \"\"" "$CURR_FILE")
+            PREV_DIGEST=$(yq -r ".services[\"$svc\"].digest // \"\"" "$PREV_FILE")
+            CURR_DIGEST=$(yq -r ".services[\"$svc\"].digest // \"\"" "$CURR_FILE")
+
+            # Only include if tag or digest changed
+            if [ "$PREV_TAG" != "$CURR_TAG" ] || [ "$PREV_DIGEST" != "$CURR_DIGEST" ]; then
+              TAG="$CURR_TAG"
+              DIGEST="$CURR_DIGEST"
+              IMAGE=$(yq -r ".services[\"$svc\"].image // \"\"" "$CURR_FILE")
+              SERVICES_JSON=$(echo "$SERVICES_JSON" | jq -c \
+                --arg svc "$svc" --arg tag "$TAG" --arg digest "$DIGEST" --arg img "$IMAGE" \
+                '. + [{service:$svc, tag:$tag, digest:$digest, image:$img}]')
+            fi
+          done
+          rm -f "$PREV_FILE" "$CURR_FILE"
+          echo "deploy_services=$SERVICES_JSON" >> "$GITHUB_OUTPUT"
+
+  db-migrate:
+    needs: [resolve-env, detect-changes]
+    if: needs.detect-changes.outputs.deploy_services != '[]'
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJson(needs.detect-changes.outputs.deploy_services == '[]' && '["__none__"]' || needs.detect-changes.outputs.deploy_services) }}
+    permissions:
+      contents: read
+      id-token: write
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Azure OIDC login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Install yq
+        shell: bash
+        run: |
+          wget -q https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+          chmod +x /usr/local/bin/yq
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Configure Maven settings
+        shell: bash
+        run: |
+          mkdir -p $HOME/.m2
+          cat > $HOME/.m2/settings.xml <<'EOF'
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
+            <servers>
+              <server>
+                <id>github</id>
+                <username>x-access-token</username>
+                <password>${{ secrets.GH_TOKEN }}</password>
+              </server>
+            </servers>
+          </settings>
+          EOF
+      - name: Install BOM locally
+        if: ${{ matrix.service != '__none__' }}
+        shell: bash
+        run: |
+          cd services/alramz-common-bom
+          mvn -B -ntp install -DskipTests -N
+      - name: Run Liquibase migration
+        if: ${{ matrix.service != '__none__' }}
+        shell: bash
+        env:
+          KV_NAME: ${{ needs.resolve-env.outputs.keyvault }}
+          DB_URL: ${{ github.ref_name == 'qa' && secrets.DB_URL_QA || github.ref_name == 'preprod' && secrets.DB_URL_PREPROD || github.ref_name == 'prod' && secrets.DB_URL_PROD || '' }}
+          DB_USERNAME: ${{ github.ref_name == 'qa' && secrets.DB_USERNAME_QA || github.ref_name == 'preprod' && secrets.DB_USERNAME_PREPROD || github.ref_name == 'prod' && secrets.DB_USERNAME_PROD || '' }}
+        run: |
+          set -e
+          SVC="${{ matrix.service }}"
+          if [ ! -d "services/$SVC/src/main/resources/db/changelog" ]; then
+            echo "No changelog for $SVC, skipping migration"
+            exit 0
+          fi
+          DB_PASS=$(az keyvault secret show --vault-name "$KV_NAME" --name "DB_PASSWORD" --query value -o tsv 2>/dev/null || echo "")
+          if [ -z "$DB_PASS" ] || [ -z "$DB_URL" ] || [ -z "$DB_USERNAME" ]; then
+            echo "::error::DB credentials unavailable for $SVC on $GITHUB_REF_NAME (need Key Vault DB_PASSWORD, repo secrets DB_URL_$GITHUB_REF_NAME, DB_USERNAME_$GITHUB_REF_NAME)"
+            exit 1
+          fi
+          cd "services/$SVC"
+          cat > liquibase.properties <<EOF
+          driver: org.postgresql.Driver
+          classpath: target/classes
+          url: $DB_URL
+          username: $DB_USERNAME
+          password: $DB_PASS
+          changeLogFile: src/main/resources/db/changelog/db.changelog-master.yaml
+          contexts: ${{ needs.resolve-env.outputs.spring-profile }}
+          EOF
+          mvn -B -ntp -s $HOME/.m2/settings.xml liquibase:update
+
+  deploy:
+    needs: [db-migrate, detect-changes]
+    if: needs.detect-changes.outputs.deploy_services != '[]'
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJson(needs.detect-changes.outputs.deploy_services == '[]' && '["__none__"]' || needs.detect-changes.outputs.deploy_services) }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install yq
+        shell: bash
+        run: |
+          wget -q https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+          chmod +x /usr/local/bin/yq
+      - name: Build services JSON
+        id: svc
+        shell: bash
+        run: |
+          SVC="${{ matrix.service }}"
+          TAG=$(yq -r ".services[\"$SVC\"].tag" .github/service-deployment-catalogue/service-register.yml)
+          DIGEST=$(yq -r ".services[\"$SVC\"].digest" .github/service-deployment-catalogue/service-register.yml)
+          jq -n --arg svc "$SVC" --arg tag "$TAG" --arg digest "$DIGEST" '[{service:$svc, tag:$tag, digest:$digest}]' > svc.json
+          echo "svc_json=$(cat svc.json)" >> "$GITHUB_ENV"
+      - name: Deploy to ACA
+        id: deploy
+        uses: ./.github/actions/deploy-aca
+        with:
+          services: ${{ env.svc_json }}
+          acr-name: ${{ env.ACR_SERVER }}
+          registry-base: ${{ env.REGISTRY_TARGET == 'GITHUB_REGISTRY' && format('ghcr.io/{0}', github.repository_owner) || (env.REGISTRY_TARGET == 'DOCKER_REGISTRY' && secrets.DOCKERHUB_USERNAME) || env.ACR_SERVER }}
+          resource-group: ${{ needs.resolve-env.outputs.resource-group }}
+          location: ${{ needs.resolve-env.outputs.location }}
+          aca-environment-id: ${{ needs.resolve-env.outputs.aca-environment-id }}
+          managed-identity: ${{ needs.resolve-env.outputs.managed-identity }}
+          keyvault: ${{ needs.resolve-env.outputs.keyvault }}
+          environment: ${{ github.ref_name }}
+          spring-profile-override: ${{ needs.resolve-env.outputs.spring-profile }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Write deploy output
+        shell: bash
+        run: |
+          SVC="${{ matrix.service }}"
+          URLS="${{ steps.deploy.outputs.deployment-urls }}"
+          URL=$(echo "$URLS" | jq -r --arg svc "$SVC" '.[$svc] // ""')
+          jq -n --arg svc "$SVC" --arg url "$URL" '{service:$svc, url:$url}' > deploy-output.json
+          cat deploy-output.json
+      - name: Upload deploy output
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-output-${{ matrix.service }}
+          path: deploy-output.json
+          retention-days: 7
+
+  smoke-test:
+    needs: [deploy, detect-changes]
+    if: needs.detect-changes.outputs.deploy_services != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJson(needs.detect-changes.outputs.deploy_services == '[]' && '["__none__"]' || needs.detect-changes.outputs.deploy_services) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Download deploy output
+        if: ${{ matrix.service != '__none__' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: deploy-output-${{ matrix.service }}
+          path: ./deploy-output
+          if-no-files-found: ignore
+      - name: Read URL
+        id: deploy
+        if: ${{ matrix.service != '__none__' }}
+        shell: bash
+        run: |
+          URL=""
+          if [ -f deploy-output/deploy-output.json ]; then
+            URL=$(jq -r '.url' deploy-output/deploy-output.json)
+          fi
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+      - name: Run smoke test
+        if: ${{ matrix.service != '__none__' }}
+        continues-on-error: true
+        uses: ./.github/actions/smoke-test
+        with:
+          service-name: ${{ matrix.service }}
+          expected-url: ${{ format('https://{0}', steps.deploy.outputs.url) }}
+
+  drift-detect:
+    needs: [smoke-test, detect-changes, resolve-env]
+    if: needs.detect-changes.outputs.deploy_services != '[]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run drift detection
+        uses: ./.github/actions/drift-detect
+        with:
+          services: ${{ needs.detect-changes.outputs.deploy_services }}
+          acr-name: ${{ env.ACR_SERVER }}
+          registry-base: ${{ env.REGISTRY_TARGET == 'GITHUB_REGISTRY' && format('ghcr.io/{0}', github.repository_owner) || (env.REGISTRY_TARGET == 'DOCKER_REGISTRY' && secrets.DOCKERHUB_USERNAME) || env.ACR_SERVER }}
+          resource-group: ${{ needs.resolve-env.outputs.resource-group }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+  notify:
+    needs: [detect-changes, db-migrate, deploy, smoke-test, drift-detect]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Post commit status
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const deploy = '${{ needs.deploy.result || "skipped" }}';
+            const smoke = '${{ needs.smoke-test.result || "skipped" }}';
+            const migrate = '${{ needs.db-migrate.result || "skipped" }}';
+            const drift = '${{ needs.drift-detect.result || "skipped" }}';
+            const state = (deploy === 'success' || deploy === 'skipped') ? 'success' : 'failure';
+            const desc = 'deploy=' + deploy + ' smoke=' + smoke + ' migrate=' + migrate + ' drift=' + drift;
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: state,
+              target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}',
+              context: 'alramz/promote',
+              description: desc.slice(0, 255),
+            });
