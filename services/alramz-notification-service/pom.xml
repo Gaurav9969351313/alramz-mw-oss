@@ -14,7 +14,7 @@
 	<artifactId>alramz-notification-service</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>alramz-notification-service</name>
-	<description>Notification service for Al Ramz microservices</description>
+	<description>Notification service for Al Ramz microservices GT</description>
 
 	<dependencyManagement>
 		<dependencies>
