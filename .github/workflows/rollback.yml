@@ -218,7 +218,7 @@ jobs:
           [ -f deploy-output/deploy-output.json ] && URL=$(jq -r '.url' deploy-output/deploy-output.json)
           echo "url=$URL" >> "$GITHUB_OUTPUT"
       - name: Run smoke test
-        continues-on-error: true
+        continue-on-error: true
         uses: ./.github/actions/smoke-test
         with:
           service-name: ${{ inputs.service-name }}
@@ -238,12 +238,12 @@ jobs:
       - name: Post rollback status
         uses: actions/github-script@v7
         with:
-          script: |
+          script: >
             const svc = '${{ inputs.service-name }}';
             const env = '${{ inputs.environment }}';
             const tag = '${{ needs.resolve-target.outputs.tag }}';
-            const deploy = '${{ needs.deploy-rollback.result || "skipped" }}';
-            const smoke = '${{ needs.smoke-test.result || "skipped" }}';
+            const deploy = '${{ needs.deploy-rollback.result || ''skipped'' }}';
+            const smoke = '${{ needs.smoke-test.result || ''skipped'' }}';
             const body = [
               '## Rollback Summary',
               '',

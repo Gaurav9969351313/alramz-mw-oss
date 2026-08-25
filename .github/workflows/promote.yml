@@ -310,7 +310,7 @@ jobs:
           echo "url=$URL" >> "$GITHUB_OUTPUT"
       - name: Run smoke test
         if: ${{ matrix.service != '__none__' }}
-        continues-on-error: true
+        continue-on-error: true
         uses: ./.github/actions/smoke-test
         with:
           service-name: ${{ matrix.service }}
@@ -349,11 +349,11 @@ jobs:
       - name: Post commit status
         uses: actions/github-script@v7
         with:
-          script: |
-            const deploy = '${{ needs.deploy.result || "skipped" }}';
-            const smoke = '${{ needs.smoke-test.result || "skipped" }}';
-            const migrate = '${{ needs.db-migrate.result || "skipped" }}';
-            const drift = '${{ needs.drift-detect.result || "skipped" }}';
+          script: >
+            const deploy = '${{ needs.deploy.result || ''skipped'' }}';
+            const smoke = '${{ needs.smoke-test.result || ''skipped'' }}';
+            const migrate = '${{ needs.db-migrate.result || ''skipped'' }}';
+            const drift = '${{ needs.drift-detect.result || ''skipped'' }}';
             const state = (deploy === 'success' || deploy === 'skipped') ? 'success' : 'failure';
             const desc = 'deploy=' + deploy + ' smoke=' + smoke + ' migrate=' + migrate + ' drift=' + drift;
             await github.rest.repos.createCommitStatus({

@@ -289,7 +289,7 @@ jobs:
 
       - name: Run smoke test
         if: ${{ matrix.service != '__none__' }}
-        continues-on-error: true
+        continue-on-error: true
         uses: ./.github/actions/smoke-test
         with:
           service-name: ${{ matrix.service }}
