@@ -242,8 +242,8 @@ jobs:
             const svc = '${{ inputs.service-name }}';
             const env = '${{ inputs.environment }}';
             const tag = '${{ needs.resolve-target.outputs.tag }}';
-            const deploy = '${{ needs.deploy-rollback.result || ''skipped'' }}';
-            const smoke = '${{ needs.smoke-test.result || ''skipped'' }}';
+            const deploy = '${{ needs.deploy-rollback.result }}' || 'skipped';
+            const smoke = '${{ needs.smoke-test.result }}' || 'skipped';
             const body = [
               '## Rollback Summary',
               '',

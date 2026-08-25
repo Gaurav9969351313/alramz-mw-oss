@@ -445,8 +445,8 @@ jobs:
           script: >
             const svc = '${{ inputs.service-name }}';
             const env = '${{ inputs.environment }}';
-            const deploy = '${{ needs.deploy.result || ''skipped'' }}';
-            const smoke = '${{ needs.smoke-test.result || ''skipped'' }}';
+            const deploy = '${{ needs.deploy.result }}' || 'skipped';
+            const smoke = '${{ needs.smoke-test.result }}' || 'skipped';
             const body = [
               '## Feature Deploy Summary',
               '',
