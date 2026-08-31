@@ -12,7 +12,7 @@ resource "azurerm_kubernetes_cluster" "this" {
     os_disk_size_gb = var.os_disk_size_gb
     vnet_subnet_id = var.subnet_id
     type           = "VirtualMachineScaleSets"
-    zones          = [1, 2, 3]
+    zones          = var.availability_zones
   }
 
   identity {

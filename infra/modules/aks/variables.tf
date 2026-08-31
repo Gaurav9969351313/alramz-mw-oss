@@ -35,6 +35,11 @@ variable "os_disk_size_gb" {
   default = 30
 }
 
+variable "availability_zones" {
+  type    = list(number)
+  default = []
+}
+
 variable "subnet_id" {
   type    = string
   default = null

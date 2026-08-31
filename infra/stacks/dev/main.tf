@@ -217,6 +217,7 @@ module "aks" {
   node_count         = var.aks_node_count
   vm_size            = var.aks_vm_size
   os_disk_size_gb    = var.aks_os_disk_size_gb
+  availability_zones = var.aks_availability_zones
 
   log_analytics_workspace_id = module.monitoring.id
   acr_id                     = data.terraform_remote_state.shared_platform.outputs.acr_id

@@ -3,6 +3,8 @@ name: PR Validation
 on:
   pull_request:
     branches: [dev, qa, preprod, prod]
+    paths-ignore:
+      - 'infra/**'
 
 permissions:
   contents: read

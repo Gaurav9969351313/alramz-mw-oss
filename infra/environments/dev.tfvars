@@ -1,9 +1,9 @@
 location                       = "uaenorth"
 resource_group_name            = "alramz-dev-rg"
 
-key_vault_name                 = "alramz-dev-key-vault"
+key_vault_name                 = "alramz-dev-kv"
 
-apim_name                          = "alramz-dev-api-gateway"
+apim_name                          = "alramz-dev-api-gw"
 apim_publisher_name                = "Al Ramz"
 apim_publisher_email               = "apiadmin@alramz.ae"
 apim_sku_name                      = "Developer_1"
@@ -35,11 +35,12 @@ aks_kubernetes_version = "1.29"
 aks_node_count         = 1
 aks_vm_size            = "Standard_B2s"
 aks_os_disk_size_gb    = 30
+aks_availability_zones = []
 
-redis_instance_name  = "alramz-dev-redis"
+redis_instance_name  = "alramz-dev-cache"
 
 
-postgres_instance_name = "alramz-dev-postgres-db"
+postgres_instance_name = "alramz-dev-db"
 postgres_database_name = "eTradesDb"
 postgres_password = "SPadmin!1234"
 

@@ -5,6 +5,8 @@ on:
     branches: 
       - dev
       - feature/*
+    paths-ignore:
+      - 'infra/**'
   workflow_dispatch:
     inputs:
       version:
