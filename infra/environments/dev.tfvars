@@ -33,7 +33,7 @@ platform_identity_name = "alramz-dev-platform-identity"
 aks_dns_prefix         = "alramz-dev-aks"
 aks_kubernetes_version = "1.36"
 aks_node_count         = 1
-aks_vm_size            = "B2as_v2"
+aks_vm_size            = "B2as_v2D2ps_v6"
 aks_os_disk_size_gb    = 30
 aks_availability_zones = []
 
