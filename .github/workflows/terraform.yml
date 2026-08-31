@@ -233,7 +233,8 @@ jobs:
         working-directory: infra/stacks/shared-platform
         shell: bash
         run: |
-          echo "outputs=$(terraform output -json)" >> "$GITHUB_OUTPUT"
+          OUTPUTS=$(terraform output -json | base64 -w 0)
+          echo "outputs=$OUTPUTS" >> "$GITHUB_OUTPUT"
 
   # Environment deployments (dev, qa, preprod, prod)
   terraform-plan:
@@ -406,7 +407,8 @@ jobs:
         working-directory: infra/stacks/${{ needs.detect-environment.outputs.stack }}
         shell: bash
         run: |
-          echo "outputs=$(terraform output -json)" >> "$GITHUB_OUTPUT"
+          OUTPUTS=$(terraform output -json | base64 -w 0)
+          echo "outputs=$OUTPUTS" >> "$GITHUB_OUTPUT"
 
       - name: Update GitHub Secrets
         if: needs.detect-environment.outputs.stack == 'dev'

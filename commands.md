@@ -98,6 +98,16 @@ az role assignment create \
   --role Contributor \
   --scope "/subscriptions/$SUBSCRIPTION_ID"
 
+SUBSCRIPTION_ID="c65cd71d-a01c-4f33-a04f-3163f61a94c6"
+RG_NAME="alramz-shared-platform-rg"
+SP_OBJECT_ID="f5095702-ee3b-4ff2-956d-61e64a63443b"
+
+az role assignment create \
+  --assignee-object-id "$SP_OBJECT_ID" \
+  --assignee-principal-type ServicePrincipal \
+  --role "User Access Administrator" \
+  --scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RG_NAME"
+
 ---
 
 ## Step 2: Deploy Shared Platform Stack
