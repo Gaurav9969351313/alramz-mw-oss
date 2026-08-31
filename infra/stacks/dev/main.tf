@@ -155,21 +155,54 @@ module "platform_identity" {
   location            = var.location
   resource_group_name = module.resource_group.name
 
-  acr_id           = data.terraform_remote_state.shared_platform.outputs.acr_id
-  key_vault_id     = module.key_vault.id
-  redis_id         = module.redis.id
-  sql_server_id    = module.postgresql.id
-  apim_id          = module.apim.id
-  web_plan_id      = var.web_plan_id
-  function_app_id  = var.function_app_id
-  service_bus_id   = var.service_bus_id
-
   tags = {
     Environment = var.environment_name
     ManagedBy   = "Terraform"
   }
 
-  depends_on = [module.resource_group, module.key_vault, module.redis, module.postgresql, module.apim]
+  depends_on = [module.resource_group]
+}
+
+module "platform_identity_roles" {
+  source = "../../modules/platform-identity-roles"
+
+  identity_principal_id = module.platform_identity.principal_id
+  subscription_id       = data.azurerm_client_config.current.subscription_id
+
+  role_assignments = {
+    acr_push = {
+      scope = data.terraform_remote_state.shared_platform.outputs.acr_id
+      role  = "AcrPush"
+    }
+    acr_pull = {
+      scope = data.terraform_remote_state.shared_platform.outputs.acr_id
+      role  = "AcrPull"
+    }
+    sql_server_contributor = {
+      scope = module.postgresql.id
+      role  = "SQL Server Contributor"
+    }
+    redis_contributor = {
+      scope = module.redis.id
+      role  = "Redis Contributor"
+    }
+    key_vault_secrets_user = {
+      scope = module.key_vault.id
+      role  = "Key Vault Secrets User"
+    }
+    apim_contributor = {
+      scope = module.apim.id
+      role  = "API Management Service Contributor"
+    }
+  }
+
+  depends_on = [
+    module.platform_identity,
+    module.postgresql,
+    module.redis,
+    module.key_vault,
+    module.apim
+  ]
 }
 
 module "aks" {
