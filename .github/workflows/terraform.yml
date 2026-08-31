@@ -41,6 +41,11 @@ on:
           - plan
           - apply
         default: plan
+      run_shared_platform_first:
+        description: Run shared-platform before environment deployment?
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -238,8 +243,8 @@ jobs:
 
   # Environment deployments (dev, qa, preprod, prod)
   terraform-plan:
-    needs: [detect-environment, shared-platform-apply]
-    if: needs.detect-environment.outputs.is_shared_platform == 'false' && (github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.action == 'plan'))
+    needs: detect-environment
+    if: needs.detect-environment.outputs.is_shared_platform == 'false' && (github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.action == 'plan' && !inputs.run_shared_platform_first))
     runs-on: ubuntu-latest
     environment: ${{ needs.detect-environment.outputs.environment }}
     steps:
@@ -334,9 +339,170 @@ jobs:
               body: body
             });
 
-  terraform-apply:
+  # Environment deployments with shared-platform first
+  terraform-plan-with-shared:
     needs: [detect-environment, shared-platform-apply]
-    if: needs.detect-environment.outputs.is_shared_platform == 'false' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.action == 'apply'))
+    if: needs.detect-environment.outputs.is_shared_platform == 'false' && github.event_name == 'workflow_dispatch' && inputs.action == 'plan' && inputs.run_shared_platform_first
+    runs-on: ubuntu-latest
+    environment: ${{ needs.detect-environment.outputs.environment }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure OIDC login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Register Azure Resource Providers
+        shell: bash
+        run: |
+          echo "Registering required Azure resource providers..."
+          providers=(
+            "Microsoft.ContainerRegistry"
+            "Microsoft.ContainerService"
+            "Microsoft.KeyVault"
+            "Microsoft.Cache"
+            "Microsoft.DBforPostgreSQL"
+            "Microsoft.ApiManagement"
+            "Microsoft.Insights"
+            "Microsoft.Network"
+            "Microsoft.ManagedIdentity"
+          )
+          for provider in "${providers[@]}"; do
+            echo "Registering $provider..."
+            az provider register --namespace "$provider" --wait
+          done
+          echo "All providers registered."
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '~1.15'
+
+      - name: Terraform Init
+        working-directory: infra/stacks/${{ needs.detect-environment.outputs.stack }}
+        shell: bash
+        run: |
+          terraform init -input=false -no-color
+
+      - name: Terraform Plan
+        working-directory: infra/stacks/${{ needs.detect-environment.outputs.stack }}
+        shell: bash
+        run: |
+          terraform plan \
+            -input=false \
+            -no-color \
+            -var-file="../../environments/${{ needs.detect-environment.outputs.stack }}.tfvars" \
+            -out=tfplan
+
+      - name: Terraform Show Plan
+        working-directory: infra/stacks/${{ needs.detect-environment.outputs.stack }}
+        shell: bash
+        run: |
+          terraform show -no-color tfplan
+
+      - name: Upload Plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-${{ needs.detect-environment.outputs.stack }}
+          path: infra/stacks/${{ needs.detect-environment.outputs.stack }}/tfplan
+          retention-days: 7
+
+  terraform-apply:
+    needs: detect-environment
+    if: needs.detect-environment.outputs.is_shared_platform == 'false' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.action == 'apply' && !inputs.run_shared_platform_first))
+    runs-on: ubuntu-latest
+    environment: ${{ needs.detect-environment.outputs.environment }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure OIDC login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Register Azure Resource Providers
+        shell: bash
+        run: |
+          echo "Registering required Azure resource providers..."
+          providers=(
+            "Microsoft.ContainerRegistry"
+            "Microsoft.ContainerService"
+            "Microsoft.KeyVault"
+            "Microsoft.Cache"
+            "Microsoft.DBforPostgreSQL"
+            "Microsoft.ApiManagement"
+            "Microsoft.Insights"
+            "Microsoft.Network"
+            "Microsoft.ManagedIdentity"
+          )
+          for provider in "${providers[@]}"; do
+            echo "Registering $provider..."
+            az provider register --namespace "$provider" --wait
+          done
+          echo "All providers registered."
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '~1.15'
+
+      - name: Terraform Init
+        working-directory: infra/stacks/${{ needs.detect-environment.outputs.stack }}
+        shell: bash
+        run: |
+          terraform init -input=false -no-color
+
+      - name: Terraform Plan
+        working-directory: infra/stacks/${{ needs.detect-environment.outputs.stack }}
+        shell: bash
+        run: |
+          terraform plan \
+            -input=false \
+            -no-color \
+            -var-file="../../environments/${{ needs.detect-environment.outputs.stack }}.tfvars" \
+            -out=tfplan
+
+      - name: Terraform Apply
+        working-directory: infra/stacks/${{ needs.detect-environment.outputs.stack }}
+        shell: bash
+        run: |
+          terraform apply \
+            -input=false \
+            -no-color \
+            -auto-approve \
+            tfplan
+
+      - name: Capture Outputs
+        id: outputs
+        working-directory: infra/stacks/${{ needs.detect-environment.outputs.stack }}
+        shell: bash
+        run: |
+          OUTPUTS=$(terraform output -json | base64 -w 0)
+          echo "outputs=$OUTPUTS" >> "$GITHUB_OUTPUT"
+
+      - name: Update GitHub Secrets
+        if: needs.detect-environment.outputs.stack == 'dev'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          CLIENT_ID=$(terraform output -raw platform_identity_client_id 2>/dev/null || echo "")
+          if [ -n "$CLIENT_ID" ] && [ "$CLIENT_ID" != "null" ]; then
+            echo "$CLIENT_ID" | gh secret set MANAGED_IDENTITY_CLIENT_ID_DEV
+            echo "Updated MANAGED_IDENTITY_CLIENT_ID_DEV secret"
+          fi
+
+  # Environment apply with shared-platform first
+  terraform-apply-with-shared:
+    needs: [detect-environment, shared-platform-apply]
+    if: needs.detect-environment.outputs.is_shared_platform == 'false' && github.event_name == 'workflow_dispatch' && inputs.action == 'apply' && inputs.run_shared_platform_first
     runs-on: ubuntu-latest
     environment: ${{ needs.detect-environment.outputs.environment }}
     steps:
@@ -423,7 +589,7 @@ jobs:
           fi
 
   notify:
-    needs: [detect-environment, shared-platform-plan, shared-platform-apply, terraform-plan, terraform-apply]
+    needs: [detect-environment, shared-platform-plan, shared-platform-apply, terraform-plan, terraform-apply, terraform-plan-with-shared, terraform-apply-with-shared]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -437,17 +603,21 @@ jobs:
             var sp_apply = '${{ needs.shared-platform-apply.result }}';
             var plan = '${{ needs.terraform-plan.result }}';
             var apply = '${{ needs.terraform-apply.result }}';
+            var plan_shared = '${{ needs.terraform-plan-with-shared.result }}';
+            var apply_shared = '${{ needs.terraform-apply-with-shared.result }}';
             const env = '${{ needs.detect-environment.outputs.environment }}';
             const is_sp = '${{ needs.detect-environment.outputs.is_shared_platform }}';
             if (!sp_plan) sp_plan = 'skipped';
             if (!sp_apply) sp_apply = 'skipped';
             if (!plan) plan = 'skipped';
             if (!apply) apply = 'skipped';
+            if (!plan_shared) plan_shared = 'skipped';
+            if (!apply_shared) apply_shared = 'skipped';
             var state = 'success';
             if (is_sp === 'true') {
               state = (sp_apply === 'success' || sp_apply === 'skipped') ? 'success' : 'failure';
             } else {
-              state = (apply === 'success' || apply === 'skipped') ? 'success' : 'failure';
+              state = (apply === 'success' || apply === 'skipped' || apply_shared === 'success') ? 'success' : 'failure';
             }
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
