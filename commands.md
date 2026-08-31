@@ -92,6 +92,12 @@ az role assignment create \
   --role Contributor \
   --scope /subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP
 
+
+az role assignment create \
+  --assignee "bb1d4698-8b38-4375-ae5f-1a0dcd4f131e" \
+  --role Contributor \
+  --scope "/subscriptions/$SUBSCRIPTION_ID"
+
 ---
 
 ## Step 2: Deploy Shared Platform Stack
