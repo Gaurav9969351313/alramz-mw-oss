@@ -3,10 +3,11 @@ name: Terraform
 on:
   push:
     branches:
-      - dev
-      - qa
-      - preprod
-      - prod
+      # - dev
+      # - qa
+      # - preprod
+      # - prod
+      - feature/cicd-rewrite
     paths:
       - 'infra/**'
       - '.github/workflows/terraform.yml'
@@ -26,11 +27,12 @@ on:
         required: true
         type: choice
         options:
+          - shared-platform
           - dev
           - qa
           - preprod
           - prod
-        default: dev
+        default: shared-platform
       action:
         description: Action to perform
         required: true
@@ -55,6 +57,7 @@ jobs:
     outputs:
       environment: ${{ steps.detect.outputs.environment }}
       stack: ${{ steps.detect.outputs.stack }}
+      is_shared_platform: ${{ steps.detect.outputs.is_shared_platform }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -62,8 +65,8 @@ jobs:
         id: detect
         shell: bash
         run: |
-          ENVIRONMENTS="dev qa preprod prod"
-          DEFAULT_ENV="dev"
+          ENVIRONMENTS="shared-platform dev qa preprod prod"
+          DEFAULT_ENV="shared-platform"
 
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             SELECTED_ENV="${{ inputs.environment }}"
@@ -73,19 +76,126 @@ jobs:
             SELECTED_ENV="${{ github.ref_name }}"
           fi
 
-          # Validate against known environments, default to dev
+          # Validate against known environments, default to shared-platform
           if [[ ! " $ENVIRONMENTS " =~ " $SELECTED_ENV " ]]; then
             echo "Warning: '$SELECTED_ENV' is not a valid environment. Defaulting to '$DEFAULT_ENV'"
             SELECTED_ENV="$DEFAULT_ENV"
+          fi
+
+          # Check if shared-platform
+          if [ "$SELECTED_ENV" = "shared-platform" ]; then
+            echo "is_shared_platform=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_shared_platform=false" >> "$GITHUB_OUTPUT"
           fi
 
           echo "environment=$SELECTED_ENV" >> "$GITHUB_OUTPUT"
           echo "stack=$SELECTED_ENV" >> "$GITHUB_OUTPUT"
           echo "Detected environment: $SELECTED_ENV"
 
-  terraform-plan:
+  # Shared Platform - runs first for shared infrastructure
+  shared-platform-plan:
     needs: detect-environment
-    if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.action == 'plan')
+    if: needs.detect-environment.outputs.is_shared_platform == 'true' && (github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.action == 'plan'))
+    runs-on: ubuntu-latest
+    environment: shared-platform
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure OIDC login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '~1.15'
+
+      - name: Terraform Init
+        working-directory: infra/stacks/shared-platform
+        shell: bash
+        run: |
+          terraform init -input=false -no-color
+
+      - name: Terraform Plan
+        working-directory: infra/stacks/shared-platform
+        shell: bash
+        run: |
+          terraform plan \
+            -input=false \
+            -no-color \
+            -var-file="../../environments/shared-platform.tfvars" \
+            -out=tfplan
+
+      - name: Upload Plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-shared-platform
+          path: infra/stacks/shared-platform/tfplan
+          retention-days: 7
+
+  shared-platform-apply:
+    needs: detect-environment
+    if: needs.detect-environment.outputs.is_shared_platform == 'true' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.action == 'apply'))
+    runs-on: ubuntu-latest
+    environment: shared-platform
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure OIDC login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '~1.15'
+
+      - name: Terraform Init
+        working-directory: infra/stacks/shared-platform
+        shell: bash
+        run: |
+          terraform init -input=false -no-color
+
+      - name: Terraform Plan
+        working-directory: infra/stacks/shared-platform
+        shell: bash
+        run: |
+          terraform plan \
+            -input=false \
+            -no-color \
+            -var-file="../../environments/shared-platform.tfvars" \
+            -out=tfplan
+
+      - name: Terraform Apply
+        working-directory: infra/stacks/shared-platform
+        shell: bash
+        run: |
+          terraform apply \
+            -input=false \
+            -no-color \
+            -auto-approve \
+            tfplan
+
+      - name: Capture Outputs
+        id: outputs
+        working-directory: infra/stacks/shared-platform
+        shell: bash
+        run: |
+          echo "outputs=$(terraform output -json)" >> "$GITHUB_OUTPUT"
+
+  # Environment deployments (dev, qa, preprod, prod)
+  terraform-plan:
+    needs: [detect-environment, shared-platform-apply]
+    if: needs.detect-environment.outputs.is_shared_platform == 'false' && (github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.action == 'plan'))
     runs-on: ubuntu-latest
     environment: ${{ needs.detect-environment.outputs.environment }}
     steps:
@@ -160,8 +270,8 @@ jobs:
             });
 
   terraform-apply:
-    needs: detect-environment
-    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.action == 'apply')
+    needs: [detect-environment, shared-platform-apply]
+    if: needs.detect-environment.outputs.is_shared_platform == 'false' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.action == 'apply'))
     runs-on: ubuntu-latest
     environment: ${{ needs.detect-environment.outputs.environment }}
     steps:
@@ -226,7 +336,7 @@ jobs:
           fi
 
   notify:
-    needs: [detect-environment, terraform-plan, terraform-apply]
+    needs: [detect-environment, shared-platform-plan, shared-platform-apply, terraform-plan, terraform-apply]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -236,12 +346,22 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: >
+            var sp_plan = '${{ needs.shared-platform-plan.result }}';
+            var sp_apply = '${{ needs.shared-platform-apply.result }}';
             var plan = '${{ needs.terraform-plan.result }}';
             var apply = '${{ needs.terraform-apply.result }}';
             const env = '${{ needs.detect-environment.outputs.environment }}';
+            const is_sp = '${{ needs.detect-environment.outputs.is_shared_platform }}';
+            if (!sp_plan) sp_plan = 'skipped';
+            if (!sp_apply) sp_apply = 'skipped';
             if (!plan) plan = 'skipped';
             if (!apply) apply = 'skipped';
-            const state = (apply === 'success' || apply === 'skipped') ? 'success' : 'failure';
+            var state = 'success';
+            if (is_sp === 'true') {
+              state = (sp_apply === 'success' || sp_apply === 'skipped') ? 'success' : 'failure';
+            } else {
+              state = (apply === 'success' || apply === 'skipped') ? 'success' : 'failure';
+            }
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -249,5 +369,5 @@ jobs:
               state: state,
               target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}',
               context: 'alramz/terraform',
-              description: 'tf ' + env + ' plan=' + plan + ' apply=' + apply,
+              description: 'tf ' + env + ' sp_plan=' + sp_plan + ' sp_apply=' + sp_apply + ' plan=' + plan + ' apply=' + apply,
             });
