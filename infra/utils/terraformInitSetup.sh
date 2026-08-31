@@ -267,14 +267,16 @@ create_service_principal() {
         az ad app federated-credential create \
         --id "$APP_ID" \
         --parameters '{
-            "name": "github-alramz-mw-oss",
+            "name": "github-alramz-mw-oss-dev",
             "issuer": "https://token.actions.githubusercontent.com",
-            "subject": "repo:Gaurav9969351313@21151838/alramz-mw-oss@1301193654:environment:18/merge",
+            "subject": "repo:Gaurav9969351313@21151838/alramz-mw-oss@1301193654:environment:dev",
             "description": "GitHub Actions OIDC",
             "audiences": [
             "api://AzureADTokenExchange"
             ]
         }'
+
+        
 
         echo "Contributor role assigned."
 
