@@ -13,6 +13,7 @@ log_analytics_workspace_name   = "alramz-dev-log-analytics-workspace"
 application_insights_name      = "alramz-dev-application-insights"
 
 container_app_environment_name                    = "alramz-dev-container-apps-env"
+container_app_environment_zone_redundancy_enabled = false
 environment_name                                  = "dev"
 
 # COMMENTED OUT: Container Apps migrated to AKS
@@ -30,7 +31,7 @@ environment_name                                  = "dev"
 aks_cluster_name       = "alramz-dev-aks"
 platform_identity_name = "alramz-dev-platform-identity"
 aks_dns_prefix         = "alramz-dev-aks"
-aks_kubernetes_version = "1.29"
+aks_kubernetes_version = "1.37"
 aks_node_count         = 1
 aks_vm_size            = "Standard_B2s"
 aks_os_disk_size_gb    = 30
