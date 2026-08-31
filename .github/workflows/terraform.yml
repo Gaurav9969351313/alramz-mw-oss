@@ -46,6 +46,7 @@ permissions:
   contents: read
   id-token: write
   pull-requests: write
+  statuses: write
 
 concurrency:
   group: terraform-${{ github.ref_name }}-${{ github.sha }}
