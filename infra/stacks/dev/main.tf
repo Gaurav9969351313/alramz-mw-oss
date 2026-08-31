@@ -184,7 +184,7 @@ module "platform_identity_roles" {
     }
     redis_contributor = {
       scope = module.redis.id
-      role  = "Redis Contributor"
+      role  = "Redis Cache Contributor"
     }
     key_vault_secrets_user = {
       scope = module.key_vault.id
