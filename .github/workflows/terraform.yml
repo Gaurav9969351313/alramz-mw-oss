@@ -1,16 +1,16 @@
 name: Terraform
 
 on:
-  push:
-    branches:
+  # push:
+  #   branches:
       # - dev
       # - qa
       # - preprod
       # - prod
-      - feature/cicd-rewrite
-    paths:
-      - 'infra/**'
-      - '.github/workflows/terraform.yml'
+      # - feature/cicd-rewrite
+    # paths:
+    #   - 'infra/**'
+    #   - '.github/workflows/terraform.yml'
   pull_request:
     branches:
       - dev
