@@ -6,53 +6,64 @@ resource "azurerm_user_assigned_identity" "platform" {
   tags = var.tags
 }
 
-# Role assignments for various services
-resource "azurerm_role_assignment" "acr_push" {
-  count                = var.acr_id != null ? 1 : 0
-  scope                = var.acr_id
-  role_definition_name = "AcrPush"
-  principal_id         = azurerm_user_assigned_identity.platform.principal_id
+locals {
+  role_assignments = {
+    acr_push = {
+      scope = var.acr_id
+      role  = "AcrPush"
+    }
+    acr_pull = {
+      scope = var.acr_id
+      role  = "AcrPull"
+    }
+    storage_blob_data_contributor = {
+      scope = var.storage_account_id
+      role  = "Storage Blob Data Contributor"
+    }
+    sql_server_contributor = {
+      scope = var.sql_server_id
+      role  = "SQL Server Contributor"
+    }
+    redis_contributor = {
+      scope = var.redis_id
+      role  = "Redis Contributor"
+    }
+    key_vault_secrets_user = {
+      scope = var.key_vault_id
+      role  = "Key Vault Secrets User"
+    }
+    apim_contributor = {
+      scope = var.apim_id
+      role  = "API Management Service Contributor"
+    }
+    web_plan_contributor = {
+      scope = var.web_plan_id
+      role  = "Web Plan Contributor"
+    }
+    website_contributor = {
+      scope = var.function_app_id
+      role  = "Website Contributor"
+    }
+    storage_queue_data_contributor = {
+      scope = var.storage_account_id
+      role  = "Storage Queue Data Contributor"
+    }
+    service_bus_data_owner = {
+      scope = var.service_bus_id
+      role  = "Azure Service Bus Data Owner"
+    }
+  }
+
+  filtered_role_assignments = {
+    for k, v in local.role_assignments : k => v
+    if v.scope != null
+  }
 }
 
-resource "azurerm_role_assignment" "acr_pull" {
-  count                = var.acr_id != null ? 1 : 0
-  scope                = var.acr_id
-  role_definition_name = "AcrPull"
-  principal_id         = azurerm_user_assigned_identity.platform.principal_id
-}
-
-resource "azurerm_role_assignment" "storage_blob_data_contributor" {
-  count                = var.storage_account_id != null ? 1 : 0
-  scope                = var.storage_account_id
-  role_definition_name = "Storage Blob Data Contributor"
-  principal_id         = azurerm_user_assigned_identity.platform.principal_id
-}
-
-resource "azurerm_role_assignment" "sql_server_contributor" {
-  count                = var.sql_server_id != null ? 1 : 0
-  scope                = var.sql_server_id
-  role_definition_name = "SQL Server Contributor"
-  principal_id         = azurerm_user_assigned_identity.platform.principal_id
-}
-
-resource "azurerm_role_assignment" "redis_contributor" {
-  count                = var.redis_id != null ? 1 : 0
-  scope                = var.redis_id
-  role_definition_name = "Redis Contributor"
-  principal_id         = azurerm_user_assigned_identity.platform.principal_id
-}
-
-resource "azurerm_role_assignment" "key_vault_secrets_user" {
-  count                = var.key_vault_id != null ? 1 : 0
-  scope                = var.key_vault_id
-  role_definition_name = "Key Vault Secrets User"
-  principal_id         = azurerm_user_assigned_identity.platform.principal_id
-}
-
-resource "azurerm_role_assignment" "apim_contributor" {
-  count                = var.apim_id != null ? 1 : 0
-  scope                = var.apim_id
-  role_definition_name = "API Management Service Contributor"
+resource "azurerm_role_assignment" "dynamic" {
+  for_each             = local.filtered_role_assignments
+  scope                = each.value.scope
+  role_definition_name = each.value.role
   principal_id         = azurerm_user_assigned_identity.platform.principal_id
 }
 
@@ -65,36 +76,6 @@ resource "azurerm_role_assignment" "monitoring_metrics_publisher" {
 resource "azurerm_role_assignment" "managed_identity_operator" {
   scope                = azurerm_user_assigned_identity.platform.id
   role_definition_name = "Managed Identity Operator"
-  principal_id         = azurerm_user_assigned_identity.platform.principal_id
-}
-
-# Function App roles
-resource "azurerm_role_assignment" "web_plan_contributor" {
-  count                = var.web_plan_id != null ? 1 : 0
-  scope                = var.web_plan_id
-  role_definition_name = "Web Plan Contributor"
-  principal_id         = azurerm_user_assigned_identity.platform.principal_id
-}
-
-resource "azurerm_role_assignment" "website_contributor" {
-  count                = var.function_app_id != null ? 1 : 0
-  scope                = var.function_app_id
-  role_definition_name = "Website Contributor"
-  principal_id         = azurerm_user_assigned_identity.platform.principal_id
-}
-
-resource "azurerm_role_assignment" "storage_queue_data_contributor" {
-  count                = var.storage_account_id != null ? 1 : 0
-  scope                = var.storage_account_id
-  role_definition_name = "Storage Queue Data Contributor"
-  principal_id         = azurerm_user_assigned_identity.platform.principal_id
-}
-
-# Service Bus roles
-resource "azurerm_role_assignment" "service_bus_data_owner" {
-  count                = var.service_bus_id != null ? 1 : 0
-  scope                = var.service_bus_id
-  role_definition_name = "Azure Service Bus Data Owner"
   principal_id         = azurerm_user_assigned_identity.platform.principal_id
 }
 
