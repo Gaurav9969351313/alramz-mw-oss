@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${SERVICE_NAME}
+  namespace: ${NAMESPACE}
+  labels:
+    app: ${SERVICE_NAME}
+    environment: ${ENVIRONMENT}
+spec:
+  replicas: ${MIN_REPLICAS}
+  selector:
+    matchLabels:
+      app: ${SERVICE_NAME}
+  template:
+    metadata:
+      labels:
+        app: ${SERVICE_NAME}
+        environment: ${ENVIRONMENT}
+    spec:
+      serviceAccountName: ${SERVICE_ACCOUNT}
+      containers:
+        - name: ${SERVICE_NAME}
+          image: ${IMAGE}
+          ports:
+            - containerPort: ${TARGET_PORT}
+          resources:
+            requests:
+              cpu: ${CPU}
+              memory: ${MEMORY}
+            limits:
+              cpu: ${CPU_LIMIT}
+              memory: ${MEMORY_LIMIT}
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "${SPRING_PROFILE}"
+            - name: JAVA_OPTS
+              value: "${JAVA_OPTS}"
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ${SERVICE_NAME}-secrets
+                  key: db-password
+          volumeMounts:
+            - name: secrets-store
+              mountPath: /mnt/secrets-store
+              readOnly: true
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: ${TARGET_PORT}
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: ${TARGET_PORT}
+            initialDelaySeconds: 30
+            periodSeconds: 10
+      volumes:
+        - name: secrets-store
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: ${SERVICE_NAME}-kv

@@ -5,7 +5,7 @@ data "terraform_remote_state" "shared_platform" {
 
   config = {
     resource_group_name  = "alramz-tf-assets-rg"
-    storage_account_name = "alramztfstatefiles98"
+    storage_account_name = "alramztfstatefiles1994"
     container_name       = "sharedplatformtfstate"
     key                  = "sharedplatform.tfstate"
   }
@@ -105,45 +105,97 @@ module "apim" {
   depends_on = [module.resource_group] # , module.vnet
 }
 
-module "container_app_environment" {
-  source = "../../modules/container-app-environment"
+# COMMENTED OUT: Migrating from Azure Container Apps to AKS
+# module "container_app_environment" {
+#   source = "../../modules/container-app-environment"
+# 
+#   name                = var.container_app_environment_name
+#   location            = var.location
+#   resource_group_name = module.resource_group.name
+# 
+#   log_analytics_workspace_id = module.monitoring.id
+# 
+#   github_actions_object_id = data.terraform_remote_state.shared_platform.outputs.github_actions_object_id
+#   subscription_id          = data.terraform_remote_state.shared_platform.outputs.subscription_id
+# 
+#   tags = {
+#     Environment = var.environment_name
+#     ManagedBy   = "Terraform"
+#   }
+# 
+#   depends_on = [module.monitoring, module.resource_group]
+# }
 
-  name                = var.container_app_environment_name
+# COMMENTED OUT: Migrating from Azure Container Apps to AKS
+# module "container_apps" {
+#   source = "../../modules/container-apps"
+# 
+#   resource_group_name = module.resource_group.name
+# 
+#   location         = var.location
+#   environment_name = var.environment_name
+#   container_app_environment_id = module.container_app_environment.id
+# 
+#   container_apps = var.container_apps
+# 
+#   acr_id           = data.terraform_remote_state.shared_platform.outputs.acr_id
+#   acr_login_server = data.terraform_remote_state.shared_platform.outputs.acr_login_server
+# 
+#   depends_on = [module.container_app_environment, module.monitoring]
+#   tags = {
+#     Environment = var.environment_name
+#     ManagedBy   = "Terraform"
+#   }
+# }
+
+module "platform_identity" {
+  source = "../../modules/platform-identity"
+
+  name                = var.platform_identity_name
   location            = var.location
   resource_group_name = module.resource_group.name
 
-  log_analytics_workspace_id = module.monitoring.id
-
-  github_actions_object_id = data.terraform_remote_state.shared_platform.outputs.github_actions_object_id
-  subscription_id          = data.terraform_remote_state.shared_platform.outputs.subscription_id
+  acr_id           = data.terraform_remote_state.shared_platform.outputs.acr_id
+  key_vault_id     = module.key_vault.id
+  redis_id         = module.redis.id
+  sql_server_id    = module.postgresql.id
+  apim_id          = module.apim.id
+  web_plan_id      = var.web_plan_id
+  function_app_id  = var.function_app_id
+  service_bus_id   = var.service_bus_id
 
   tags = {
     Environment = var.environment_name
     ManagedBy   = "Terraform"
   }
 
-  depends_on = [module.monitoring, module.resource_group] # , module.vnet
+  depends_on = [module.resource_group, module.key_vault, module.redis, module.postgresql, module.apim]
 }
 
-module "container_apps" {
-  source = "../../modules/container-apps"
+module "aks" {
+  source = "../../modules/aks"
 
+  name                = var.aks_cluster_name
+  location            = var.location
   resource_group_name = module.resource_group.name
 
-  location         = var.location
-  environment_name = var.environment_name
-  container_app_environment_id = module.container_app_environment.id
+  dns_prefix         = var.aks_dns_prefix
+  kubernetes_version = var.aks_kubernetes_version
+  node_count         = var.aks_node_count
+  vm_size            = var.aks_vm_size
+  os_disk_size_gb    = var.aks_os_disk_size_gb
 
-  container_apps = var.container_apps
+  log_analytics_workspace_id = module.monitoring.id
+  acr_id                     = data.terraform_remote_state.shared_platform.outputs.acr_id
+  identity_id                = module.platform_identity.id
+  identity_name              = module.platform_identity.name
 
-  acr_id           = data.terraform_remote_state.shared_platform.outputs.acr_id
-  acr_login_server = data.terraform_remote_state.shared_platform.outputs.acr_login_server
-
-  depends_on = [module.container_app_environment, module.monitoring] # , module.vnet
   tags = {
     Environment = var.environment_name
     ManagedBy   = "Terraform"
   }
+
+  depends_on = [module.resource_group, module.monitoring, module.platform_identity]
 }
 
 module "redis" {

@@ -42,7 +42,7 @@ permissions:
   packages: read
 
 env:
-  ACR_SERVER: alramzregistry.azurecr.io
+  REGISTRY_TARGET: ${{ inputs.registry-target || 'GITHUB_REGISTRY' }}
 
 concurrency:
   group: rollback-${{ inputs.service-name }}-${{ inputs.environment }}
@@ -53,53 +53,23 @@ jobs:
   resolve-env:
     runs-on: ubuntu-latest
     outputs:
-      resource-group: ${{ steps.env.outputs.resource-group }}
-      location: ${{ steps.env.outputs.location }}
-      aca-environment-id: ${{ steps.env.outputs.aca-environment-id }}
-      managed-identity: ${{ steps.env.outputs.managed-identity }}
-      keyvault: ${{ steps.env.outputs.keyvault }}
-      spring-profile: ${{ steps.env.outputs.spring-profile }}
+      resource-group: ${{ steps.env-config.outputs.resource-group }}
+      aks-cluster-name: ${{ steps.env-config.outputs.aks-cluster }}
+      aks-namespace: ${{ steps.env-config.outputs.aks-namespace }}
+      managed-identity-client-id: ${{ steps.env-config.outputs.managed-identity-client-id }}
+      keyvault: ${{ steps.env-config.outputs.keyvault }}
+      keyvault-tenant-id: ${{ steps.env-config.outputs.keyvault-tenant-id }}
+      acr-server: ${{ steps.env-config.outputs.acr-server }}
+      domain: ${{ steps.env-config.outputs.domain }}
+      spring-profile: ${{ inputs.environment }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Resolve environment parameters
-        id: env
-        shell: bash
-        run: |
-          case "${{ inputs.environment }}" in
-            dev)
-              echo "resource-group=alramz-dev-rg" >> "$GITHUB_OUTPUT"
-              echo "location=uaenorth" >> "$GITHUB_OUTPUT"
-              echo "aca-environment-id=alramz-dev-container-apps-env" >> "$GITHUB_OUTPUT"
-              echo "managed-identity=${{ secrets.MANAGED_IDENTITY_DEV }}" >> "$GITHUB_OUTPUT"
-              echo "keyvault=alramz-dev-key-vault" >> "$GITHUB_OUTPUT"
-              echo "spring-profile=dev" >> "$GITHUB_OUTPUT"
-              ;;
-            qa)
-              echo "resource-group=alramz-qa-rg" >> "$GITHUB_OUTPUT"
-              echo "location=uaenorth" >> "$GITHUB_OUTPUT"
-              echo "aca-environment-id=${{ secrets.ACA_ENV_ID_QA }}" >> "$GITHUB_OUTPUT"
-              echo "managed-identity=${{ secrets.MANAGED_IDENTITY_QA }}" >> "$GITHUB_OUTPUT"
-              echo "keyvault=alramz-qa-key-vault" >> "$GITHUB_OUTPUT"
-              echo "spring-profile=qa" >> "$GITHUB_OUTPUT"
-              ;;
-            preprod)
-              echo "resource-group=alramz-preprod-rg" >> "$GITHUB_OUTPUT"
-              echo "location=uaenorth" >> "$GITHUB_OUTPUT"
-              echo "aca-environment-id=${{ secrets.ACA_ENV_ID_PREPROD }}" >> "$GITHUB_OUTPUT"
-              echo "managed-identity=${{ secrets.MANAGED_IDENTITY_PREPROD }}" >> "$GITHUB_OUTPUT"
-              echo "keyvault=alramz-preprod-key-vault" >> "$GITHUB_OUTPUT"
-              echo "spring-profile=preprod" >> "$GITHUB_OUTPUT"
-              ;;
-            prod)
-              echo "resource-group=alramz-prod-rg" >> "$GITHUB_OUTPUT"
-              echo "location=uaeneast" >> "$GITHUB_OUTPUT"
-              echo "aca-environment-id=${{ secrets.ACA_ENV_ID_PROD }}" >> "$GITHUB_OUTPUT"
-              echo "managed-identity=${{ secrets.MANAGED_IDENTITY_PROD }}" >> "$GITHUB_OUTPUT"
-              echo "keyvault=alramz-prod-key-vault" >> "$GITHUB_OUTPUT"
-              echo "spring-profile=prod" >> "$GITHUB_OUTPUT"
-              ;;
-          esac
+      - name: Resolve environment config
+        id: env-config
+        uses: ./.github/actions/env-config
+        with:
+          environment: ${{ inputs.environment }}
 
   resolve-target:
     needs: resolve-env
@@ -141,7 +111,7 @@ jobs:
             exit 1
           fi
           IMAGE=""
-          REGISTRY_BASE="${{ inputs.registry-target == 'GITHUB_REGISTRY' && format('ghcr.io/{0}', github.repository_owner) || (inputs.registry-target == 'DOCKER_REGISTRY' && secrets.DOCKERHUB_USERNAME) || env.ACR_SERVER }}"
+          REGISTRY_BASE="${{ inputs.registry-target == 'GITHUB_REGISTRY' && format('ghcr.io/{0}', github.repository_owner) || (inputs.registry-target == 'DOCKER_REGISTRY' && secrets.DOCKERHUB_USERNAME) || needs.resolve-env.outputs.acr-server }}"
           if [ -n "$DIGEST" ] && [ "$DIGEST" != "null" ]; then
             IMAGE="$REGISTRY_BASE/$SVC:$TAG@$DIGEST"
           else
@@ -165,16 +135,19 @@ jobs:
           ref: ${{ inputs.environment }}
       - name: Deploy previous revision
         id: deploy
-        uses: ./.github/actions/deploy-aca
+        uses: ./.github/actions/deploy-aks
         with:
           services: ${{ needs.resolve-target.outputs.services }}
-          acr-name: ${{ env.ACR_SERVER }}
-          registry-base: ${{ inputs.registry-target == 'GITHUB_REGISTRY' && format('ghcr.io/{0}', github.repository_owner) || (inputs.registry-target == 'DOCKER_REGISTRY' && secrets.DOCKERHUB_USERNAME) || env.ACR_SERVER }}
+          acr-name: ${{ needs.resolve-env.outputs.acr-server }}
+          registry-base: ${{ inputs.registry-target == 'GITHUB_REGISTRY' && format('ghcr.io/{0}', github.repository_owner) || (inputs.registry-target == 'DOCKER_REGISTRY' && secrets.DOCKERHUB_USERNAME) || needs.resolve-env.outputs.acr-server }}
           resource-group: ${{ needs.resolve-env.outputs.resource-group }}
-          location: ${{ needs.resolve-env.outputs.location }}
-          aca-environment-id: ${{ needs.resolve-env.outputs.aca-environment-id }}
-          managed-identity: ${{ needs.resolve-env.outputs.managed-identity }}
+          aks-cluster-name: ${{ needs.resolve-env.outputs.aks-cluster-name }}
+          aks-namespace: ${{ needs.resolve-env.outputs.aks-namespace }}
+          service-account: workload-identity-sa
+          managed-identity-client-id: ${{ needs.resolve-env.outputs.managed-identity-client-id }}
           keyvault: ${{ needs.resolve-env.outputs.keyvault }}
+          keyvault-tenant-id: ${{ needs.resolve-env.outputs.keyvault-tenant-id }}
+          host: ${{ format('{0}.{1}', inputs.service-name, needs.resolve-env.outputs.domain) }}
           environment: ${{ inputs.environment }}
           spring-profile-override: ''
           azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}

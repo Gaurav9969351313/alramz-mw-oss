@@ -1,0 +1,159 @@
+name: API Spec Sync
+
+on:
+  push:
+    branches:
+      - dev
+      - qa
+      - preprod
+      - prod
+    paths:
+      - 'services/**/specs/**.yaml'
+      - 'services/**/specs/**.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        type: choice
+        options:
+          - dev
+          - qa
+          - preprod
+          - prod
+        default: dev
+      service-name:
+        description: Service to sync (leave empty for all)
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: apim-sync-${{ github.ref_name }}-${{ github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  detect-spec-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      specs: ${{ steps.detect.outputs.specs }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Detect changed specs
+        id: detect
+        shell: bash
+        run: |
+          BASE="${{ github.event.before }}"
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            BASE=$(git rev-parse "HEAD^")
+          fi
+
+          SPECS="[]"
+          for file in $(git diff --name-only "$BASE" "${{ github.sha }}" | grep -E 'services/.*/specs/.*\.(yaml|yml)$'); do
+            SVC=$(echo "$file" | cut -d'/' -f2)
+            SPECS=$(echo "$SPECS" | jq -c --arg svc "$SVC" --arg spec "$file" '. + [{service:$svc, spec_file:$spec}]')
+          done
+
+          echo "specs=$SPECS" >> "$GITHUB_OUTPUT"
+          echo "Detected specs: $SPECS"
+
+  sync-apim:
+    needs: [detect-spec-changes, resolve-env]
+    if: needs.detect-spec-changes.outputs.specs != '[]'
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        spec: ${{ fromJson(needs.detect-spec-changes.outputs.specs == '[]' && '["__none__"]' || needs.detect-spec-changes.outputs.specs) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure OIDC login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Sync API to APIM
+        if: ${{ matrix.spec != '__none__' }}
+        shell: bash
+        env:
+          SVC: ${{ matrix.spec.service }}
+          SPEC_FILE: ${{ matrix.spec.spec_file }}
+          RG: ${{ needs.resolve-env.outputs.resource-group }}
+          APIM: ${{ needs.resolve-env.outputs.apim-name }}
+          ENV_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          API_ID="$SVC"
+          API_PATH="/v1/$SVC"
+          API_DISPLAY_NAME="$SVC"
+
+          echo "=== Syncing $SVC to $APIM (env: $ENV_NAME) ==="
+          echo "Spec: $SPEC_FILE"
+
+          az apim api import \
+            --resource-group "$RG" \
+            --service-name "$APIM" \
+            --api-id "$API_ID" \
+            --specification-format "OpenApi" \
+            --specification-path "$SPEC_FILE" \
+            --path "$API_PATH" \
+            --display-name "$API_DISPLAY_NAME" \
+            --api-type "http" \
+            --protocols "https" \
+            --subscription-required true \
+            --service-url "https://$SVC.$ENV_NAME.svc.cluster.local:8080"
+
+          echo "=== Synced $SVC to $APIM ==="
+
+  resolve-env:
+    runs-on: ubuntu-latest
+    outputs:
+      resource-group: ${{ steps.env-config.outputs.resource-group }}
+      apim-name: ${{ steps.env-config.outputs.apim-name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Resolve environment config
+        id: env-config
+        uses: ./.github/actions/env-config
+        with:
+          environment: ${{ github.ref_name }}
+
+  notify:
+    needs: [detect-spec-changes, sync-apim]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Post sync status
+        uses: actions/github-script@v7
+        with:
+          script: >
+            var specs = '${{ needs.detect-spec-changes.outputs.specs }}';
+            var result = '${{ needs.sync-apim.result }}';
+            if (!result) result = 'skipped';
+            const state = result === 'success' ? 'success' : 'failure';
+            const specList = specs && specs !== '[]' ? JSON.parse(specs).map(s => s.service).join(', ') : 'none';
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: state,
+              target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}',
+              context: 'alramz/apim-sync',
+              description: 'APIM sync (' + specList + '): ' + result,
+            });

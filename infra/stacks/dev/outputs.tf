@@ -16,19 +16,57 @@ output "apim_gateway_url" {
 }
 
 output "container_app_environment_name" {
-  value = module.container_app_environment.name
+  # COMMENTED OUT: Migrating from Azure Container Apps to AKS
+  # value = module.container_app_environment.name
+  value = "MIGRATED_TO_AKS"
 }
 
 output "container_app_environment_domain" {
-  value = module.container_app_environment.default_domain
+  # COMMENTED OUT: Migrating from Azure Container Apps to AKS
+  # value = module.container_app_environment.default_domain
+  value = "MIGRATED_TO_AKS"
 }
 
 output "container_app_fqdns" {
-  value = module.container_apps.service_fqdns
+  # COMMENTED OUT: Migrating from Azure Container Apps to AKS
+  # value = module.container_apps.service_fqdns
+  value = {}
 }
 
 output "container_apps" {
-  value = module.container_apps.container_apps
+  # COMMENTED OUT: Migrating from Azure Container Apps to AKS
+  # value = module.container_apps.container_apps
+  value = {}
+}
+
+# AKS Outputs
+output "aks_cluster_name" {
+  value = module.aks.name
+}
+
+output "aks_cluster_id" {
+  value = module.aks.id
+}
+
+output "aks_fqdn" {
+  value = module.aks.fqdn
+}
+
+# Platform Identity Outputs
+output "platform_identity_name" {
+  value = module.platform_identity.name
+}
+
+output "platform_identity_client_id" {
+  value = module.platform_identity.client_id
+}
+
+output "platform_identity_principal_id" {
+  value = module.platform_identity.principal_id
+}
+
+output "platform_identity_id" {
+  value = module.platform_identity.id
 }
 
 output "log_analytics_workspace_name" {

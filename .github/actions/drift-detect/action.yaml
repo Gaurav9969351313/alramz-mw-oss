@@ -1,7 +1,7 @@
 name: Drift Detect
 
 description: >
-  Compares the image (tag + digest) actually deployed on Azure Container Apps
+  Compares the image (tag + digest) actually deployed on Azure Kubernetes Service
   against the expected tag/digest. Reports drift as a warning without blocking.
 
 inputs:
@@ -18,8 +18,16 @@ inputs:
     type: string
     default: ''
   resource-group:
-    description: Azure Resource Group
+    description: Azure Resource Group containing the AKS cluster
     required: true
+  aks-cluster-name:
+    description: AKS cluster name
+    required: true
+  aks-namespace:
+    description: Kubernetes namespace for the deployment
+    required: false
+    type: string
+    default: default
   azure-client-id:
     description: Azure OIDC client id
     required: true
@@ -42,6 +50,11 @@ runs:
   using: composite
 
   steps:
+    - name: Install kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'latest'
+
     - name: Checkout
       uses: actions/checkout@v4
 
@@ -52,6 +65,17 @@ runs:
         tenant-id: ${{ inputs.azure-tenant-id }}
         subscription-id: ${{ inputs.azure-subscription-id }}
 
+    - name: Set AKS credentials
+      shell: bash
+      env:
+        RG: ${{ inputs.resource-group }}
+        AKS: ${{ inputs.aks-cluster-name }}
+      run: |
+        az aks get-credentials \
+          --resource-group "$RG" \
+          --name "$AKS" \
+          --overwrite-existing
+
     - name: Detect drift
       id: drift
       shell: bash
@@ -59,7 +83,7 @@ runs:
         SERVICES: ${{ inputs.services }}
         ACR: ${{ inputs.acr-name }}
         REGISTRY_BASE: ${{ inputs.registry-base }}
-        RG: ${{ inputs.resource-group }}
+        NAMESPACE: ${{ inputs.aks-namespace }}
       run: |
         set -euo pipefail
         REGISTRY_BASE="${REGISTRY_BASE:-$ACR}"
@@ -70,8 +94,8 @@ runs:
           TAG=$(echo "$SERVICES" | jq -r ".[$i].tag")
           DIGEST=$(echo "$SERVICES" | jq -r ".[$i].digest")
 
-          ACTUAL=$(az containerapp show --name "$SVC" --resource-group "$RG" \
-            --query "properties.template.containers[0].image" -o tsv 2>/dev/null || echo "")
+          ACTUAL=$(kubectl get deployment "$SVC" -n "$NAMESPACE" \
+            -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null || echo "")
 
           EXPECTED="$REGISTRY_BASE/$SVC:$TAG@$DIGEST"
           if [ -z "$DIGEST" ] || [ "$DIGEST" = "null" ]; then

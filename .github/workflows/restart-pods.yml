@@ -1,0 +1,136 @@
+name: Restart Pods
+
+on:
+  workflow_dispatch:
+    inputs:
+      service-name:
+        description: Service to restart
+        required: true
+        type: choice
+        options:
+          - data-validation-service
+          - alramz-notification-service
+        default: data-validation-service
+      environment:
+        description: Target environment
+        required: true
+        type: choice
+        options:
+          - dev
+          - qa
+          - preprod
+          - prod
+        default: dev
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: restart-${{ inputs.service-name }}-${{ inputs.environment }}
+  cancel-in-progress: true
+
+jobs:
+  resolve-env:
+    runs-on: ubuntu-latest
+    outputs:
+      resource-group: ${{ steps.env-config.outputs.resource-group }}
+      aks-cluster-name: ${{ steps.env-config.outputs.aks-cluster }}
+      aks-namespace: ${{ steps.env-config.outputs.aks-namespace }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Resolve environment config
+        id: env-config
+        uses: ./.github/actions/env-config
+        with:
+          environment: ${{ inputs.environment }}
+
+  restart:
+    needs: resolve-env
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure OIDC login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Set AKS credentials
+        shell: bash
+        env:
+          RG: ${{ needs.resolve-env.outputs.resource-group }}
+          AKS: ${{ needs.resolve-env.outputs.aks-cluster-name }}
+        run: |
+          az aks get-credentials \
+            --resource-group "$RG" \
+            --name "$AKS" \
+            --overwrite-existing
+
+      - name: Restart deployment
+        shell: bash
+        env:
+          SVC: ${{ inputs.service-name }}
+          NAMESPACE: ${{ needs.resolve-env.outputs.aks-namespace }}
+        run: |
+          kubectl rollout restart deployment/"$SVC" -n "$NAMESPACE"
+
+      - name: Wait for rollout
+        shell: bash
+        env:
+          SVC: ${{ inputs.service-name }}
+          NAMESPACE: ${{ needs.resolve-env.outputs.aks-namespace }}
+        run: |
+          kubectl rollout status deployment/"$SVC" -n "$NAMESPACE" --timeout=300s
+
+      - name: Verify pods running
+        shell: bash
+        env:
+          SVC: ${{ inputs.service-name }}
+          NAMESPACE: ${{ needs.resolve-env.outputs.aks-namespace }}
+        run: |
+          READY=$(kubectl get deployment "$SVC" -n "$NAMESPACE" \
+            -o jsonpath='{.status.readyReplicas}')
+          DESIRED=$(kubectl get deployment "$SVC" -n "$NAMESPACE" \
+            -o jsonpath='{.spec.replicas}')
+          echo "Ready: $READY / $DESIRED"
+          if [ "$READY" != "$DESIRED" ]; then
+            echo "::error::Pod count mismatch after restart"
+            exit 1
+          fi
+
+  notify:
+    needs: [resolve-env, restart]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Post restart status
+        uses: actions/github-script@v7
+        with:
+          script: >
+            const svc = '${{ inputs.service-name }}';
+            const env = '${{ inputs.environment }}';
+            var result = '${{ needs.restart.result }}';
+            if (!result) result = 'skipped';
+            const state = result === 'success' ? 'success' : 'failure';
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: state,
+              target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}',
+              context: 'alramz/restart-pods',
+              description: 'restart ' + svc + ' (' + env + '): ' + result,
+            });

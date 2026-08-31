@@ -1,0 +1,229 @@
+name: Feature Deploy (Fast)
+
+on:
+  workflow_dispatch:
+    inputs:
+      service-name:
+        description: Service to deploy
+        required: true
+        type: choice
+        options:
+          - data-validation-service
+          - alramz-notification-service
+        default: data-validation-service
+      branch:
+        description: Source branch to build from
+        required: true
+        type: string
+        default: dev
+      environment:
+        description: Target environment
+        required: true
+        type: choice
+        options:
+          - dev
+          - test
+        default: dev
+      registry-target:
+        description: Target registry to push images
+        required: false
+        type: choice
+        options:
+          - GITHUB_REGISTRY
+          - DOCKER_REGISTRY
+          - AZURE_REGISTRY
+        default: GITHUB_REGISTRY
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+concurrency:
+  group: feature-fast-${{ inputs.service-name }}-${{ inputs.environment }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY_TARGET: ${{ inputs.registry-target || 'GITHUB_REGISTRY' }}
+
+jobs:
+  resolve-env:
+    runs-on: ubuntu-latest
+    outputs:
+      resource-group: ${{ steps.env-config.outputs.resource-group }}
+      aks-cluster: ${{ steps.env-config.outputs.aks-cluster }}
+      aks-namespace: ${{ steps.env-config.outputs.aks-namespace }}
+      acr-server: ${{ steps.env-config.outputs.acr-server }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Resolve environment config
+        id: env-config
+        uses: ./.github/actions/env-config
+        with:
+          environment: ${{ inputs.environment }}
+
+  build-and-deploy:
+    needs: resolve-env
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+          fetch-depth: 1
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Maven build (skip tests)
+        shell: bash
+        run: |
+          cd services/${{ inputs.service-name }}
+          mvn -B -ntp package -DskipTests -q
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        if: ${{ inputs.registry-target == 'GITHUB_REGISTRY' }}
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Login to Docker Hub
+        if: ${{ inputs.registry-target == 'DOCKER_REGISTRY' }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: Azure OIDC login
+        if: ${{ inputs.registry-target == 'AZURE_REGISTRY' }}
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Login to ACR
+        if: ${{ inputs.registry-target == 'AZURE_REGISTRY' }}
+        shell: bash
+        run: |
+          ACR_NAME="${{ needs.resolve-env.outputs.acr-server }}"
+          ACR_NAME="${ACR_NAME%%.azurecr.io}"
+          az acr login --name "$ACR_NAME"
+
+      - name: Resolve image reference
+        id: image
+        shell: bash
+        run: |
+          SVC="${{ inputs.service-name }}"
+          TAG="feature-${{ inputs.branch }}-${{ github.sha }}"
+          TARGET="${{ inputs.registry-target }}"
+
+          case "$TARGET" in
+            GITHUB_REGISTRY)
+              IMAGE="ghcr.io/${{ github.repository_owner }}/$SVC:$TAG"
+              ;;
+            DOCKER_REGISTRY)
+              IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/$SVC:$TAG"
+              ;;
+            AZURE_REGISTRY)
+              IMAGE="${{ needs.resolve-env.outputs.acr-server }}/$SVC:$TAG"
+              ;;
+          esac
+
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+      - name: Build and push image
+        uses: docker/build-push-action@v5
+        with:
+          context: services/${{ inputs.service-name }}
+          file: .github/docker/Dockerfile
+          build-args: |
+            SERVICE_NAME=${{ inputs.service-name }}
+          push: true
+          tags: ${{ steps.image.outputs.image }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Azure OIDC login
+        if: ${{ inputs.registry-target != 'AZURE_REGISTRY' }}
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Set AKS credentials
+        shell: bash
+        run: |
+          echo "AKS_CLUSTER=${{ needs.resolve-env.outputs.aks-cluster }}" >> "$GITHUB_ENV"
+          echo "AKS_NAMESPACE=${{ needs.resolve-env.outputs.aks-namespace }}" >> "$GITHUB_ENV"
+          RG="${{ needs.resolve-env.outputs.resource-group }}"
+          AKS="${{ needs.resolve-env.outputs.aks-cluster }}"
+          az aks get-credentials \
+            --resource-group "$RG" \
+            --name "$AKS" \
+            --overwrite-existing
+
+      - name: Deploy to AKS
+        shell: bash
+        env:
+          SVC: ${{ inputs.service-name }}
+          IMAGE: ${{ env.IMAGE }}
+          NAMESPACE: ${{ env.AKS_NAMESPACE }}
+        run: |
+          kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+
+          cat <<EOF | kubectl apply -f - -n "$NAMESPACE"
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: $SVC
+            namespace: $NAMESPACE
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app: $SVC
+            template:
+              metadata:
+                labels:
+                  app: $SVC
+              spec:
+                containers:
+                  - name: $SVC
+                    image: $IMAGE
+                    ports:
+                      - containerPort: 8080
+                    resources:
+                      requests:
+                        cpu: 250m
+                        memory: 512Mi
+          ---
+          apiVersion: v1
+          kind: Service
+            metadata:
+              name: $SVC
+              namespace: $NAMESPACE
+            spec:
+              type: ClusterIP
+              ports:
+                - port: 80
+                  targetPort: 8080
+              selector:
+                app: $SVC
+          EOF
+
+          kubectl rollout status deployment/"$SVC" -n "$NAMESPACE" --timeout=180s
+          echo "=== Deployed $SVC to $NAMESPACE ==="

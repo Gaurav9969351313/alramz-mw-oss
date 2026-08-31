@@ -5,7 +5,6 @@ set -e
 SERVICE="$1"
 IMAGE="$2"
 
-# Dynamically locate the service config file (supporting service.yaml, service.yml, and deployment.yaml)
 CONFIG="services/${SERVICE}/service.yaml"
 if [ ! -f "$CONFIG" ]; then
   CONFIG="services/${SERVICE}/service.yml"
@@ -19,18 +18,17 @@ if [ ! -f "$CONFIG" ]; then
   exit 1
 fi
 
-export SERVICE
+export SERVICE_NAME="$SERVICE"
 export IMAGE
-export CONTAINER_NAME="$SERVICE"
 
 export CPU=$(yq '.container.cpu' "$CONFIG")
 export MEMORY=$(yq '.container.memory' "$CONFIG")
+export CPU_LIMIT=$(yq '.container.cpuLimit // .container.cpu' "$CONFIG")
+export MEMORY_LIMIT=$(yq '.container.memoryLimit // .container.memory' "$CONFIG")
 export TARGET_PORT=$(yq '.container.targetPort' "$CONFIG")
 
 export MIN_REPLICAS=$(yq '.scale.minReplicas' "$CONFIG")
 export MAX_REPLICAS=$(yq '.scale.maxReplicas' "$CONFIG")
-
-export INGRESS_EXTERNAL=$(yq '.ingress.external' "$CONFIG")
 
 SPRING_PROFILE=$(yq '.environment.springProfile' "$CONFIG")
 if [ -n "${SPRING_PROFILE_OVERRIDE:-}" ]; then
@@ -40,11 +38,20 @@ export SPRING_PROFILE
 export JAVA_OPTS=$(yq '.environment.javaOpts' "$CONFIG")
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TEMPLATE_PATH="$SCRIPT_DIR/../templates/containerapp-template.yaml"
+TEMPLATE_DIR="$SCRIPT_DIR/../templates/kubernetes"
 
-if [ ! -f "$TEMPLATE_PATH" ]; then
-  echo "Error: Template file not found at $TEMPLATE_PATH"
+if [ ! -d "$TEMPLATE_DIR" ]; then
+  echo "Error: Kubernetes templates directory not found at $TEMPLATE_DIR"
   exit 1
 fi
 
-envsubst '${LOCATION} ${ACA_ENVIRONMENT_ID} ${MANAGED_IDENTITY} ${ACR_SERVER} ${SPRING_PROFILE} ${JAVA_OPTS} ${CONTAINER_NAME} ${IMAGE} ${INGRESS_EXTERNAL} ${CPU} ${MEMORY} ${TARGET_PORT} ${MIN_REPLICAS} ${MAX_REPLICAS} ${KEYVAULT_NAME}' < "$TEMPLATE_PATH" > containerapp.yaml
+OUTPUT_FILE="k8s-manifests.yaml"
+> "$OUTPUT_FILE"
+
+for template in "$TEMPLATE_DIR"/*.yaml; do
+  [ -f "$template" ] || continue
+  envsubst < "$template" >> "$OUTPUT_FILE"
+  echo "---" >> "$OUTPUT_FILE"
+done
+
+echo "Rendered Kubernetes manifests to $OUTPUT_FILE"

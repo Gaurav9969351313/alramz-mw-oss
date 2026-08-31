@@ -16,15 +16,25 @@ container_app_environment_name                    = "alramz-dev-container-apps-e
 container_app_environment_zone_redundancy_enabled = false
 environment_name                                  = "dev"
 
-container_apps = {
-  data-validation-service = {
-    image       = "alramzregistry.azurecr.io/data-validation-service:fe970"
-    target_port = 8080
-    cpu         = 0.5
-    memory      = "1Gi"
-    external_enabled = false
-  }
-}
+# COMMENTED OUT: Container Apps migrated to AKS
+# container_apps = {
+#   data-validation-service = {
+#     image       = "alramzregistry.azurecr.io/data-validation-service:fe970"
+#     target_port = 8080
+#     cpu         = 0.5
+#     memory      = "1Gi"
+#     external_enabled = false
+#   }
+# }
+
+# AKS Configuration
+aks_cluster_name       = "alramz-dev-aks"
+platform_identity_name = "alramz-dev-platform-identity"
+aks_dns_prefix         = "alramz-dev-aks"
+aks_kubernetes_version = "1.29"
+aks_node_count         = 1
+aks_vm_size            = "Standard_B2s"
+aks_os_disk_size_gb    = 30
 
 redis_instance_name  = "alramz-dev-redis"
 

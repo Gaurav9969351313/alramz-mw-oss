@@ -32,14 +32,26 @@ concurrency:
   group: dev-${{ github.sha }}
   cancel-in-progress: true
 
-env:
-  ACR_SERVER: alramzregistry.azurecr.io
-  DEV_RG: alramz-dev-rg
-  DEV_LOCATION: uaenorth
-  DEV_ENV: alramz-dev-container-apps-env
-  DEV_KV: alramz-dev-key-vault
-
 jobs:
+
+  resolve-env:
+    runs-on: ubuntu-latest
+    outputs:
+      resource-group: ${{ steps.env-config.outputs.resource-group }}
+      aks-cluster: ${{ steps.env-config.outputs.aks-cluster }}
+      aks-namespace: ${{ steps.env-config.outputs.aks-namespace }}
+      keyvault: ${{ steps.env-config.outputs.keyvault }}
+      keyvault-tenant-id: ${{ steps.env-config.outputs.keyvault-tenant-id }}
+      acr-server: ${{ steps.env-config.outputs.acr-server }}
+      domain: ${{ steps.env-config.outputs.domain }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Resolve environment config
+        id: env-config
+        uses: ./.github/actions/env-config
+        with:
+          environment: dev
 
   detect-services:
     runs-on: ubuntu-latest
@@ -120,7 +132,7 @@ jobs:
           if-no-files-found: ignore
 
   build:
-    needs: [detect-services, publish-maven]
+    needs: [detect-services, publish-maven, resolve-env]
     if: needs.detect-services.outputs.has_deploy_changes == 'true'
     runs-on: ubuntu-latest
     strategy:
@@ -161,7 +173,7 @@ jobs:
         uses: ./.github/actions/build-service
         with:
           service-name: ${{ matrix.service }}
-          acr-name: ${{ env.ACR_SERVER }}
+          acr-name: ${{ needs.resolve-env.outputs.acr-server }}
           image-tag: ${{ needs.detect-services.outputs.tag }}
           github-token: ${{ secrets.GH_TOKEN }}
           azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -193,7 +205,7 @@ jobs:
           retention-days: 7
 
   deploy-dev:
-    needs: [detect-services, build]
+    needs: [detect-services, build, resolve-env]
     if: needs.detect-services.outputs.has_deploy_changes == 'true'
     runs-on: ubuntu-latest
     strategy:
@@ -228,16 +240,19 @@ jobs:
       - name: Deploy service
         if: ${{ matrix.service != '__none__' }}
         id: deploy
-        uses: ./.github/actions/deploy-aca
+        uses: ./.github/actions/deploy-aks
         with:
           services: ${{ env.svc_json }}
-          acr-name: ${{ env.ACR_SERVER }}
-          registry-base: ${{ github.event.inputs.registry-target == 'GITHUB_REGISTRY' && format('ghcr.io/{0}', github.repository_owner) || (github.event.inputs.registry-target == 'DOCKER_REGISTRY' && secrets.DOCKERHUB_USERNAME) || env.ACR_SERVER }}
-          resource-group: ${{ env.DEV_RG }}
-          location: ${{ env.DEV_LOCATION }}
-          aca-environment-id: ${{ env.DEV_ENV }}
-          managed-identity: ${{ secrets.MANAGED_IDENTITY_DEV }}
-          keyvault: ${{ env.DEV_KV }}
+          acr-name: ${{ needs.resolve-env.outputs.acr-server }}
+          registry-base: ${{ github.event.inputs.registry-target == 'GITHUB_REGISTRY' && format('ghcr.io/{0}', github.repository_owner) || (github.event.inputs.registry-target == 'DOCKER_REGISTRY' && secrets.DOCKERHUB_USERNAME) || needs.resolve-env.outputs.acr-server }}
+          resource-group: ${{ needs.resolve-env.outputs.resource-group }}
+          aks-cluster-name: ${{ needs.resolve-env.outputs.aks-cluster }}
+          aks-namespace: ${{ needs.resolve-env.outputs.aks-namespace }}
+          service-account: workload-identity-sa
+          managed-identity-client-id: ${{ secrets.MANAGED_IDENTITY_CLIENT_ID_DEV }}
+          keyvault: ${{ needs.resolve-env.outputs.keyvault }}
+          keyvault-tenant-id: ${{ needs.resolve-env.outputs.keyvault-tenant-id }}
+          host: ${{ format('{0}.{1}', matrix.service, needs.resolve-env.outputs.domain) }}
           environment: dev
           spring-profile-override: ''
           azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -303,7 +318,7 @@ jobs:
           expected-url: ${{ format('https://{0}', steps.url.outputs.url) }}
 
   drift-detect-dev:
-    needs: [deploy-dev, build]
+    needs: [deploy-dev, build, resolve-env]
     if: needs.detect-services.outputs.has_deploy_changes == 'true'
     runs-on: ubuntu-latest
     permissions:
@@ -344,9 +359,11 @@ jobs:
         uses: ./.github/actions/drift-detect
         with:
           services: ${{ steps.drift-svc.outputs.services }}
-          acr-name: ${{ env.ACR_SERVER }}
-          registry-base: ${{ github.event.inputs.registry-target == 'GITHUB_REGISTRY' && format('ghcr.io/{0}', github.repository_owner) || (github.event.inputs.registry-target == 'DOCKER_REGISTRY' && secrets.DOCKERHUB_USERNAME) || env.ACR_SERVER }}
-          resource-group: ${{ env.DEV_RG }}
+          acr-name: ${{ needs.resolve-env.outputs.acr-server }}
+          registry-base: ${{ github.event.inputs.registry-target == 'GITHUB_REGISTRY' && format('ghcr.io/{0}', github.repository_owner) || (github.event.inputs.registry-target == 'DOCKER_REGISTRY' && secrets.DOCKERHUB_USERNAME) || needs.resolve-env.outputs.acr-server }}
+          resource-group: ${{ needs.resolve-env.outputs.resource-group }}
+          aks-cluster-name: ${{ needs.resolve-env.outputs.aks-cluster }}
+          aks-namespace: ${{ needs.resolve-env.outputs.aks-namespace }}
           azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
           azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           azure-subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}

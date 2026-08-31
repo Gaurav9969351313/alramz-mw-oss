@@ -60,6 +60,61 @@ variable "container_apps" {
     memory      = string
     external_enabled = optional(bool, false)
   }))
+  default = {}
+}
+
+# AKS Variables
+variable "aks_cluster_name" {
+  type = string
+}
+
+variable "platform_identity_name" {
+  type    = string
+  default = null
+}
+
+variable "aks_dns_prefix" {
+  type    = string
+  default = "aks-dev"
+}
+
+variable "aks_kubernetes_version" {
+  type    = string
+  default = "1.29"
+}
+
+variable "aks_node_count" {
+  type    = number
+  default = 1
+}
+
+variable "aks_vm_size" {
+  type    = string
+  default = "Standard_B2s"
+}
+
+variable "aks_os_disk_size_gb" {
+  type    = number
+  default = 30
+}
+
+# Function App and Service Bus Variables
+variable "web_plan_id" {
+  description = "App Service Plan resource ID for Function Apps"
+  type        = string
+  default     = null
+}
+
+variable "function_app_id" {
+  description = "Function App resource ID"
+  type        = string
+  default     = null
+}
+
+variable "service_bus_id" {
+  description = "Service Bus namespace resource ID"
+  type        = string
+  default     = null
 }
 
 variable "log_analytics_workspace_name" {

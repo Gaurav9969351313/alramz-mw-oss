@@ -1,0 +1,239 @@
+name: Terraform
+
+on:
+  push:
+    branches:
+      - dev
+      - qa
+      - preprod
+      - prod
+    paths:
+      - 'infra/**'
+      - '.github/workflows/terraform.yml'
+  pull_request:
+    branches:
+      - dev
+      - qa
+      - preprod
+      - prod
+    paths:
+      - 'infra/**'
+      - '.github/workflows/terraform.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        type: choice
+        options:
+          - dev
+          - qa
+          - preprod
+          - prod
+        default: dev
+      action:
+        description: Action to perform
+        required: true
+        type: choice
+        options:
+          - plan
+          - apply
+        default: plan
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+concurrency:
+  group: terraform-${{ github.ref_name }}-${{ github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  detect-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.detect.outputs.environment }}
+      stack: ${{ steps.detect.outputs.stack }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Detect environment
+        id: detect
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "environment=${{ inputs.environment }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "environment=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          fi
+          echo "stack=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+
+  terraform-plan:
+    needs: detect-environment
+    if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.action == 'plan')
+    runs-on: ubuntu-latest
+    environment: ${{ needs.detect-environment.outputs.environment }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure OIDC login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '~1.7'
+
+      - name: Terraform Init
+        working-directory: infra/stacks/${{ needs.detect-environment.outputs.stack }}
+        shell: bash
+        run: |
+          terraform init -input=false -no-color
+
+      - name: Terraform Plan
+        working-directory: infra/stacks/${{ needs.detect-environment.outputs.stack }}
+        shell: bash
+        run: |
+          terraform plan \
+            -input=false \
+            -no-color \
+            -var-file="../../environments/${{ needs.detect-environment.outputs.stack }}.tfvars" \
+            -out=tfplan
+
+      - name: Terraform Show Plan
+        working-directory: infra/stacks/${{ needs.detect-environment.outputs.stack }}
+        shell: bash
+        run: |
+          terraform show -no-color tfplan
+
+      - name: Upload Plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-${{ needs.detect-environment.outputs.stack }}
+          path: infra/stacks/${{ needs.detect-environment.outputs.stack }}/tfplan
+          retention-days: 7
+
+      - name: Update PR with Plan
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const planOutput = require('child_process')
+              .execSync('terraform show -no-color tfplan', { 
+                cwd: 'infra/stacks/${{ needs.detect-environment.outputs.stack }}' 
+              })
+              .toString();
+            
+            const body = `## Terraform Plan for \`${{ needs.detect-environment.outputs.stack }}\`
+            
+            \`\`\`
+            ${planOutput.slice(0, 60000)}
+            \`\`\`
+            `;
+            
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body
+            });
+
+  terraform-apply:
+    needs: detect-environment
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.action == 'apply')
+    runs-on: ubuntu-latest
+    environment: ${{ needs.detect-environment.outputs.environment }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure OIDC login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '~1.7'
+
+      - name: Terraform Init
+        working-directory: infra/stacks/${{ needs.detect-environment.outputs.stack }}
+        shell: bash
+        run: |
+          terraform init -input=false -no-color
+
+      - name: Terraform Plan
+        working-directory: infra/stacks/${{ needs.detect-environment.outputs.stack }}
+        shell: bash
+        run: |
+          terraform plan \
+            -input=false \
+            -no-color \
+            -var-file="../../environments/${{ needs.detect-environment.outputs.stack }}.tfvars" \
+            -out=tfplan
+
+      - name: Terraform Apply
+        working-directory: infra/stacks/${{ needs.detect-environment.outputs.stack }}
+        shell: bash
+        run: |
+          terraform apply \
+            -input=false \
+            -no-color \
+            -auto-approve \
+            tfplan
+
+      - name: Capture Outputs
+        id: outputs
+        working-directory: infra/stacks/${{ needs.detect-environment.outputs.stack }}
+        shell: bash
+        run: |
+          echo "outputs=$(terraform output -json)" >> "$GITHUB_OUTPUT"
+
+      - name: Update GitHub Secrets
+        if: needs.detect-environment.outputs.stack == 'dev'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          CLIENT_ID=$(terraform output -raw platform_identity_client_id 2>/dev/null || echo "")
+          if [ -n "$CLIENT_ID" ] && [ "$CLIENT_ID" != "null" ]; then
+            echo "$CLIENT_ID" | gh secret set MANAGED_IDENTITY_CLIENT_ID_DEV
+            echo "Updated MANAGED_IDENTITY_CLIENT_ID_DEV secret"
+          fi
+
+  notify:
+    needs: [detect-environment, terraform-plan, terraform-apply]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Post status
+        uses: actions/github-script@v7
+        with:
+          script: >
+            var plan = '${{ needs.terraform-plan.result }}';
+            var apply = '${{ needs.terraform-apply.result }}';
+            const env = '${{ needs.detect-environment.outputs.environment }}';
+            if (!plan) plan = 'skipped';
+            if (!apply) apply = 'skipped';
+            const state = (apply === 'success' || apply === 'skipped') ? 'success' : 'failure';
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: state,
+              target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}',
+              context: 'alramz/terraform',
+              description: 'tf ' + env + ' plan=' + plan + ' apply=' + apply,
+            });
