@@ -28,8 +28,12 @@ Run these commands once to create the storage account for Terraform state files.
 RESOURCE_GROUP="alramz-tf-assets-rg"
 LOCATION="uaenorth"
 STORAGE_ACCOUNT="alramztfstatefiles1994"
+SUBSCRIPTION_ID="c65cd71d-a01c-4f33-a04f-3163f61a94c6"
 
-
+APP_ID=$(az ad app create \
+  --display-name "github-actions-terraform" \
+  --query appId \
+  -o tsv)
 
 # Create resource group for Terraform state
 az group create \
@@ -78,6 +82,15 @@ az storage container create \
   --account-name $STORAGE_ACCOUNT \
   --account-key $ACCOUNT_KEY
 ```
+
+TF_SP_CLIENT_ID="da04e03f-2352-4748-b09e-d03c58600b0f"
+
+az ad sp show --id $TF_SP_CLIENT_ID
+
+az role assignment create \
+  --assignee $TF_SP_CLIENT_ID \
+  --role Contributor \
+  --scope /subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP
 
 ---
 

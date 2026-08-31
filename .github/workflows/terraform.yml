@@ -62,12 +62,26 @@ jobs:
         id: detect
         shell: bash
         run: |
+          ENVIRONMENTS="dev qa preprod prod"
+          DEFAULT_ENV="dev"
+
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "environment=${{ inputs.environment }}" >> "$GITHUB_OUTPUT"
+            SELECTED_ENV="${{ inputs.environment }}"
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            SELECTED_ENV="${{ github.base_ref }}"
           else
-            echo "environment=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+            SELECTED_ENV="${{ github.ref_name }}"
           fi
-          echo "stack=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+
+          # Validate against known environments, default to dev
+          if [[ ! " $ENVIRONMENTS " =~ " $SELECTED_ENV " ]]; then
+            echo "Warning: '$SELECTED_ENV' is not a valid environment. Defaulting to '$DEFAULT_ENV'"
+            SELECTED_ENV="$DEFAULT_ENV"
+          fi
+
+          echo "environment=$SELECTED_ENV" >> "$GITHUB_OUTPUT"
+          echo "stack=$SELECTED_ENV" >> "$GITHUB_OUTPUT"
+          echo "Detected environment: $SELECTED_ENV"
 
   terraform-plan:
     needs: detect-environment
