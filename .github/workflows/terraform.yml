@@ -127,7 +127,7 @@ jobs:
             "Microsoft.Cache"
             "Microsoft.DBforPostgreSQL"
             "Microsoft.ApiManagement"
-            "Microsoft.Insights"
+            "Microsoft.OperationalInsights"
             "Microsoft.Network"
             "Microsoft.ManagedIdentity"
           )
@@ -192,7 +192,7 @@ jobs:
             "Microsoft.Cache"
             "Microsoft.DBforPostgreSQL"
             "Microsoft.ApiManagement"
-            "Microsoft.Insights"
+            "Microsoft.OperationalInsights"
             "Microsoft.Network"
             "Microsoft.ManagedIdentity"
           )
@@ -269,7 +269,7 @@ jobs:
             "Microsoft.Cache"
             "Microsoft.DBforPostgreSQL"
             "Microsoft.ApiManagement"
-            "Microsoft.Insights"
+            "Microsoft.OperationalInsights"
             "Microsoft.Network"
             "Microsoft.ManagedIdentity"
           )
@@ -367,7 +367,7 @@ jobs:
             "Microsoft.Cache"
             "Microsoft.DBforPostgreSQL"
             "Microsoft.ApiManagement"
-            "Microsoft.Insights"
+            "Microsoft.OperationalInsights"
             "Microsoft.Network"
             "Microsoft.ManagedIdentity"
           )
@@ -438,7 +438,7 @@ jobs:
             "Microsoft.Cache"
             "Microsoft.DBforPostgreSQL"
             "Microsoft.ApiManagement"
-            "Microsoft.Insights"
+            "Microsoft.OperationalInsights"
             "Microsoft.Network"
             "Microsoft.ManagedIdentity"
           )
@@ -527,7 +527,7 @@ jobs:
             "Microsoft.Cache"
             "Microsoft.DBforPostgreSQL"
             "Microsoft.ApiManagement"
-            "Microsoft.Insights"
+            "Microsoft.OperationalInsights"
             "Microsoft.Network"
             "Microsoft.ManagedIdentity"
           )
