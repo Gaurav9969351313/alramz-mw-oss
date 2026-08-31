@@ -6,64 +6,41 @@ resource "azurerm_user_assigned_identity" "platform" {
   tags = var.tags
 }
 
+# Role assignments with static keys - dynamic values in map values
 locals {
-  role_assignments = {
-    acr_push = {
-      scope = var.acr_id
-      role  = "AcrPush"
-    }
-    acr_pull = {
-      scope = var.acr_id
-      role  = "AcrPull"
-    }
-    storage_blob_data_contributor = {
-      scope = var.storage_account_id
-      role  = "Storage Blob Data Contributor"
-    }
-    sql_server_contributor = {
-      scope = var.sql_server_id
-      role  = "SQL Server Contributor"
-    }
-    redis_contributor = {
-      scope = var.redis_id
-      role  = "Redis Contributor"
-    }
-    key_vault_secrets_user = {
-      scope = var.key_vault_id
-      role  = "Key Vault Secrets User"
-    }
-    apim_contributor = {
-      scope = var.apim_id
-      role  = "API Management Service Contributor"
-    }
-    web_plan_contributor = {
-      scope = var.web_plan_id
-      role  = "Web Plan Contributor"
-    }
-    website_contributor = {
-      scope = var.function_app_id
-      role  = "Website Contributor"
-    }
-    storage_queue_data_contributor = {
-      scope = var.storage_account_id
-      role  = "Storage Queue Data Contributor"
-    }
-    service_bus_data_owner = {
-      scope = var.service_bus_id
-      role  = "Azure Service Bus Data Owner"
-    }
+  role_scopes = {
+    acr_push                    = var.acr_id
+    acr_pull                    = var.acr_id
+    storage_blob_data_contributor = var.storage_account_id
+    sql_server_contributor      = var.sql_server_id
+    redis_contributor           = var.redis_id
+    key_vault_secrets_user      = var.key_vault_id
+    apim_contributor            = var.apim_id
+    web_plan_contributor        = var.web_plan_id
+    website_contributor         = var.function_app_id
+    storage_queue_data_contributor = var.storage_account_id
+    service_bus_data_owner      = var.service_bus_id
   }
 
-  filtered_role_assignments = {
-    for k, v in local.role_assignments : k => v
-    if v.scope != null
+  role_names = {
+    acr_push                    = "AcrPush"
+    acr_pull                    = "AcrPull"
+    storage_blob_data_contributor = "Storage Blob Data Contributor"
+    sql_server_contributor      = "SQL Server Contributor"
+    redis_contributor           = "Redis Contributor"
+    key_vault_secrets_user      = "Key Vault Secrets User"
+    apim_contributor            = "API Management Service Contributor"
+    web_plan_contributor        = "Web Plan Contributor"
+    website_contributor         = "Website Contributor"
+    storage_queue_data_contributor = "Storage Queue Data Contributor"
+    service_bus_data_owner      = "Azure Service Bus Data Owner"
   }
 }
 
 resource "azurerm_role_assignment" "dynamic" {
-  for_each             = local.filtered_role_assignments
-  scope                = each.value.scope
-  role_definition_name = each.value.role
+  for_each             = { for k, v in local.role_scopes : k => v if v != null }
+  scope                = each.value
+  role_definition_name = local.role_names[each.key]
   principal_id         = azurerm_user_assigned_identity.platform.principal_id
 }
 
