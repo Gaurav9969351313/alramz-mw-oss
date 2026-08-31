@@ -13,7 +13,6 @@ log_analytics_workspace_name   = "alramz-dev-log-analytics-workspace"
 application_insights_name      = "alramz-dev-application-insights"
 
 container_app_environment_name                    = "alramz-dev-container-apps-env"
-container_app_environment_zone_redundancy_enabled = false
 environment_name                                  = "dev"
 
 # COMMENTED OUT: Container Apps migrated to AKS

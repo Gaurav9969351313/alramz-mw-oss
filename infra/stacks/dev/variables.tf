@@ -98,6 +98,11 @@ variable "aks_os_disk_size_gb" {
   default = 30
 }
 
+variable "aks_availability_zones" {
+  type    = list(number)
+  default = []
+}
+
 # Function App and Service Bus Variables
 variable "web_plan_id" {
   description = "App Service Plan resource ID for Function Apps"
