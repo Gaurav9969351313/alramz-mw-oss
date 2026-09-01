@@ -129,7 +129,8 @@ jobs:
             "Microsoft.ApiManagement"
             "Microsoft.OperationalInsights"
             "Microsoft.Network"
-            "Microsoft.ManagedIdentity"
+            "Microsoft.ManagedIdentity",
+            "Microsoft.OperationsManagement"
           )
           for provider in "${providers[@]}"; do
             echo "Registering $provider..."
@@ -194,7 +195,8 @@ jobs:
             "Microsoft.ApiManagement"
             "Microsoft.OperationalInsights"
             "Microsoft.Network"
-            "Microsoft.ManagedIdentity"
+            "Microsoft.ManagedIdentity",
+            "Microsoft.OperationsManagement"
           )
           for provider in "${providers[@]}"; do
             echo "Registering $provider..."
@@ -271,7 +273,8 @@ jobs:
             "Microsoft.ApiManagement"
             "Microsoft.OperationalInsights"
             "Microsoft.Network"
-            "Microsoft.ManagedIdentity"
+            "Microsoft.ManagedIdentity",
+            "Microsoft.OperationsManagement"
           )
           for provider in "${providers[@]}"; do
             echo "Registering $provider..."
@@ -369,7 +372,8 @@ jobs:
             "Microsoft.ApiManagement"
             "Microsoft.OperationalInsights"
             "Microsoft.Network"
-            "Microsoft.ManagedIdentity"
+            "Microsoft.ManagedIdentity",
+            "Microsoft.OperationsManagement"
           )
           for provider in "${providers[@]}"; do
             echo "Registering $provider..."
@@ -440,7 +444,8 @@ jobs:
             "Microsoft.ApiManagement"
             "Microsoft.OperationalInsights"
             "Microsoft.Network"
-            "Microsoft.ManagedIdentity"
+            "Microsoft.ManagedIdentity",
+            "Microsoft.OperationsManagement"
           )
           for provider in "${providers[@]}"; do
             echo "Registering $provider..."
@@ -529,7 +534,8 @@ jobs:
             "Microsoft.ApiManagement"
             "Microsoft.OperationalInsights"
             "Microsoft.Network"
-            "Microsoft.ManagedIdentity"
+            "Microsoft.ManagedIdentity",
+            "Microsoft.OperationsManagement"
           )
           for provider in "${providers[@]}"; do
             echo "Registering $provider..."
