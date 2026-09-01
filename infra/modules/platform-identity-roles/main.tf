@@ -14,22 +14,29 @@ variable "role_assignments" {
   default = {}
 }
 
-data "http" "existing_role_assignment" {
+data "external" "existing_role_assignment" {
   for_each = var.role_assignments
 
-  url = "https://management.azure.com${each.value.scope}/providers/Microsoft.Authorization/roleAssignments?api-version=2022-04-01&%24filter=atScope()&%24filter=principalId%20eq%20'${var.identity_principal_id}'"
-
-  request_headers = {
-    Authorization = "Bearer ${data.azurerm_client_config.current.access_token}"
-  }
+  program = ["bash", "-c", <<-EOT
+    EXISTS=$(az role assignment list \
+      --assignee "${var.identity_principal_id}" \
+      --scope "${each.value.scope}" \
+      --role "${each.value.role}" \
+      --query '[0].id' \
+      -o tsv 2>/dev/null)
+    if [ -n "$EXISTS" ]; then
+      echo "{\"exists\":\"true\"}"
+    else
+      echo "{\"exists\":\"false\"}"
+    fi
+  EOT
+  ]
 }
-
-data "azurerm_client_config" "current" {}
 
 locals {
   role_assignment_keys = {
-    for k, v in var.role_assignments : k => k
-    if length(jsondecode(data.http.existing_role_assignment[k].response_body).value) == 0
+    for k, v in var.role_assignments : k => v
+    if jsondecode(data.external.existing_role_assignment[k].result.exists) == "false"
   }
 }
 
@@ -40,7 +47,7 @@ resource "azurerm_role_assignment" "dynamic" {
   role_definition_name = each.value.role
   principal_id         = var.identity_principal_id
 
-  depends_on = [data.http.existing_role_assignment]
+  depends_on = [data.external.existing_role_assignment]
 }
 
 resource "azurerm_role_assignment" "monitoring_metrics_publisher" {
