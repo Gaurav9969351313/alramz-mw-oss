@@ -166,8 +166,10 @@ module "platform_identity" {
 module "platform_identity_roles" {
   source = "../../modules/platform-identity-roles"
 
-  identity_principal_id = module.platform_identity.principal_id
-  subscription_id       = data.azurerm_client_config.current.subscription_id
+  identity_principal_id        = module.platform_identity.principal_id
+  identity_name                = module.platform_identity.name
+  identity_resource_group_name = module.resource_group.name
+  subscription_id              = data.azurerm_client_config.current.subscription_id
 
   role_assignments = {
     acr_push = {
