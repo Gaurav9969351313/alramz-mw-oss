@@ -129,7 +129,7 @@ jobs:
             "Microsoft.ApiManagement"
             "Microsoft.OperationalInsights"
             "Microsoft.Network"
-            "Microsoft.ManagedIdentity",
+            "Microsoft.ManagedIdentity"
             "Microsoft.OperationsManagement"
           )
           for provider in "${providers[@]}"; do
@@ -195,7 +195,7 @@ jobs:
             "Microsoft.ApiManagement"
             "Microsoft.OperationalInsights"
             "Microsoft.Network"
-            "Microsoft.ManagedIdentity",
+            "Microsoft.ManagedIdentity"
             "Microsoft.OperationsManagement"
           )
           for provider in "${providers[@]}"; do
@@ -273,7 +273,7 @@ jobs:
             "Microsoft.ApiManagement"
             "Microsoft.OperationalInsights"
             "Microsoft.Network"
-            "Microsoft.ManagedIdentity",
+            "Microsoft.ManagedIdentity"
             "Microsoft.OperationsManagement"
           )
           for provider in "${providers[@]}"; do
@@ -372,7 +372,7 @@ jobs:
             "Microsoft.ApiManagement"
             "Microsoft.OperationalInsights"
             "Microsoft.Network"
-            "Microsoft.ManagedIdentity",
+            "Microsoft.ManagedIdentity"
             "Microsoft.OperationsManagement"
           )
           for provider in "${providers[@]}"; do
@@ -444,7 +444,7 @@ jobs:
             "Microsoft.ApiManagement"
             "Microsoft.OperationalInsights"
             "Microsoft.Network"
-            "Microsoft.ManagedIdentity",
+            "Microsoft.ManagedIdentity"
             "Microsoft.OperationsManagement"
           )
           for provider in "${providers[@]}"; do
@@ -534,7 +534,7 @@ jobs:
             "Microsoft.ApiManagement"
             "Microsoft.OperationalInsights"
             "Microsoft.Network"
-            "Microsoft.ManagedIdentity",
+            "Microsoft.ManagedIdentity"
             "Microsoft.OperationsManagement"
           )
           for provider in "${providers[@]}"; do
