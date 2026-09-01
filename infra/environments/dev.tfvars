@@ -28,7 +28,7 @@ environment_name                                  = "dev"
 # }
 
 # AKS Configuration
-aks_cluster_name       = "alramz-dev-aks-1"
+aks_cluster_name       = "alramz-dev-aks"
 platform_identity_name = "alramz-dev-platform-identity"
 aks_dns_prefix         = "alramz-dev-aks"
 aks_kubernetes_version = "1.36"
