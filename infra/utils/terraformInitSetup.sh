@@ -5,6 +5,30 @@ set -e
 # ============================================================
 # Azure Terraform Bootstrap Script
 # ============================================================
+# Author: Gaurav Talele
+#
+# Steps performed by this script:
+#   1. Validates Azure CLI is installed and the user is logged in.
+#   2. Sets the active Azure subscription and resolves the tenant ID.
+#   3. Creates the Resource Group and Storage Account that hold
+#      the Terraform remote state.
+#   4. Creates the per-environment Terraform state containers
+#      (sharedplatformtfstate, devtfstate, qatfstate,
+#      preprodtfstate, prodtfstate) inside the storage account.
+#   5. Creates the App Registration and Service Principal used by
+#      GitHub Actions / Terraform.
+#   6. Resets (rotates) the App Registration client secret used
+#      for service principal auth.
+#   7. Assigns the required RBAC roles (Contributor and User
+#      Access Administrator) to the Service Principal at the
+#      appropriate scopes.
+#   8. Creates the GitHub Actions OIDC federated identity
+#      credential on the App Registration so GitHub Actions
+#      can authenticate to Azure without a client secret.
+#   9. Prints the resulting Azure configuration (subscription,
+#      tenant, client id, client secret, storage account,
+#      resource group, and state containers).
+# ============================================================
 
 # -----------------------------
 # Configuration
@@ -233,57 +257,199 @@ create_service_principal() {
     fi
 
     # --------------------------------------------------------
-    # Assign Contributor role to Resource Group
+    # Assign Roles to Service Principal
     # --------------------------------------------------------
 
     echo ""
-    echo "Assigning Contributor role..."
+    echo "Assigning roles to Service Principal..."
 
-    SCOPE="/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP"
+    RESOURCE_GROUPS=(
+        "$RESOURCE_GROUP"
+        "alramz-shared-platform-rg"
+        "alramz-dev-rg"
+        "alramz-test-rg"
+        "alramz-preprod-rg"
+        "alramz-prod-rg"
+    )
 
-    EXISTING_ROLE=$(az role assignment list \
-        --assignee "$CLIENT_ID" \
-        --scope "$SCOPE" \
-        --role Contributor \
-        --query '[0].id' \
-        -o tsv)
+    # Azure RBAC roles assignable at subscription / resource group scope
+    declare -a SCOPED_ROLES=(
+        "Contributor"
+        "User Access Administrator"
+    )
 
-    if [ -n "$EXISTING_ROLE" ]; then
+    # Microsoft Entra directory roles assignable at tenant root scope
+    declare -a DIRECTORY_ROLES=(
+        "Cloud Application Administrator"
+    )
 
-        echo "Contributor role already assigned."
+    # --------------------------------------------------------
+    # Subscription + Resource Group scoped role assignments
+    # --------------------------------------------------------
 
-    else
+    for ROLE_NAME in "${SCOPED_ROLES[@]}"; do
 
-        az role assignment create \
+        # Subscription scope
+        SCOPE="/subscriptions/$SUBSCRIPTION_ID"
+        echo ""
+        echo "Assigning '$ROLE_NAME' at scope: $SCOPE"
+
+        EXISTING_ROLE=$(az role assignment list \
             --assignee "$CLIENT_ID" \
-            --role Contributor \
-            --scope "$SCOPE"
-
-        APP_ID=$(az ad app list \
-            --display-name "alramz-github-actions-tf-sp" \
-            --query "[0].appId" \
+            --scope "$SCOPE" \
+            --role "$ROLE_NAME" \
+            --query '[0].id' \
             -o tsv)
 
-        az ad app federated-credential create \
-        --id "$APP_ID" \
-        --parameters '{
-            "name": "github-alramz-mw-oss-dev",
-            "issuer": "https://token.actions.githubusercontent.com",
-            "subject": "repo:Gaurav9969351313@21151838/alramz-mw-oss@1301193654:environment:dev",
-            "description": "GitHub Actions OIDC",
-            "audiences": [
-            "api://AzureADTokenExchange"
-            ]
-        }'
+        if [ -n "$EXISTING_ROLE" ]; then
+            echo "  '$ROLE_NAME' already assigned at this scope."
+        else
+            az role assignment create \
+                --assignee "$CLIENT_ID" \
+                --role "$ROLE_NAME" \
+                --scope "$SCOPE"
+            echo "  '$ROLE_NAME' assigned successfully."
+        fi
 
-        
+        # Resource Group scopes
+        for RG in "${RESOURCE_GROUPS[@]}"; do
 
-        echo "Contributor role assigned."
+            SCOPE="/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RG"
+            echo ""
+            echo "Assigning '$ROLE_NAME' at scope: $SCOPE"
 
-    fi
+            EXISTING_ROLE=$(az role assignment list \
+                --assignee "$CLIENT_ID" \
+                --scope "$SCOPE" \
+                --role "$ROLE_NAME" \
+                --query '[0].id' \
+                -o tsv)
+
+            if [ -n "$EXISTING_ROLE" ]; then
+                echo "  '$ROLE_NAME' already assigned at this scope."
+            else
+                az role assignment create \
+                    --assignee "$CLIENT_ID" \
+                    --role "$ROLE_NAME" \
+                    --scope "$SCOPE"
+                echo "  '$ROLE_NAME' assigned successfully."
+            fi
+
+        done
+
+    done
+
+    # --------------------------------------------------------
+    # Directory role assignments (tenant root scope)
+    # --------------------------------------------------------
+
+    for ROLE_NAME in "${DIRECTORY_ROLES[@]}"; do
+
+        SCOPE="/"
+        echo ""
+        echo "Assigning directory role '$ROLE_NAME' at scope: $SCOPE"
+
+        EXISTING_ROLE=$(az rest \
+            --method GET \
+            --url "https://graph.microsoft.com/v1.0/roleManagement/directory/roleAssignments?\$filter=principalId%20eq%20'$CLIENT_ID'" \
+            --query "value[?roleDefinitionId].id | [0]" \
+            -o tsv 2>/dev/null || true)
+
+        if [ -n "$EXISTING_ROLE" ]; then
+            echo "  Directory role '$ROLE_NAME' already assigned."
+        else
+            ROLE_DEF_ID=$(az rest \
+                --method GET \
+                --url "https://graph.microsoft.com/v1.0/roleManagement/directory/roleDefinitions" \
+                --query "value[?displayName=='$ROLE_NAME'].id | [0]" \
+                -o tsv)
+
+            if [ -z "$ROLE_DEF_ID" ]; then
+                echo "  WARNING: Could not resolve role definition id for '$ROLE_NAME'. Skipping."
+                continue
+            fi
+
+            az rest \
+                --method POST \
+                --url "https://graph.microsoft.com/v1.0/roleManagement/directory/roleAssignments" \
+                --body "{
+                    \"principalId\": \"$CLIENT_ID\",
+                    \"roleDefinitionId\": \"$ROLE_DEF_ID\",
+                    \"directoryScopeId\": \"/\"
+                }"
+
+            echo "  Directory role '$ROLE_NAME' assigned successfully."
+        fi
+
+    done
 
     echo ""
-    echo "Terraform Service Principal setup completed."
+    echo "All role assignments completed."
+
+    # --------------------------------------------------------
+    # Create GitHub OIDC Federated Credentials (one per branch)
+    # --------------------------------------------------------
+
+    echo ""
+    echo "Creating GitHub OIDC Federated Credentials..."
+
+    APP_ID=$(az ad app list \
+        --display-name "$APP_NAME" \
+        --query "[0].appId" \
+        -o tsv)
+
+    GITHUB_ORG="Gaurav9969351313@21151838"
+    GITHUB_REPO="alramz-mw-oss"
+
+    ENVIRONMENTS=(
+        "dev"
+        "test"
+        "preprod"
+        "prod"
+    )
+
+    declare -A FED_CRED_SUBJECTS=(
+        ["dev"]="repo:${GITHUB_ORG}/${GITHUB_REPO}:ref:refs/heads/dev"
+        ["test"]="repo:${GITHUB_ORG}/${GITHUB_REPO}:ref:refs/heads/test"
+        ["preprod"]="repo:${GITHUB_ORG}/${GITHUB_REPO}:ref:refs/heads/preprod"
+        ["prod"]="repo:${GITHUB_ORG}/${GITHUB_REPO}:ref:refs/heads/prod"
+    )
+
+    for ENV in "${ENVIRONMENTS[@]}"; do
+
+        FED_CRED_NAME="github-${GITHUB_REPO}-${ENV}"
+        SUBJECT="${FED_CRED_SUBJECTS[$ENV]}"
+
+        echo ""
+        echo "Processing environment: $ENV"
+
+        EXISTING_FED_CRED=$(az ad app federated-credential list \
+            --id "$APP_ID" \
+            --query "[?name=='$FED_CRED_NAME'].name | [0]" \
+            -o tsv)
+
+        if [ -n "$EXISTING_FED_CRED" ]; then
+            echo "  Federated Credential '$FED_CRED_NAME' already exists."
+        else
+            az ad app federated-credential create \
+                --id "$APP_ID" \
+                --parameters "{
+                    \"name\": \"$FED_CRED_NAME\",
+                    \"issuer\": \"https://token.actions.githubusercontent.com\",
+                    \"subject\": \"$SUBJECT\",
+                    \"description\": \"GitHub Actions OIDC for $ENV\",
+                    \"audiences\": [
+                        \"api://AzureADTokenExchange\"
+                    ]
+                }"
+
+            echo "  Federated Credential '$FED_CRED_NAME' created successfully."
+        fi
+
+    done
+
+    echo ""
+    echo "All federated credentials processed."
 }
 
 # ============================================================

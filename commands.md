@@ -83,6 +83,12 @@ az storage container create \
   --account-key $ACCOUNT_KEY
 ```
 
+az vm list-skus \
+  --location uaenorth \
+  --resource-type virtualMachines \
+  --query "[?contains(name, 'B2as_v2')].name" \
+  -o tsv
+
 TF_SP_CLIENT_ID="da04e03f-2352-4748-b09e-d03c58600b0f"
 
 az ad sp show --id $TF_SP_CLIENT_ID
@@ -107,6 +113,21 @@ az role assignment create \
   --assignee-principal-type ServicePrincipal \
   --role "User Access Administrator" \
   --scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RG_NAME"
+
+ az role assignment list \
+  --assignee-object-id "f5095702-ee3b-4ff2-956d-61e64a63443b" \
+  --all \
+  --query "[].{Role:roleDefinitionName,Scope:scope}" \
+  -o table
+Role                       Scope
+-------------------------  --------------------------------------------------------------------------------------------
+Contributor                /subscriptions/c65cd71d-a01c-4f33-a04f-3163f61a94c6/resourceGroups/alramz-tf-assets-rg
+Contributor                /subscriptions/c65cd71d-a01c-4f33-a04f-3163f61a94c6
+User Access Administrator  /subscriptions/c65cd71d-a01c-4f33-a04f-3163f61a94c6/resourceGroups/alramz-shared-platform-rg
+User Access Administrator  /subscriptions/c65cd71d-a01c-4f33-a04f-3163f61a94c6/resourceGroups/alramz-dev-rg
+User Access Administrator  /subscriptions/c65cd71d-a01c-4f33-a04f-3163f61a94c6
+
+
 
 ---
 
