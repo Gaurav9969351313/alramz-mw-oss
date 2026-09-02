@@ -405,26 +405,35 @@ jobs:
         run: |
           REGISTER=".github/service-deployment-catalogue/service-register.yml"
           TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          echo "DEBUG: listing build-artifacts"
+          ls -la build-artifacts || true
+          find build-artifacts -maxdepth 3 -type f -name 'build-output.json' -print || true
+          FOUND=0
           for file in build-artifacts/*/build-output.json; do
             [ -f "$file" ] || continue
+            FOUND=1
             SVC=$(jq -r '.service' "$file")
             TAG=$(jq -r '.tag' "$file")
             DIGEST=$(jq -r '.digest' "$file")
             IMAGE=$(jq -r '.image' "$file")
-            [ -z "$SVC" ] || [ "$SVC" = "null" ] && continue
+            [ -n "$SVC" ] && [ "$SVC" != "null" ] || continue
 
             OLD_TAG=$(yq -r ".services[\"$SVC\"].tag // \"unset\"" "$REGISTER")
             echo "DEBUG: $SVC tag change: $OLD_TAG -> $TAG"
+            echo "DEBUG: $SVC image: $IMAGE"
             yq -i ".services[\"$SVC\"].tag = \"$TAG\"" "$REGISTER"
             yq -i ".services[\"$SVC\"].digest = \"$DIGEST\"" "$REGISTER"
             yq -i ".services[\"$SVC\"].image = \"$IMAGE\"" "$REGISTER"
 
             ENTRY=$(jq -n --arg tag "$TAG" --arg digest "$DIGEST" --arg ts "$TS" --arg env "dev" \
-              '{tag:$tag, digest:$digest, deployedAt:$ts, deployedBy:"github-actions[bot]", environment:$env}')
+              '{tag:$tag, digest:$digest, deployedAt:$ts, deployedBy:"github-actions[bot]",environment:$env}')
             yq -i --argjson entry "$ENTRY" \
               ".services[\"$SVC\"].history = [\$entry] + .services[\"$SVC\"].history" "$REGISTER"
             yq -i ".services[\"$SVC\"].history = (.services[\"$SVC\"].history)[0:3]" "$REGISTER"
           done
+          if [ "$FOUND" -eq 0 ]; then
+            echo "DEBUG: no build-output.json files found under build-artifacts/"
+          fi
           cat "$REGISTER"
 
       - name: Commit catalogue update
@@ -438,7 +447,11 @@ jobs:
           git remote set-url origin "https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}.git"
           git checkout "$BRANCH"
           git pull --rebase origin "$BRANCH"
+          git status --short
+          git diff -- .github/service-deployment-catalogue/service-register.yml || true
           git add .github/service-deployment-catalogue/service-register.yml
+          git status --short
+          git diff --staged -- .github/service-deployment-catalogue/service-register.yml || true
           git diff --staged --quiet || git commit -m "chore(catalogue): update ${BRANCH} deployment catalogue [skip ci]"
           git push origin HEAD:"$BRANCH"
 
@@ -470,7 +483,7 @@ jobs:
         run: |
           set +e
           REGISTER=".github/service-deployment-catalogue/service-register.yml"
-          SERVICES="${{ needs.detect-services.outputs.deploy_services }}"
+          RAW_SERVICES="${{ needs.detect-services.outputs.deploy_services }}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
@@ -489,6 +502,18 @@ jobs:
           else
             echo "No promotion target for branch $BRANCH"
             exit 0
+          fi
+
+          if [ -z "$RAW_SERVICES" ] || [ "$RAW_SERVICES" = "[]" ]; then
+            echo "No deployable services to promote from $BRANCH to $TARGET"
+            exit 0
+          fi
+
+          if ! echo "$RAW_SERVICES" | jq -e 'type == "array"' >/dev/null 2>&1; then
+            echo "::warning::deploy_services is not a JSON array, attempting to normalize: $RAW_SERVICES"
+            SERVICES=$(echo "$RAW_SERVICES" | jq -R . | jq -s -c .)
+          else
+            SERVICES="$RAW_SERVICES"
           fi
 
           for svc in $(echo "$SERVICES" | jq -r '.[]'); do
