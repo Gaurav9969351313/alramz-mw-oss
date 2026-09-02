@@ -99,6 +99,8 @@ jobs:
         run: |
           if [ "${{ steps.type.outputs.is_release }}" == "true" ]; then
             echo "tag=${{ steps.type.outputs.version }}" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ github.ref }}" == refs/heads/feature/* ]]; then
+            echo "tag=${{ github.sha }}" >> "$GITHUB_OUTPUT"
           else
             echo "tag=dev-${GITHUB_SHA:0:8}" >> "$GITHUB_OUTPUT"
           fi
