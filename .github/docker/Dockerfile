@@ -1,4 +1,4 @@
-FROM eclipse-temurin:21-jre-slim
+FROM eclipse-temurin:21-jre
 
 ARG SERVICE_NAME
 ARG JAR_FILE=target/${SERVICE_NAME}-*.jar
