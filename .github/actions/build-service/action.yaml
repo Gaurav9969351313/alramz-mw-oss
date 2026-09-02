@@ -100,11 +100,9 @@ runs:
         username: ${{ inputs.dockerhub-username }}
         password: ${{ inputs.dockerhub-password }}
 
-    - name: Build and push image
-      id: build
+    - name: Determine image reference
+      id: image-ref
       shell: bash
-      env:
-        DOCKER_BUILDKIT: '1'
       run: |
         set -euo pipefail
 
@@ -131,19 +129,34 @@ runs:
             ;;
         esac
 
-        docker build \
-          --build-arg SERVICE_NAME="$SVC" \
-          --build-arg JAR_FILE="target/${SVC}-*.jar" \
-          -t "$IMAGE" \
-          -f .github/docker/Dockerfile \
-          "services/$SVC"
+        CACHE_IMAGE="${IMAGE%:*}:buildcache"
+        echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+        echo "cache-image=$CACHE_IMAGE" >> "$GITHUB_OUTPUT"
 
-        docker push "$IMAGE"
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
 
-        DIGEST="$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE")"
-        DIGEST="${DIGEST##*@}"
+    - name: Build and push image
+      id: buildx
+      uses: docker/build-push-action@v5
+      with:
+        context: services/${{ inputs.service-name }}
+        file: .github/docker/Dockerfile
+        build-args: |
+          SERVICE_NAME=${{ inputs.service-name }}
+          JAR_FILE=target/${{ inputs.service-name }}-*.jar
+        tags: ${{ steps.image-ref.outputs.image }}
+        push: true
+        cache-from: type=registry,ref=${{ steps.image-ref.outputs.cache-image }}
+        cache-to: type=registry,ref=${{ steps.image-ref.outputs.cache-image }},mode=max
+
+    - name: Set build outputs
+      id: build
+      shell: bash
+      run: |
+        IMAGE="${{ steps.image-ref.outputs.image }}"
+        DIGEST="${{ steps.buildx.outputs.digest }}"
         FULL_IMAGE="$IMAGE@$DIGEST"
-
         echo "image=$FULL_IMAGE" >> "$GITHUB_OUTPUT"
         echo "image-digest=$DIGEST" >> "$GITHUB_OUTPUT"
 

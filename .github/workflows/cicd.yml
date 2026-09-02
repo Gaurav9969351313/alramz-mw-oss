@@ -34,6 +34,9 @@ concurrency:
   group: dev-${{ github.sha }}
   cancel-in-progress: true
 
+env:
+  REGISTRY_TARGET: ${{ github.event.inputs.registry-target || 'GITHUB_REGISTRY' }}
+
 jobs:
 
   resolve-env:
@@ -101,12 +104,12 @@ jobs:
 
   publish-maven:
     needs: detect-services
-    if: needs.detect-services.outputs.has_changes == 'true'
+    if: needs.detect-services.outputs.has_changes == 'true' || needs.detect-services.outputs.has_deploy_changes == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        service: ${{ fromJson(needs.detect-services.outputs.services == '[]' && '["__none__"]' || needs.detect-services.outputs.services) }}
+        service: ${{ fromJson(needs.detect-services.outputs.services == '[]' && needs.detect-services.outputs.deploy_services != '[]' && needs.detect-services.outputs.deploy_services || (needs.detect-services.outputs.services != '[]' && needs.detect-services.outputs.services || '["__none__"]')) }}
     permissions:
       contents: read
       packages: write
@@ -181,7 +184,7 @@ jobs:
           azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
           azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           azure-subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          registry-target: ${{ github.event.inputs.registry-target || 'GITHUB_REGISTRY' }}
+          registry-target: ${{ env.REGISTRY_TARGET }}
           dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
           dockerhub-password: ${{ secrets.DOCKERHUB_PASSWORD }}
           scan-trivy: false
@@ -208,7 +211,7 @@ jobs:
 
   deploy-dev:
     needs: [detect-services, build, resolve-env]
-    if: needs.detect-services.outputs.has_deploy_changes == 'true'
+    if: needs.detect-services.outputs.has_deploy_changes == 'true' && (github.ref == 'refs/heads/dev' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -246,7 +249,7 @@ jobs:
         with:
           services: ${{ env.svc_json }}
           acr-name: ${{ needs.resolve-env.outputs.acr-server }}
-          registry-base: ${{ github.event.inputs.registry-target == 'GITHUB_REGISTRY' && format('ghcr.io/{0}', github.repository_owner) || (github.event.inputs.registry-target == 'DOCKER_REGISTRY' && secrets.DOCKERHUB_USERNAME) || needs.resolve-env.outputs.acr-server }}
+          registry-base: ${{ env.REGISTRY_TARGET == 'GITHUB_REGISTRY' && format('ghcr.io/{0}', github.repository_owner) || (env.REGISTRY_TARGET == 'DOCKER_REGISTRY' && secrets.DOCKERHUB_USERNAME) || needs.resolve-env.outputs.acr-server }}
           resource-group: ${{ needs.resolve-env.outputs.resource-group }}
           aks-cluster-name: ${{ needs.resolve-env.outputs.aks-cluster }}
           aks-namespace: ${{ needs.resolve-env.outputs.aks-namespace }}
@@ -320,7 +323,7 @@ jobs:
           expected-url: ${{ format('https://{0}', steps.url.outputs.url) }}
 
   drift-detect-dev:
-    needs: [deploy-dev, build, resolve-env]
+    needs: [deploy-dev, build, resolve-env, detect-services]
     if: needs.detect-services.outputs.has_deploy_changes == 'true'
     runs-on: ubuntu-latest
     permissions:
@@ -362,7 +365,7 @@ jobs:
         with:
           services: ${{ steps.drift-svc.outputs.services }}
           acr-name: ${{ needs.resolve-env.outputs.acr-server }}
-          registry-base: ${{ github.event.inputs.registry-target == 'GITHUB_REGISTRY' && format('ghcr.io/{0}', github.repository_owner) || (github.event.inputs.registry-target == 'DOCKER_REGISTRY' && secrets.DOCKERHUB_USERNAME) || needs.resolve-env.outputs.acr-server }}
+          registry-base: ${{ env.REGISTRY_TARGET == 'GITHUB_REGISTRY' && format('ghcr.io/{0}', github.repository_owner) || (env.REGISTRY_TARGET == 'DOCKER_REGISTRY' && secrets.DOCKERHUB_USERNAME) || needs.resolve-env.outputs.acr-server }}
           resource-group: ${{ needs.resolve-env.outputs.resource-group }}
           aks-cluster-name: ${{ needs.resolve-env.outputs.aks-cluster }}
           aks-namespace: ${{ needs.resolve-env.outputs.aks-namespace }}
@@ -372,7 +375,7 @@ jobs:
 
   update-catalogue:
     needs: [detect-services, build]
-    if: needs.detect-services.outputs.has_deploy_changes == 'true'
+    if: needs.detect-services.outputs.has_deploy_changes == 'true' && (github.ref == 'refs/heads/dev' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -426,6 +429,9 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}.git"
+          git checkout dev
+          git pull --rebase origin dev
           git add .github/service-deployment-catalogue/service-register.yml
           git diff --staged --quiet || git commit -m "chore(catalogue): update dev deployment catalogue [skip ci]"
           git push origin HEAD:dev
@@ -456,14 +462,13 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           REPO: ${{ github.repository }}
         run: |
-          set +e
           REGISTER=".github/service-deployment-catalogue/service-register.yml"
           SERVICES="${{ needs.detect-services.outputs.deploy_services }}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           git checkout dev
-          git pull origin dev --ff-only 2>/dev/null || true
+          git pull origin dev --ff-only
 
           for svc in $(echo "$SERVICES" | jq -r '.[]'); do
             [ -n "$svc" ] || continue
@@ -473,10 +478,13 @@ jobs:
             TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
             for target in qa preprod prod; do
-              git fetch origin "$target"
               BR="promote-${svc}-${target}-${TAG}"
-              git branch -D "$BR" 2>/dev/null
-              git checkout -B "$BR" "origin/$target"
+              git fetch origin "$target" "$BR" 2>/dev/null || true
+              if git rev-parse --verify "origin/$BR" >/dev/null 2>&1; then
+                git checkout -B "$BR" "origin/$BR"
+              else
+                git checkout -B "$BR" "origin/$target"
+              fi
 
               yq -i ".services[\"$svc\"].tag = \"$TAG\"" "$REGISTER"
               yq -i ".services[\"$svc\"].digest = \"$DIGEST\"" "$REGISTER"
@@ -487,15 +495,63 @@ jobs:
                 ".services[\"$svc\"].history = [\$entry] + .services[\"$svc\"].history" "$REGISTER"
               yq -i ".services[\"$svc\"].history = (.services[\"$svc\"].history)[0:3]" "$REGISTER"
 
-               git add "$REGISTER"
-               git commit -m "chore(catalogue): promote ${svc} to ${target}: ${TAG} [skip ci]" 2>/dev/null
-               git push origin "$BR" 2>/dev/null
+              git add "$REGISTER"
+              if git diff --cached --quiet; then
+                echo "No catalogue changes for ${svc} -> ${target}, skipping PR"
+                git checkout dev 2>/dev/null || true
+                continue
+              fi
+              git commit -m "chore(catalogue): promote ${svc} to ${target}: ${TAG} [skip ci]"
 
-               PR_URL=$(gh pr create --repo "$REPO" --base "$target" --head "$BR" \
-                 --title "Promote ${svc} to ${target}" \
-                 --body "Promotion PR for ${svc} to ${target}: tag=${TAG} digest=${DIGEST} image=${IMAGE}. Generated by dev CI after a successful build+deploy+smoke cycle." 2>&1) || true
-               echo "Promotion PR for ${svc} -> ${target}: ${PR_URL:-creation failed}"
+              EXISTING_PR=$(gh pr list --repo "$REPO" --base "$target" --head "$BR" --state open --json url --jq '.[0].url' 2>/dev/null || true)
+              if [ -n "$EXISTING_PR" ]; then
+                echo "Promotion PR for ${svc} -> ${target} already exists: $EXISTING_PR"
+                git push origin "$BR" 2>/dev/null || true
+              else
+                git push origin "$BR" || {
+                  echo "::warning::Failed to push branch $BR for ${svc} -> ${target}"
+                  git checkout dev 2>/dev/null || true
+                  continue
+                }
+                PR_URL=$(gh pr create --repo "$REPO" --base "$target" --head "$BR" \
+                  --title "Promote ${svc} to ${target}" \
+                  --body "Promotion PR for ${svc} to ${target}: tag=${TAG} digest=${DIGEST} image=${IMAGE}. Generated by dev CI after a successful build+deploy+smoke cycle." 2>&1) || {
+                    echo "::error::Failed to create promotion PR for ${svc} -> ${target}"
+                    git checkout dev 2>/dev/null || true
+                    continue
+                  }
+                echo "Promotion PR for ${svc} -> ${target}: $PR_URL"
+              fi
 
-               git checkout dev 2>/dev/null
+               git checkout dev 2>/dev/null || true
             done
           done
+
+  notify:
+    needs: [deploy-dev, smoke-test, drift-detect-dev]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Post commit status
+        uses: actions/github-script@v7
+        with:
+          script: >
+            var deploy = '${{ needs.deploy-dev.result }}';
+            var smoke = '${{ needs.smoke-test.result }}';
+            var drift = '${{ needs.drift-detect-dev.result }}';
+            if (!deploy) deploy = 'skipped';
+            if (!smoke) smoke = 'skipped';
+            if (!drift) drift = 'skipped';
+            const state = (deploy === 'success' || deploy === 'skipped') ? 'success' : 'failure';
+            const desc = 'deploy=' + deploy + ' smoke=' + smoke + ' drift=' + drift;
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: state,
+              target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}',
+              context: 'alramz/dev',
+              description: desc.slice(0, 255),
+            });
