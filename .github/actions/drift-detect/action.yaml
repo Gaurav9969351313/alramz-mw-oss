@@ -87,6 +87,7 @@ runs:
       run: |
         set -euo pipefail
         REGISTRY_BASE="${REGISTRY_BASE:-$ACR}"
+        REGISTRY_BASE="${REGISTRY_BASE,,}"
         REPORT="[]"
         COUNT=$(echo "$SERVICES" | jq 'length')
         for i in $(seq 0 $((COUNT - 1))); do

@@ -28,7 +28,7 @@ public class DataValidationServiceApplication {
 			String host = env.getProperty("server.address", "localhost");
 			String appName = env.getProperty("spring.application.name", "unknown");
 			log.info("========================================");
-			log.info("App :        {}", appName);
+			log.info("Appp :        {}", appName);
 			log.info("Host:        {}", host);
 			log.info("Port:        {}", port);
 			log.info("========================================");

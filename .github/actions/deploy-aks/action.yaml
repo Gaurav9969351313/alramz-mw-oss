@@ -131,6 +131,7 @@ runs:
         set -euo pipefail
 
         REGISTRY_BASE="${REGISTRY_BASE:-$ACR}"
+        REGISTRY_BASE="${REGISTRY_BASE,,}"
 
         COUNT=$(echo "$SERVICES" | jq 'length')
         DEPLOYED="[]"

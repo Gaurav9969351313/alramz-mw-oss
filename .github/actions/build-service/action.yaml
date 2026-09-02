@@ -115,6 +115,7 @@ runs:
         case "$TARGET" in
           GITHUB_REGISTRY)
             OWNER="${{ github.repository_owner }}"
+            OWNER="${OWNER,,}"
             IMAGE="ghcr.io/$OWNER/$SVC:$TAG"
             ;;
           DOCKER_REGISTRY)
