@@ -235,7 +235,7 @@ jobs:
           SVC="${{ matrix.service }}"
           TAG=$(jq -r '.tag' build-output/build-output.json)
           DIGEST=$(jq -r '.digest' build-output/build-output.json)
-          jq -n --arg svc "$SVC" --arg tag "$TAG" --arg digest "$DIGEST" \
+          jq -n -c --arg svc "$SVC" --arg tag "$TAG" --arg digest "$DIGEST" \
             '[{service:$svc, tag:$tag, digest:$digest}]' > svc.json
           echo "svc_json=$(cat svc.json)" >> "$GITHUB_ENV"
 
