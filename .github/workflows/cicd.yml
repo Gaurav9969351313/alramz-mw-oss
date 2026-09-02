@@ -2,7 +2,7 @@ name: CICD (Dev)
 
 on:
   push:
-    branches: 
+    branches:
       - dev
       - feature/*
     paths-ignore:
@@ -26,6 +26,7 @@ on:
 
 permissions:
   contents: write
+  statuses: write
   pull-requests: write
   packages: write
   id-token: write
@@ -535,6 +536,7 @@ jobs:
       contents: write
     steps:
       - name: Post commit status
+        continue-on-error: true
         uses: actions/github-script@v7
         with:
           script: >
@@ -546,12 +548,16 @@ jobs:
             if (!drift) drift = 'skipped';
             const state = (deploy === 'success' || deploy === 'skipped') ? 'success' : 'failure';
             const desc = 'deploy=' + deploy + ' smoke=' + smoke + ' drift=' + drift;
-            await github.rest.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: context.sha,
-              state: state,
-              target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}',
-              context: 'alramz/dev',
-              description: desc.slice(0, 255),
-            });
+            try {
+              await github.rest.repos.createCommitStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                sha: context.sha,
+                state: state,
+                target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}',
+                context: 'alramz/dev',
+                description: desc.slice(0, 255),
+              });
+            } catch (e) {
+              console.log('Skipping commit status: ' + (e.message || JSON.stringify(e)));
+            }

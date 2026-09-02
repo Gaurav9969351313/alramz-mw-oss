@@ -4,6 +4,7 @@ on:
   push:
     paths-ignore:
       - 'infra/**'
+      - feature/*
   pull_request:
     branches: [dev, qa, preprod, prod]
     paths-ignore:
