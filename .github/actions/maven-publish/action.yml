@@ -93,4 +93,5 @@ runs:
         mvn -B -ntp -s $HOME/.m2/settings.xml deploy \
           -DskipTests=${{ inputs.skip-tests }} \
           -Dgpg.skip=true \
+          -DuniqueVersion=false \
           -DaltDeploymentRepository=github::default::https://maven.pkg.github.com/${{ github.repository }}/
