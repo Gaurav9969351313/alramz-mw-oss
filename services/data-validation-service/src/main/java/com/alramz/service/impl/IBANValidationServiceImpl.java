@@ -43,8 +43,7 @@ public class IBANValidationServiceImpl extends AbstractRestClient implements IBA
             @Qualifier("ibanTimeLimiter") TimeLimiter timeLimiter,
             IbanServiceProperties ibanServiceProperties,
             Environment environment,
-            ObjectMapper objectMapper
-    ) {
+            ObjectMapper objectMapper) {
         super(webClient, circuitBreaker, retry, timeLimiter, environment, objectMapper);
 
         this.ibanServiceProperties = ibanServiceProperties;
@@ -114,27 +113,6 @@ public class IBANValidationServiceImpl extends AbstractRestClient implements IBA
         String lengthCode = length != null ? length.getCode() : null;
         String countrySupportCode = countrySupport != null ? countrySupport.getCode() : null;
         String structureCode = structure != null ? structure.getCode() : null;
-
-        // if ("006".equals(charsCode)) {
-        //     throw new IbanValidationException("1078", "IBAN contains illegal characters");
-        // }
-
-        // if (List.of("004", "002").contains(accountCode)) {
-        //     if ("001".equals(ibanCode)) {
-        //         throw new IbanValidationException("1075", "IBAN Check digit not correct");
-        //     }
-        //     if ("005".equals(lengthCode)) {
-        //         throw new IbanValidationException("1076", "IBAN Length is not correct");
-        //     }
-        //     if ("003".equals(countrySupportCode)) {
-        //         throw new IbanValidationException("1079", "Country does not support IBAN standard");
-        //     }
-        //     throw new IbanValidationException("1074", "Account Number check digit not correct");
-        // }
-
-        // if ("007".equals(structureCode)) {
-        //     throw new IbanValidationException("1077", "IBAN Structure is not correct");
-        // }
 
         return createSuccessResponse(response.getBankData(), response.getSepaData(), response.getValidations());
     }

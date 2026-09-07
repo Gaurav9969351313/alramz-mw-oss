@@ -3,12 +3,7 @@ package com.alramz.client;
 import com.alramz.config.ETradeProperties;
 import com.alramz.model.ETradeResponse;
 import com.alramz.exception.ExternalSystemException;
-import io.github.resilience4j.circuitbreaker.CircuitBreaker;
-import io.github.resilience4j.retry.Retry;
-import io.github.resilience4j.timelimiter.TimeLimiter;
-
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.core.env.Environment;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -21,20 +16,17 @@ public class ETradeClient extends AbstractRestClient {
 
     public ETradeClient(
             @Qualifier("etradeValidationService") WebClient webClient,
-            @Qualifier("etradeCircuitBreaker") CircuitBreaker circuitBreaker,
-            @Qualifier("etradeRetry") Retry retry,
-            @Qualifier("etradeTimeLimiter") TimeLimiter timeLimiter,
+            @Qualifier("etradeCircuitBreaker") io.github.resilience4j.circuitbreaker.CircuitBreaker circuitBreaker,
+            @Qualifier("etradeRetry") io.github.resilience4j.retry.Retry retry,
+            @Qualifier("etradeTimeLimiter") io.github.resilience4j.timelimiter.TimeLimiter timeLimiter,
             ETradeProperties etradeProperties,
-            Environment environment,
+            org.springframework.core.env.Environment environment,
             com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
         super(webClient, circuitBreaker, retry, timeLimiter, environment, objectMapper);
         this.etradeProperties = etradeProperties;
     }
 
     public ETradeResponse callETrade(String accessToken, String endpointPath, String method, Object body, Class<ETradeResponse> responseType) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("access-token", accessToken);
-
         try {
             return call(
                     HttpMethod.valueOf(method),
@@ -42,7 +34,9 @@ public class ETradeClient extends AbstractRestClient {
                     Object.class,
                     body,
                     responseType,
-                    headers,
+                    new HttpHeaders() {{
+                        add("access-token", accessToken);
+                    }},
                     null
             ).block();
         } catch (WebClientResponseException e) {

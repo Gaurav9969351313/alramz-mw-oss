@@ -157,4 +157,26 @@ public class LoggingProperties {
     public static class ExceptionProperties {
         private boolean enabled = true;
     }
+
+    // ------------------------------------------------------------------ database logging
+
+    @Getter
+    @Setter
+    public static class DatabaseLoggingProperties {
+        /** Master switch for DB-backed API audit logging. */
+        private boolean enabled = false;
+        /** Whether to include request payload in audit log. */
+        private boolean includeRequestPayload = false;
+        /** Whether to include response payload in audit log. */
+        private boolean includeResponsePayload = false;
+        /** Cron expression for cleanup of expired audit logs. */
+        private String cleanupCron = "0 0 2 * * *";
+        /** Maximum age of audit log entries in days. */
+        private int retentionDays = 7;
+        /** Endpoints to exclude from audit logging. */
+        private List<String> excludedPaths = new ArrayList<>(List.of(
+                "/api/v1/info", "/actuator/**", "/swagger-ui/**", "/v3/api-docs/**"));
+    }
+
+    private DatabaseLoggingProperties databaseLogging = new DatabaseLoggingProperties();
 }

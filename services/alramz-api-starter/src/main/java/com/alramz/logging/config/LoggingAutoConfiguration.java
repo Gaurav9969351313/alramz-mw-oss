@@ -1,6 +1,7 @@
 package com.alramz.logging.config;
 
 import com.alramz.logging.aspect.MethodExecutionLoggingAspect;
+import com.alramz.logging.advice.CorrelationIdResponseBodyAdvice;
 import com.alramz.logging.exception.LoggingExceptionHandler;
 import com.alramz.logging.filter.CorrelationIdFilter;
 import com.alramz.logging.filter.RequestLoggingFilter;
@@ -13,15 +14,19 @@ import com.alramz.logging.util.LoggingHelper;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.Filter;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.*;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.List;
 
@@ -131,5 +136,51 @@ public class LoggingAutoConfiguration {
     @ConditionalOnClass(WebClient.class)
     ExchangeFilterFunction alramzWebClientLoggingFilterFunction(LoggingProperties properties) {
         return new WebClientLoggingFilter(properties).filterFunction();
+    }
+
+    // ----------------------------------------------------- correlation id response injection
+
+    @Bean
+    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+    CorrelationIdResponseBodyAdvice alramzCorrelationIdResponseBodyAdvice() {
+        return new CorrelationIdResponseBodyAdvice();
+    }
+
+    // ----------------------------------------------------- database audit logging
+
+    @Bean
+    @ConditionalOnProperty(name = "company.logging.database-logging.enabled", havingValue = "true")
+    com.alramz.audit.SensitiveDataMasker apiAuditSensitiveDataMasker(ObjectMapper objectMapper,
+                                                                     LoggingProperties properties) {
+        return new com.alramz.audit.SensitiveDataMasker(objectMapper, properties.getMasking().isEnabled());
+    }
+
+    @Bean
+    @ConditionalOnProperty(name = "company.logging.database-logging.enabled", havingValue = "true")
+    @ConditionalOnBean(name = "middlewareNamedParameterJdbcTemplate")
+    com.alramz.audit.ApiAuditLogService apiAuditLogService(
+            @Qualifier("middlewareNamedParameterJdbcTemplate") org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate jdbcTemplate,
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper,
+            LoggingProperties properties) {
+        return new com.alramz.audit.ApiAuditLogService(jdbcTemplate, objectMapper, properties);
+    }
+
+    @Bean
+    @ConditionalOnProperty(name = "company.logging.database-logging.enabled", havingValue = "true")
+    com.alramz.audit.ApiAuditAspect apiAuditAspect(com.alramz.audit.ApiAuditLogService auditLogService,
+                                                   com.alramz.audit.SensitiveDataMasker masker,
+                                                   Environment environment) {
+        return new com.alramz.audit.ApiAuditAspect(auditLogService, masker, environment);
+    }
+
+    @Bean
+    @ConditionalOnProperty(name = "company.logging.database-logging.enabled", havingValue = "true")
+    @ConditionalOnBean(name = "middlewareNamedParameterJdbcTemplate")
+    com.alramz.audit.ApiAuditLogFilter apiAuditLogFilter(
+            LoggingProperties properties,
+            Environment environment,
+            com.alramz.audit.ApiAuditLogService auditLogService,
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
+        return new com.alramz.audit.ApiAuditLogFilter(properties, environment, auditLogService, objectMapper);
     }
 }

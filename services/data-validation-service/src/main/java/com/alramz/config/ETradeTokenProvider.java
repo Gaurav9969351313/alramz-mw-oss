@@ -13,6 +13,7 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -28,7 +29,7 @@ public class ETradeTokenProvider {
     private volatile long tokenTtlSeconds;
 
     public ETradeTokenProvider(
-            @org.springframework.beans.factory.annotation.Qualifier("etradeValidationService") WebClient webClient,
+            @Qualifier("etradeValidationService") WebClient webClient,
             ETradeProperties etradeProperties,
             ObjectMapper objectMapper) {
         this.webClient = webClient;

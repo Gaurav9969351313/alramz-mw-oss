@@ -103,6 +103,17 @@ company:
       enabled: false
     performance:
       threshold: 1000ms
+    database-logging:
+      enabled: true
+      include-request-payload: false
+      include-response-payload: false
+      cleanup-cron: "0 0 2 * * *"
+      retention-days: 7
+      excluded-paths:
+        - /api/v1/info
+        - /actuator/**
+        - /swagger-ui/**
+        - /v3/api-docs/**
   jwt:
     enabled: true
     secret: ${JWT_SECRET:defaultSecretKeyChangeMeInProduction1234567890}

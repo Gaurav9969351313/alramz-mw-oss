@@ -1,9 +1,9 @@
 @baseUrl=http://localhost:8080
 # @baseUrl=https://gthomelab.online
 
-@authToken=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJkYXRhX3ZhbGlkYXRpb25fYXBwIiwiaWF0IjoxNzg4NDM0NzY3LCJleHAiOjE3ODg0MzU2NjcsInJvbGVzIjpbIkFQUF9EQVRBX1ZBTElEQVRJT04iXSwiYXBwbGljYXRpb24iOiJkYXRhLXZhbGlkYXRpb24tc2VydmljZSIsImVudmlyb25tZW50IjoibG9jYWwifQ.1gmPelFNIit2gN42EdzYhIJTiSc-WEpLAlPpcBeXUEc
+@authToken=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJkYXRhX3ZhbGlkYXRpb25fYXBwIiwiaWF0IjoxNzg4NzcxMzg3LCJleHAiOjE3ODg3NzIyODcsInJvbGVzIjpbIkFQUF9EQVRBX1ZBTElEQVRJT04iXSwiYXBwbGljYXRpb24iOiJkYXRhLXZhbGlkYXRpb24tc2VydmljZSIsImVudmlyb25tZW50IjoibG9jYWwifQ.jNU046hj7xyD1gNuoOtBXRZzD2LtLJInaB4nJT1RDj4
 
-### Info 
+###
 GET {{baseUrl}}/api/v1/info
 
 
