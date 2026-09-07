@@ -1,13 +1,17 @@
 package com.alramz.controllers;
 
+import com.alramz.api.DfmOnboardingApi;
+import com.alramz.api.ExistingDataApi;
+import com.alramz.api.IbanApi;
+import com.alramz.api.VeriPhoneApi;
 import com.alramz.jwt.annotation.JwtSecured;
+import com.alramz.model.OnboardingRequest;
+import com.alramz.model.OnboardingResponse;
+import com.alramz.service.OnboardingService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.alramz.api.ExistingDataApi;
-import com.alramz.api.IbanApi;
-import com.alramz.api.VeriPhoneApi;
 import com.alramz.model.GenericResponse;
 import com.alramz.model.IBANRequest;
 import com.alramz.model.PhoneRequest;
@@ -21,11 +25,12 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
-public class DataValidationController implements IbanApi, VeriPhoneApi, ExistingDataApi {
+public class DataValidationController implements IbanApi, VeriPhoneApi, ExistingDataApi, DfmOnboardingApi {
 
     private final IBANValidationService ibanValidationService;
     private final PhoneValidationService phoneValidationService;
     private final ValidationService validationService;
+    private final OnboardingService onboardingService;
 
     @Override
     @JwtSecured(roles = "APP_DATA_VALIDATION")
@@ -43,5 +48,11 @@ public class DataValidationController implements IbanApi, VeriPhoneApi, Existing
     @JwtSecured(roles = "APP_DATA_VALIDATION")
     public ResponseEntity<GenericResponse> validateExistingData(ValidationRequest validationRequest) {
         return ResponseEntity.ok(validationService.validate(validationRequest));
+    }
+
+    @Override
+    // @JwtSecured(roles = "APP_DFM_ONBOARDING")
+    public ResponseEntity<OnboardingResponse> onboard(OnboardingRequest onboardingRequest) {
+        return ResponseEntity.ok(onboardingService.onboard(onboardingRequest));
     }
 }

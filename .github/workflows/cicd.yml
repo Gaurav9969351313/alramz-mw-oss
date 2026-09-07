@@ -398,7 +398,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: ./build-artifacts
-          merge-multiple: true
 
       - name: Update service register
         shell: bash
@@ -412,6 +411,8 @@ jobs:
           for file in build-artifacts/*/build-output.json; do
             [ -f "$file" ] || continue
             FOUND=1
+            echo "DEBUG: build-output file: $file"
+            cat "$file"
             SVC=$(jq -r '.service' "$file")
             TAG=$(jq -r '.tag' "$file")
             DIGEST=$(jq -r '.digest' "$file")

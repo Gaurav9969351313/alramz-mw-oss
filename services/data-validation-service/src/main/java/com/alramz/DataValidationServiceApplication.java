@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
 
 import com.alramz.scheduler.EnableScheduler;
+import com.alramz.service.impl.NinTradingNumberValidationService;
 
 @SpringBootApplication
 @EnableScheduler(jobGroupName = "dataValidation")
@@ -32,6 +33,21 @@ public class DataValidationServiceApplication {
 			log.info("Host:        {}", host);
 			log.info("Port:        {}", port);
 			log.info("========================================");
+		};
+	}
+
+	@Bean
+	ApplicationRunner ninTradingCheckRunner(org.springframework.context.ApplicationContext context) {
+		return args -> {
+			NinTradingNumberValidationService service = context.getBeanProvider(NinTradingNumberValidationService.class).getIfAvailable();
+			if (service == null) {
+				log.info("NinTradingNumberValidationService is not enabled (company.datasource.brok.enabled=false)");
+				return;
+			}
+			boolean existsNin = service.checkIfNinOrTradingNumberExists("DFM", "0006545043", null);
+			log.info("NIN exists for DFM/0006545043: {}", existsNin);
+			boolean existsTrading = service.checkIfNinOrTradingNumberExists("DFM", null, "0047938213");
+			log.info("Trading number exists for DFM/0047938213: {}", existsTrading);
 		};
 	}
 

@@ -221,6 +221,37 @@ paths:
         '500':
           description: Internal server error
 
+  /dfm/onboarding:
+    post:
+      tags:
+        - DFM Onboarding
+      summary: DFM Onboarding
+      description: Processes a DFM customer onboarding request.
+      operationId: onboard
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OnboardingRequest'
+      responses:
+        '200':
+          description: Onboarding request accepted and persisted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OnboardingResponse'
+        '400':
+          description: Validation or business failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OnboardingResponse'
+        '500':
+          description: Internal server error
+        '503':
+          description: External system unavailable
+
 components:
   schemas:
     IBANRequest:
@@ -528,3 +559,345 @@ components:
           type: string
         referenceNo:
           type: string
+
+    OnboardingRequest:
+      type: object
+      required:
+        - securitykey
+        - request_id
+        - cust_mobile
+        - cust_email
+        - cust_nin
+        - fatca_uscitizen
+        - kyc_match
+      properties:
+        securitykey:
+          type: string
+          minLength: 1
+          description: Consumer-issued security/API key
+        request_id:
+          type: string
+          minLength: 1
+          description: Caller-supplied unique request identifier
+        cust_mobile:
+          type: string
+          minLength: 1
+          description: Customer mobile number. 971 prefix is normalized to 00 internally.
+        cust_email:
+          type: string
+          format: email
+          minLength: 1
+          description: Customer email address
+        cust_nin:
+          type: string
+          minLength: 1
+          description: Customer National ID Number
+        eid_dob:
+          type: string
+          format: date
+          description: EID date of birth
+        eid_expirydate:
+          type: string
+          format: date
+          description: EID expiry date
+        eid_fullname:
+          type: string
+          description: Full name as per EID
+        eid_no:
+          type: string
+          minLength: 1
+          description: EID number
+        eid_issuedate:
+          type: string
+          format: date
+          description: EID issue date
+        eid_primaryid:
+          type: string
+          description: EID primary identifier
+        eid_secondaryid:
+          type: string
+          description: EID secondary identifier
+        eid_sex:
+          type: string
+          description: Gender per EID
+        eid_residencyexpirydate:
+          type: string
+          format: date
+          description: Residency expiry date
+        eid_residencynumber:
+          type: string
+          description: Residency number
+        eid_familyid:
+          type: string
+          description: Family ID
+        eid_nationality:
+          type: string
+          description: Nationality code
+        eid_arabicfullname:
+          type: string
+          description: Full name in Arabic as per EID
+        eid_attachment_front:
+          type: string
+          description: Front side of EID image as base64
+        eid_attachment_back:
+          type: string
+          description: Back side of EID image as base64
+        eid_attachment_type:
+          type: string
+          description: MIME/file type of the EID attachment
+        pp_dob:
+          type: string
+          format: date
+          description: Passport date of birth
+        pp_expirydate:
+          type: string
+          format: date
+          description: Passport expiry date
+        pp_fullname:
+          type: string
+          description: Full name as per passport
+        pp_no:
+          type: string
+          description: Passport number
+        pp_nationality:
+          type: string
+          description: Passport nationality code
+        pp_primaryid:
+          type: string
+          description: Passport primary identifier
+        pp_secondaryid:
+          type: string
+          description: Passport secondary identifier
+        pp_sex:
+          type: string
+          description: Gender per passport
+        pp_attachment:
+          type: string
+          description: Passport image as base64
+        pp_attachment_type:
+          type: string
+          description: MIME/file type of the passport attachment
+        pinf_address:
+          type: string
+          description: Address
+        pinf_city:
+          type: string
+          description: City
+        pinf_mothername:
+          type: string
+          description: Mother's full name
+        pinf_pobox:
+          type: string
+          description: PO box
+        pinf_phone:
+          type: string
+          description: Phone number
+        pinf_country:
+          type: string
+          description: Country code
+        pinf_signatureimage:
+          type: string
+          description: Signature image as base64
+        pinf_signatureimage_type:
+          type: string
+          description: MIME/file type of the signature attachment
+        pay_method:
+          type: string
+          description: Preferred payment method
+        pay_aed_iban:
+          type: string
+          description: AED-denominated IBAN
+        pay_usd_iban:
+          type: string
+          description: USD-denominated IBAN
+        pay_frn_iban:
+          type: string
+          description: Foreign-currency IBAN
+        pay_frn_swift:
+          type: string
+          description: SWIFT/BIC code for the foreign-currency account
+        pay_cor_iban:
+          type: string
+          description: Correspondent bank IBAN
+        pay_cor_swift:
+          type: string
+          description: Correspondent bank SWIFT/BIC code
+        pay_routecode:
+          type: string
+          description: Bank routing code
+        portfolio_options:
+          type: string
+          description: Selected portfolio/product options
+        emp_status:
+          type: string
+          description: Employment status
+        emp_name:
+          type: string
+          description: Employer name
+        emp_position:
+          type: string
+          description: Job title / position
+        emp_marketorissuer:
+          type: string
+          description: Flag indicating whether the employer is a market/issuer entity
+        emp_marketorissuer_company:
+          type: string
+          description: Name of the related market/issuer company
+        emp_relatedtomarketemployee:
+          type: string
+          description: Flag indicating whether the customer is related to a market employee
+        emp_relateds:
+          $ref: '#/components/schemas/EmpRelateds'
+          description: Document list of related-persons entries
+        inc_source:
+          type: string
+          description: Source of income
+        inc_range:
+          type: string
+          description: Annual income range/bracket
+        inv_knowledge:
+          type: string
+          description: Extent of investment knowledge
+        inv_strategy:
+          type: string
+          description: Investment strategy
+        inv_instrument:
+          type: string
+          description: Instruments the customer has knowledge of / trades
+        inv_risk:
+          type: string
+          description: Investment risk tolerance
+        inv_amount:
+          type: string
+          description: Intended investment amount
+        inv_knowledge_trading:
+          type: string
+          description: Trading knowledge level
+        inv_knowledge_source:
+          type: string
+          description: Source of investment knowledge
+        inv_education:
+          type: string
+          description: Education level
+        inv_trade_prev:
+          type: string
+          description: Previous trading experience/knowledge
+        inv_trade_freq:
+          type: string
+          description: Expected trading frequency
+        inv_risk_high:
+          type: string
+          description: Acknowledgement of high-risk investment awareness
+        inv_equity:
+          type: string
+          description: Net equity
+        inv_sca:
+          type: string
+          description: Accredited by authority flag
+        inv_sca_authority:
+          type: string
+          description: Accredited by authority list
+        inv_sca_type:
+          type: string
+          description: Accredited by authority type
+        inv_qualified:
+          type: string
+          description: Qualified investor flag
+        csr_resident:
+          type: string
+          description: Indicates whether the customer is tax-resident outside the UAE
+        csr:
+          $ref: '#/components/schemas/Csr'
+          description: Common Reporting Standard (CRS) tax-residency details
+        fatca_uscitizen:
+          type: string
+          minLength: 1
+          description: FATCA US-citizen flag
+        fatca_tin:
+          type: string
+          description: US Taxpayer Identification Number
+        kyc_match:
+          type: string
+          minLength: 1
+          description: Background-check / KYC match result
+        kyc_match_details:
+          $ref: '#/components/schemas/KycMatchDetails'
+          description: Detailed KYC/background-check match information
+
+    EmpRelated:
+      type: object
+      properties:
+        emp_relatednames:
+          type: string
+          description: Full name of the related person
+        emp_related_relations:
+          type: string
+          description: Relationship to the customer
+        emp_related_company:
+           type: string
+           description: Company/employer of the related person
+
+    EmpRelateds:
+      type: object
+      properties:
+        emp_related:
+          type: array
+          description: List of related persons
+          items:
+            $ref: '#/components/schemas/EmpRelated'
+
+    KycMatchDetails:
+      type: object
+      additionalProperties:
+        type: string
+
+    CsrCountries:
+      type: object
+      properties:
+        csr_country:
+          type: string
+          description: Country of tax residency
+        csr_havetin:
+          type: string
+          description: Whether a Tax Identification Number is held for that country
+        csr_tin:
+          type: string
+          description: The TIN value, if held
+        csr_notinreason:
+          type: string
+          description: Reason code for not holding a TIN
+        csr_whynotinissued:
+          type: string
+          description: Explanation for why no TIN was issued
+
+    Csr:
+      type: object
+      properties:
+        csr_countries:
+          type: array
+          items:
+            $ref: '#/components/schemas/CsrCountries'
+
+    OnboardingResponse:
+      type: object
+      required:
+        - responseCode
+        - responseMessage
+      properties:
+        responseCode:
+          type: string
+          example: "200"
+        responseMessage:
+          type: string
+          example: OK
+        memberReferenceNumber:
+          type: string
+          format: uuid
+          description: Generated member reference number for traceability
+        correlationId:
+          type: string
+          format: uuid
+          description: Correlation ID for the request
+        lastError:
+          type: string
+          description: Captured error message on failure
