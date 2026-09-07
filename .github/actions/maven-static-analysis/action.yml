@@ -1,0 +1,68 @@
+name: Maven Static Analysis
+
+description: Run Maven static analysis (checkstyle, PMD, SpotBugs, JaCoCo check) for a Spring Boot service or library
+
+inputs:
+  service-name:
+    description: Service directory name under services/
+    required: true
+  github-token:
+    description: GitHub token for accessing GitHub Packages
+    required: true
+    type: string
+
+runs:
+  using: composite
+
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Cache Maven local repository
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
+
+    - name: Set up Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '21'
+        cache: maven
+
+    - name: Configure Maven settings
+      shell: bash
+      run: |
+        mkdir -p $HOME/.m2
+        cat > $HOME/.m2/settings.xml <<EOF
+        <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
+          <servers>
+            <server>
+              <id>github</id>
+              <username>x-access-token</username>
+              <password>${{ inputs.github-token }}</password>
+            </server>
+          </servers>
+        </settings>
+        EOF
+
+    - name: Install BOM locally
+      shell: bash
+      run: |
+        cd services/alramz-common-bom
+        mvn -B -ntp install -DskipTests
+
+    - name: Run Maven Static Analysis
+      shell: bash
+      run: |
+        cd services/${{ inputs.service-name }}
+        mvn -B -ntp -s $HOME/.m2/settings.xml verify \
+          -Dcheckstyle.consoleOutput=true \
+          -Dpmd.consoleOutput=true \
+          -Dspotbugs.consoleOutput=true \
+          -Djacoco.skip=false

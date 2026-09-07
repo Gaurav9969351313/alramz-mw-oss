@@ -81,6 +81,37 @@ jobs:
           service-name: ${{ matrix.service }}
           github-token: ${{ secrets.GH_TOKEN }}
 
+  static-analysis:
+    needs: detect
+    if: needs.detect.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJson(needs.detect.outputs.services == '[]' && '["__none__"]' || needs.detect.outputs.services) }}
+    steps:
+      - name: Run static analysis
+        if: ${{ matrix.service != '__none__' }}
+        uses: ./.github/actions/maven-static-analysis
+        with:
+          service-name: ${{ matrix.service }}
+          github-token: ${{ secrets.GH_TOKEN }}
+
+  gitleaks:
+    needs: detect
+    if: needs.detect.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+
   liquibase-validate:
     needs: detect
     if: needs.detect.outputs.liquibase_services != '[]'
@@ -144,6 +175,27 @@ jobs:
           fail-on-severity: high
           github-token: ${{ secrets.GH_TOKEN }}
 
+  trivy-sca:
+    needs: detect
+    if: needs.detect.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+
   terraform-lint:
     needs: detect
     if: needs.detect.outputs.terraform_changed == 'true'
@@ -157,7 +209,7 @@ jobs:
           working-directory: infra/stacks/shared-platform
 
   pr-comment:
-    needs: [detect, test, liquibase-validate, maven-sca, terraform-lint]
+    needs: [detect, test, liquibase-validate, maven-sca, terraform-lint, static-analysis, gitleaks, trivy-sca]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -174,8 +226,11 @@ jobs:
               '| --- | --- |',
               '| detect-changes | ${{ (needs.detect.result || 'completed') }} |',
               '| test | ${{ (needs.test.result || 'skipped') }} |',
+              '| static-analysis | ${{ (needs['static-analysis'].result || 'skipped') }} |',
               '| liquibase-validate | ${{ (needs.liquibase-validate.result || 'skipped') }} |',
+              '| gitleaks | ${{ (needs.gitleaks.result || 'skipped') }} |',
               '| maven-sca | ${{ (needs.maven-sca.result || 'skipped') }} |',
+              '| trivy-sca | ${{ (needs.trivy-sca.result || 'skipped') }} |',
               '| terraform-lint | ${{ (needs.terraform-lint.result || 'skipped') }} |',
               '',
               '- Services changed: `${{ toJson(needs.detect.outputs.services) }}`',
