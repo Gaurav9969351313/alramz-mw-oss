@@ -36,21 +36,29 @@ public class AuthService {
     public TokenPair login(String username, String password) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> {
-                    logger.warn("Login failed: user '{}' not found", username);
+                    if (logger.isWarnEnabled()) {
+                        logger.warn("Login failed: user '{}' not found", username);
+                    }
                     return new BadCredentialsException("Invalid username or password");
                 });
 
         if (!passwordEncoder.matches(password, user.password())) {
-            logger.warn("Login failed: invalid password for user '{}'", username);
+            if (logger.isWarnEnabled()) {
+                logger.warn("Login failed: invalid password for user '{}'", username);
+            }
             throw new BadCredentialsException("Invalid username or password");
         }
 
         if (!user.enabled()) {
-            logger.warn("Login failed: account disabled for user '{}'", username);
+            if (logger.isWarnEnabled()) {
+                logger.warn("Login failed: account disabled for user '{}'", username);
+            }
             throw new BadCredentialsException("Account is disabled");
         }
 
-        logger.info("User '{}' logged in successfully with application={}, environment={}", username, user.application(), user.environment());
+        if (logger.isInfoEnabled()) {
+            logger.info("User '{}' logged in successfully with application={}, environment={}", username, user.application(), user.environment());
+        }
 
         TokenPair tokenPair = tokenProvider.generateTokenPair(
                 username,
@@ -84,25 +92,33 @@ public class AuthService {
         User user = new User(null, username, email, encodedPassword, roles, true, application, environment);
         User savedUser = userRepository.save(user);
 
-        logger.info("User '{}' registered successfully with application={}, environment={}, roles={}", username, application, environment, roles);
+        if (logger.isInfoEnabled()) {
+            logger.info("User '{}' registered successfully with application={}, environment={}, roles={}", username, application, environment, roles);
+        }
 
         return tokenProvider.generateTokenPair(savedUser.username(), savedUser.roles(), savedUser.application(), savedUser.environment());
     }
 
     public void logout(String refreshToken) {
         refreshTokenRepository.revoke(refreshToken);
-        logger.info("Refresh token revoked successfully");
+        if (logger.isInfoEnabled()) {
+            logger.info("Refresh token revoked successfully");
+        }
     }
 
     public TokenPair refresh(String refreshToken) {
         RefreshToken storedToken = refreshTokenRepository.findByToken(refreshToken)
                 .orElseThrow(() -> {
-                    logger.warn("Token refresh failed: invalid refresh token");
+                    if (logger.isWarnEnabled()) {
+                        logger.warn("Token refresh failed: invalid refresh token");
+                    }
                     return new IllegalArgumentException("Invalid refresh token");
                 });
 
         if (storedToken.revoked() || storedToken.expiresAt().isBefore(Instant.now())) {
-            logger.warn("Token refresh failed: refresh token expired or revoked for user '{}'", storedToken.userId());
+            if (logger.isWarnEnabled()) {
+                logger.warn("Token refresh failed: refresh token expired or revoked for user '{}'", storedToken.userId());
+            }
             throw new IllegalArgumentException("Refresh token expired or revoked");
         }
 
@@ -110,11 +126,15 @@ public class AuthService {
 
         User user = userRepository.findByUsername(storedToken.userId())
                 .orElseThrow(() -> {
-                    logger.error("Token refresh failed: user '{}' not found", storedToken.userId());
+                    if (logger.isErrorEnabled()) {
+                        logger.error("Token refresh failed: user '{}' not found", storedToken.userId());
+                    }
                     return new IllegalArgumentException("User not found");
                 });
 
-        logger.info("Token refreshed successfully for user '{}'", storedToken.userId());
+        if (logger.isInfoEnabled()) {
+            logger.info("Token refreshed successfully for user '{}'", storedToken.userId());
+        }
 
         TokenPair tokenPair = tokenProvider.generateTokenPair(
                 user.username(),

@@ -22,6 +22,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.Arrays;
 import java.util.Optional;
+import com.fasterxml.jackson.core.JsonProcessingException;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -90,7 +91,7 @@ public abstract class AbstractRestClient {
         try {
             JsonNode node = objectMapper.readTree(body);
             return node.path("message").asText("");
-        } catch (Exception ex) {
+        } catch (JsonProcessingException ex) {
             log.warn("Unable to parse error response", ex);
             return body;
         }

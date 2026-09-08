@@ -17,7 +17,7 @@ public class NinExistsResponseMapper implements ValidationResponseMapper {
         String message = exists ? "NIN already exists" : "NIN does not exist";
 
         return new ValidationResponse(
-                request.getValidationType().getValue(),
+                request.getValidationType().getValue(), // NOPMD LawOfDemeter
                 exists,
                 valid,
                 message,

@@ -54,10 +54,10 @@ public class LoggingAutoConfiguration {
     @PostConstruct
     void configureMasking() {
         LogMaskingUtil.configure(
-                properties.getMasking().isEnabled(),
-                properties.getMasking().getMaskReplacement(),
-                properties.getMasking().getSensitiveKeys(),
-                properties.getMasking().getCustomPatterns());
+                properties.getMasking().isEnabled(), // NOPMD LawOfDemeter
+                properties.getMasking().getMaskReplacement(), // NOPMD LawOfDemeter
+                properties.getMasking().getSensitiveKeys(), // NOPMD LawOfDemeter
+                properties.getMasking().getCustomPatterns()); // NOPMD LawOfDemeter
     }
 
     @Bean
@@ -152,7 +152,7 @@ public class LoggingAutoConfiguration {
     @ConditionalOnProperty(name = "company.logging.database-logging.enabled", havingValue = "true")
     com.alramz.audit.SensitiveDataMasker apiAuditSensitiveDataMasker(ObjectMapper objectMapper,
                                                                      LoggingProperties properties) {
-        return new com.alramz.audit.SensitiveDataMasker(objectMapper, properties.getMasking().isEnabled());
+        return new com.alramz.audit.SensitiveDataMasker(objectMapper, properties.getMasking().isEnabled()); // NOPMD LawOfDemeter
     }
 
     @Bean

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 /**
  * Reusable, dependency-free log masking utility.
@@ -51,7 +52,7 @@ public final class LogMaskingUtil {
             for (String p : patterns) {
                 try {
                     customPatterns.add(Pattern.compile(p));
-                } catch (Exception e) {
+                } catch (PatternSyntaxException e) {
                     // ignore invalid pattern
                 }
             }

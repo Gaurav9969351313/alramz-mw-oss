@@ -33,7 +33,7 @@ public class WebClientLoggingFilter {
 
     public ExchangeFilterFunction filterFunction() {
         return (clientRequest, next) -> {
-            String headerName = properties.getCorrelationId().getHeader();
+            String headerName = properties.getCorrelationId().getHeader(); // NOPMD LawOfDemeter
             String correlationId = MDCUtil.getCorrelationId();
             ClientRequest effectiveRequest = correlationId != null
                     && !clientRequest.headers().containsHeader(headerName)
@@ -44,22 +44,28 @@ public class WebClientLoggingFilter {
 
             long start = System.nanoTime();
             if (logger.isInfoEnabled()) {
-                logger.info("Outgoing {} {} (correlationId={})",
-                        effectiveRequest.method(), effectiveRequest.url(), correlationId);
+                if (logger.isInfoEnabled()) {
+                    logger.info("Outgoing {} {} (correlationId={})",
+                    effectiveRequest.method(), effectiveRequest.url(), correlationId);
+                }
             }
             return next.exchange(effectiveRequest)
                     .doOnSuccess(response -> {
                         long elapsedMs = (System.nanoTime() - start) / 1_000_000L;
                         int status = response.statusCode().value();
-                        logger.info("Outgoing response {} {} in {}ms status={}",
-                                effectiveRequest.method(), effectiveRequest.url(), elapsedMs, status);
+                        if (logger.isInfoEnabled()) {
+                            logger.info("Outgoing response {} {} in {}ms status={}",
+                            effectiveRequest.method(), effectiveRequest.url(), elapsedMs, status);
+                        }
                         warnIfSlow(elapsedMs, "outgoing call");
                     })
                     .doOnError(error -> {
                         long elapsedMs = (System.nanoTime() - start) / 1_000_000L;
                         if (logger.isErrorEnabled()) {
-                            logger.error("Outgoing {} {} failed in {}ms (correlationId={})",
-                                    effectiveRequest.method(), effectiveRequest.url(), elapsedMs, correlationId, error);
+                            if (logger.isErrorEnabled()) {
+                                logger.error("Outgoing {} {} failed in {}ms (correlationId={})",
+                                effectiveRequest.method(), effectiveRequest.url(), elapsedMs, correlationId, error);
+                            }
                         }
                     });
         };
@@ -72,7 +78,9 @@ public class WebClientLoggingFilter {
     private void warnIfSlow(long durationMs, String context) {
         Duration threshold = properties.getPerformance().getThreshold();
         if (threshold != null && durationMs > threshold.toMillis()) {
-            logger.warn("Slow {} detected: {}ms (threshold {}ms)", context, durationMs, threshold.toMillis());
+            if (logger.isWarnEnabled()) {
+                logger.warn("Slow {} detected: {}ms (threshold {}ms)", context, durationMs, threshold.toMillis());
+            }
         }
     }
 }

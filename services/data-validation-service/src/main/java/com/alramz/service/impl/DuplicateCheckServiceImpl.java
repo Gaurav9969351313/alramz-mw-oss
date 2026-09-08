@@ -58,7 +58,7 @@ public class DuplicateCheckServiceImpl implements DuplicateCheckService {
         }
         try {
             return ninTradingNumberValidationService.checkIfNinOrTradingNumberExists("DFM", nin, null);
-        } catch (Exception e) {
+        } catch (Exception e) { // NOPMD AvoidCatchingGenericException
             log.error("NIN duplicate check failed for nin={}", nin, e);
             throw new ExternalSystemException("NIN duplicate check failed: " + e.getMessage());
         }

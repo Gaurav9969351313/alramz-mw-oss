@@ -52,11 +52,17 @@ public class JobScheduleManager implements ISchedulerService {
     @Override
     public String stopScheduler() throws Exception {
 
-        log.info("Shutdown requested...");
-        log.info(getSchedulerStat().toString());
+        if (log.isInfoEnabled()) {
+            log.info("Shutdown requested...");
+        }
+        if (log.isInfoEnabled()) {
+            log.info(getSchedulerStat().toString());
+        }
 
         scheduledTasks.forEach((ScheduleInfoBean scheduleInfoBean, ScheduledFuture<Schedulable> futureTasks) -> {
-            log.info("Cancelling task: [" + scheduleInfoBean.toString() + "]...");
+            if (log.isInfoEnabled()) {
+                log.info("Cancelling task: [" + scheduleInfoBean.toString() + "]...");
+            }
             if (futureTasks.cancel(false)) {
                 scheduledTasks.remove(scheduleInfoBean);
             }
@@ -64,8 +70,12 @@ public class JobScheduleManager implements ISchedulerService {
 
         threadPoolTaskScheduler.getScheduledThreadPoolExecutor().shutdown();
 
-        log.info("Shutdown completed...");
-        log.info(getSchedulerStat().toString());
+        if (log.isInfoEnabled()) {
+            log.info("Shutdown completed...");
+        }
+        if (log.isInfoEnabled()) {
+            log.info(getSchedulerStat().toString());
+        }
 
         return threadPoolTaskScheduler.getActiveCount() > 0 ? threadPoolTaskScheduler.getActiveCount() + " tasks still running. Please wait...\n" + getSchedulerStat().toString() :
                 " All tasks completed execution\n" + getSchedulerStat().toString();
@@ -74,13 +84,21 @@ public class JobScheduleManager implements ISchedulerService {
     @Override
     public String hardStopScheduler() throws Exception {
 
-        log.info("Force Shutdown requested...");
-        log.info(getSchedulerStat().toString());
+        if (log.isInfoEnabled()) {
+            log.info("Force Shutdown requested...");
+        }
+        if (log.isInfoEnabled()) {
+            log.info(getSchedulerStat().toString());
+        }
 
         threadPoolTaskScheduler.getScheduledThreadPoolExecutor().shutdownNow();
 
-        log.info("Force Shutdown completed...");
-        log.info(getSchedulerStat().toString());
+        if (log.isInfoEnabled()) {
+            log.info("Force Shutdown completed...");
+        }
+        if (log.isInfoEnabled()) {
+            log.info(getSchedulerStat().toString());
+        }
 
         return "Force Shutdown completed.\n" + getSchedulerStat().toString();
     }
@@ -88,22 +106,32 @@ public class JobScheduleManager implements ISchedulerService {
     @Override
     public Map<String, Set<ScheduleInfoBean>> reintializeScheduler(final String jobGroupName) throws Exception {
 
-        log.info("Reinitialization requested...");
+        if (log.isInfoEnabled()) {
+            log.info("Reinitialization requested...");
+        }
 
-        log.info("Before initialization::: " + getSchedulerStat().toString());
+        if (log.isInfoEnabled()) {
+            log.info("Before initialization::: " + getSchedulerStat().toString());
+        }
 
         if (threadPoolTaskScheduler.getActiveCount() > 0 || threadPoolTaskScheduler.getPoolSize() > 0 || scheduledTasks.size() > 0) {
-            log.error("The scheduler has not been shutdown yet. 1st Shutdown it by calling \"/api/secured/scheduler/stop\" before reinitializing...");
+            if (log.isErrorEnabled()) {
+                log.error("The scheduler has not been shutdown yet. 1st Shutdown it by calling \"/api/secured/scheduler/stop\" before reinitializing...");
+            }
 
             throw new RuntimeException(SchedulerConstants.SCHEDULER_REINITIALIZATION_ERROR);
         }
 
         threadPoolTaskScheduler.initialize();
-        log.info("Rescheduling all jobs...");
+        if (log.isInfoEnabled()) {
+            log.info("Rescheduling all jobs...");
+        }
 
         Map<String, Set<ScheduleInfoBean>> schedulingResult = schedule(jobGroupName);
 
-        log.info("After initialization::: " + getSchedulerStat().toString());
+        if (log.isInfoEnabled()) {
+            log.info("After initialization::: " + getSchedulerStat().toString());
+        }
 
         return schedulingResult;
     }
@@ -111,20 +139,30 @@ public class JobScheduleManager implements ISchedulerService {
     @Override
     public Map<String, Set<ScheduleInfoBean>> reintializeSchedulerForJobs(String jobGroupName, String... jobIds) throws Exception {
 
-        log.info("Schedule Reinitialization requested for Jobs..." + Arrays.toString(jobIds));
-        log.info(getSchedulerStat().toString());
+        if (log.isInfoEnabled()) {
+            log.info("Schedule Reinitialization requested for Jobs..." + Arrays.toString(jobIds));
+        }
+        if (log.isInfoEnabled()) {
+            log.info(getSchedulerStat().toString());
+        }
 
         scheduledTasks.forEach((ScheduleInfoBean scheduleInfoBean, ScheduledFuture<Schedulable> futureTasks) -> {
 
             if (Arrays.stream(jobIds).anyMatch(scheduleInfoBean.getScheduleId()::equals)) {
-                log.info("Cancelling task: [" + scheduleInfoBean.toString() + "]...");
+                if (log.isInfoEnabled()) {
+                    log.info("Cancelling task: [" + scheduleInfoBean.toString() + "]...");
+                }
                 if (futureTasks.cancel(false)) {
                     scheduledTasks.remove(scheduleInfoBean);
                 }
             }
         });
-        log.info("Post cancelling the Jobs:\n" + getSchedulerStat().toString());
-        log.info("Registering those jobs to the scheduler...");
+        if (log.isInfoEnabled()) {
+            log.info("Post cancelling the Jobs:\n" + getSchedulerStat().toString());
+        }
+        if (log.isInfoEnabled()) {
+            log.info("Registering those jobs to the scheduler...");
+        }
 
         return schedule(jobGroupName, jobIds);
     }
@@ -132,15 +170,21 @@ public class JobScheduleManager implements ISchedulerService {
     @Override
     public Map<String, Boolean> unregisterJobs(String... jobIds) throws Exception {
 
-        log.info("Schedule unregister requested for Jobs..." + jobIds);
-        log.info(getSchedulerStat().toString());
+        if (log.isInfoEnabled()) {
+            log.info("Schedule unregister requested for Jobs..." + jobIds);
+        }
+        if (log.isInfoEnabled()) {
+            log.info(getSchedulerStat().toString());
+        }
 
         Map<String, Boolean> cancellationStatus = new HashMap<>();
 
         scheduledTasks.forEach((ScheduleInfoBean scheduleInfoBean, ScheduledFuture<Schedulable> futureTasks) -> {
 
             if (Arrays.stream(jobIds).anyMatch(scheduleInfoBean.getScheduleId()::equals)) {
-                log.info("Cancelling task: [" + scheduleInfoBean.toString() + "]...");
+                if (log.isInfoEnabled()) {
+                    log.info("Cancelling task: [" + scheduleInfoBean.toString() + "]...");
+                }
                 if (futureTasks.cancel(false)) {
                     scheduledTasks.remove(scheduleInfoBean);
                     cancellationStatus.put(scheduleInfoBean.getScheduleId(), true);
@@ -149,7 +193,9 @@ public class JobScheduleManager implements ISchedulerService {
                 }
             }
         });
-        log.info("Post cancelling the Jobs\n" + getSchedulerStat().toString());
+        if (log.isInfoEnabled()) {
+            log.info("Post cancelling the Jobs\n" + getSchedulerStat().toString());
+        }
 
         return cancellationStatus;
     }
@@ -161,7 +207,7 @@ public class JobScheduleManager implements ISchedulerService {
                 threadPoolTaskScheduler.getPoolSize(),
                 threadPoolTaskScheduler.getScheduledThreadPoolExecutor().getMaximumPoolSize(),
                 threadPoolTaskScheduler.getScheduledThreadPoolExecutor().getCompletedTaskCount(),
-                threadPoolTaskScheduler.getScheduledThreadPoolExecutor().getQueue().size());
+                threadPoolTaskScheduler.getScheduledThreadPoolExecutor().getQueue().size()); // NOPMD LawOfDemeter
 
     }
 
@@ -177,7 +223,9 @@ public class JobScheduleManager implements ISchedulerService {
             List<ScheduleJobEntity> dbJobs = new ArrayList<>();
             if (scheduleJobRepository != null) {
                 dbJobs = scheduleJobRepository.findByJobGroupNameAndEnable(jobGroupName, "Y");
-                log.info("Loaded {} scheduled jobs from database for jobGroupName={}", dbJobs.size(), jobGroupName);
+                if (log.isInfoEnabled()) {
+                    log.info("Loaded {} scheduled jobs from database for jobGroupName={}", dbJobs.size(), jobGroupName);
+                }
             }
             if (dbJobs.isEmpty()) {
                 for (SchedulerProperties.ScheduleJobProperties jobProps : properties.getJobs()) {
@@ -233,7 +281,9 @@ public class JobScheduleManager implements ISchedulerService {
             for (final ScheduleInfoBean scheduleInfoBean : scheduledJobs) {
 
                 if (scheduledTasks.containsKey(scheduleInfoBean)) {
-                    log.error("Scheduler: ScheduleId= " + scheduleInfoBean.getScheduleId() + " already scheduled and active, hence rejecting");
+                    if (log.isErrorEnabled()) {
+                        log.error("Scheduler: ScheduleId= " + scheduleInfoBean.getScheduleId() + " already scheduled and active, hence rejecting");
+                    }
                     rejectedSchedulingJobs.add(scheduleInfoBean);
 
                 } else {
@@ -268,16 +318,22 @@ public class JobScheduleManager implements ISchedulerService {
                             future = (ScheduledFuture<Schedulable>) threadPoolTaskScheduler.schedule(runnableObj, scheduleInfoBean.getStartTime());
 
                         } else {
-                            log.error("Job: " + scheduleInfoBean.toString() + " has been ignored. Can't be schedule due to invalid scheduling configuration");
+                            if (log.isErrorEnabled()) {
+                                log.error("Job: " + scheduleInfoBean.toString() + " has been ignored. Can't be schedule due to invalid scheduling configuration");
+                            }
                             invalidSchedulingJobs.add(scheduleInfoBean);
                         }
                     } catch (TaskRejectedException | IllegalArgumentException tie) {
                         if (tie instanceof IllegalArgumentException && "CRON_EXP".equalsIgnoreCase(scheduleInfoBean.getScheduleMode())) {
-                            log.error("Job: " + scheduleInfoBean.toString() + " has invalid CRON expression. Failed to schedule.\n " + ExceptionUtils.getStackTrace(tie));
+                            if (log.isErrorEnabled()) {
+                                log.error("Job: " + scheduleInfoBean.toString() + " has invalid CRON expression. Failed to schedule.\n " + ExceptionUtils.getStackTrace(tie));
+                            }
                             invalidSchedulingJobs.add(scheduleInfoBean);
                         } else {
                             rejectedSchedulingJobs.add(scheduleInfoBean);
-                            log.error("Job: " + scheduleInfoBean.toString() + " got failed to schedule.\n " + ExceptionUtils.getStackTrace(tie));
+                            if (log.isErrorEnabled()) {
+                                log.error("Job: " + scheduleInfoBean.toString() + " got failed to schedule.\n " + ExceptionUtils.getStackTrace(tie));
+                            }
                         }
                     }
                     if (future != null) {
@@ -290,12 +346,18 @@ public class JobScheduleManager implements ISchedulerService {
                     }
                 }
             }
-        } catch (Exception e) {
-            log.error("Exception occurred while scheduling.." + ExceptionUtils.getStackTrace(e));
+        } catch (Exception e) { // NOPMD AvoidCatchingGenericException
+            if (log.isErrorEnabled()) {
+                log.error("Exception occurred while scheduling.." + ExceptionUtils.getStackTrace(e));
+            }
         }
         if (invalidSchedulingJobs.size() > 0 || rejectedSchedulingJobs.size() > 0) {
-            log.info("Below list of jobs failed to schedule...");
-            log.error("InvalidSchedulingJobs:" + invalidSchedulingJobs + "\nRejectedSchedulingJobs: " + rejectedSchedulingJobs.toString());
+            if (log.isInfoEnabled()) {
+                log.info("Below list of jobs failed to schedule...");
+            }
+            if (log.isErrorEnabled()) {
+                log.error("InvalidSchedulingJobs:" + invalidSchedulingJobs + "\nRejectedSchedulingJobs: " + rejectedSchedulingJobs.toString());
+            }
 
             //TODO sendNotification(invalidSchedulingJobs, rejectedSchedulingJobs);
         }

@@ -24,7 +24,7 @@ public class BrokDataSourceAutoConfiguration extends AbstractDataSourceAutoConfi
     @Bean(name = "brokDataSource", destroyMethod = "close")
     public DataSource brokDataSource(DatasourceProperties properties, PWProtector pwProtector) {
         HikariDataSource hikariDataSource = createHikariDataSource(properties.getBrok(), pwProtector, "brok");
-        return wrapWithProxy(hikariDataSource, properties.getBrok().getSqlLogging(), "brok");
+        return wrapWithProxy(hikariDataSource, properties.getBrok().getSqlLogging(), "brok"); // NOPMD LawOfDemeter
     }
 
     @Bean(name = "brokJdbcTemplate")

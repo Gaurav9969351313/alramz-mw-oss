@@ -52,8 +52,8 @@ public class RefreshTokenRepository implements RefreshTokenRepositoryOps {
                 String.valueOf(entity.getId()),
                 entity.getToken(),
                 entity.getUserId(),
-                entity.getExpiresAt().atZone(ZoneId.systemDefault()).toInstant(),
-                entity.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant(),
+                entity.getExpiresAt().atZone(ZoneId.systemDefault()).toInstant(), // NOPMD LawOfDemeter
+                entity.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant(), // NOPMD LawOfDemeter
                 "Y".equals(entity.getRevoked())
         );
     }

@@ -51,14 +51,14 @@ public class EmailServiceImpl implements EmailService {
         UUID correlationId = UUID.randomUUID();
         UUID traceId = UUID.randomUUID();
 
-        GraphServiceClient<?> graphClient = graphClientProvider.getIfAvailable();
+        GraphServiceClient<?> graphClient = graphClientProvider.getIfAvailable(); // NOPMD LawOfDemeter
         if (graphClient == null) {
             throw new EmailConfigurationException("Preferred email service provider not configured");
         }
 
         try {
             Message message = buildGraphMessage(request);
-            graphClient.users(request.getFrom())
+            graphClient.users(request.getFrom()) // NOPMD LawOfDemeter
                     .sendMail(UserSendMailParameterSet.newBuilder()
                             .withMessage(message)
                             .withSaveToSentItems(false)
@@ -77,14 +77,18 @@ public class EmailServiceImpl implements EmailService {
             response.setTraceId(traceId);
             return response;
 
-        } catch (Exception ex) {
+        } catch (Exception ex) { // NOPMD AvoidCatchingGenericException
             if (ex instanceof com.microsoft.graph.http.GraphServiceException gse) {
                 com.microsoft.graph.http.GraphError serviceError = gse.getServiceError();
-                log.error("Graph Error {} - Code: {}, Message: {}", gse.getResponseCode(),
-                        serviceError != null ? serviceError.code : "N/A",
-                        serviceError != null ? serviceError.message : "N/A", gse);
+                if (log.isErrorEnabled()) {
+                    log.error("Graph Error {} - Code: {}, Message: {}", gse.getResponseCode(),
+                    serviceError != null ? serviceError.code : "N/A",
+                    serviceError != null ? serviceError.message : "N/A", gse);
+                }
             } else {
-                log.error("Email send failed", ex);
+                if (log.isErrorEnabled()) {
+                    log.error("Email send failed", ex);
+                }
             }
             throw new EmailServiceException(503, "Service Unavailable", ex);
         }
@@ -139,15 +143,15 @@ public class EmailServiceImpl implements EmailService {
         message.subject = request.getSubject();
 
         ItemBody body = new ItemBody();
-        body.contentType = BodyType.HTML;
+        body.contentType = BodyType.HTML; // NOPMD LawOfDemeter
         body.content = request.getBody();
-        message.body = body;
+        message.body = body; // NOPMD LawOfDemeter
 
         Recipient toRecipient = new Recipient();
         EmailAddress toAddress = new EmailAddress();
         toAddress.address = request.getTo();
-        toRecipient.emailAddress = toAddress;
-        message.toRecipients = List.of(toRecipient);
+        toRecipient.emailAddress = toAddress; // NOPMD LawOfDemeter
+        message.toRecipients = List.of(toRecipient); // NOPMD LawOfDemeter
 
         List<EmailAttachment> attachments = request.getAttachments();
         if (attachments != null && !attachments.isEmpty()) {
@@ -155,11 +159,11 @@ public class EmailServiceImpl implements EmailService {
             for (EmailAttachment attachment : attachments) {
                 FileAttachment fileAttachment = new FileAttachment();
                 fileAttachment.name = attachment.getName();
-                fileAttachment.contentBytes = attachment.getContent();
+                fileAttachment.contentBytes = attachment.getContent(); // NOPMD LawOfDemeter
                 fileAttachment.size = attachment.getContent().length;
                 graphAttachments.add(fileAttachment);
             }
-            message.attachments = new AttachmentCollectionPage(graphAttachments, null);
+            message.attachments = new AttachmentCollectionPage(graphAttachments, null); // NOPMD LawOfDemeter
         }
 
         return message;

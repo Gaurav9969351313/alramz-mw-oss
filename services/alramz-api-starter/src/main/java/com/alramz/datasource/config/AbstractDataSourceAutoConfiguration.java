@@ -44,17 +44,21 @@ public abstract class AbstractDataSourceAutoConfiguration {
 
         HikariDataSource dataSource = new HikariDataSource(hikariConfig);
 
-        if (config.getStartupValidation().isEnabled()) {
+        if (config.getStartupValidation().isEnabled()) { // NOPMD LawOfDemeter
             validateStartupConnection(dataSource, dbName);
         }
 
-        logger.info("[{}] DataSource created: url={}, poolSize={}, minIdle={}", dbName, maskUrl(config.getUrl()), config.getPool().getMaximumPoolSize(), config.getPool().getMinimumIdle());
+        if (logger.isInfoEnabled()) {
+            logger.info("[{}] DataSource created: url={}, poolSize={}, minIdle={}", dbName, maskUrl(config.getUrl()), config.getPool().getMaximumPoolSize(), config.getPool().getMinimumIdle()); // NOPMD LawOfDemeter
+        }
         return dataSource;
     }
 
     protected String resolvePassword(DatasourceProperties.DatasourceConfig config, PWProtector pwProtector) {
         if (config.getPlainPassword() != null && !config.getPlainPassword().isBlank()) {
-            logger.warn("[{}] Using plaintext password (plainPassword). This should only be used in local/dev profiles.", getDbName());
+            if (logger.isWarnEnabled()) {
+                logger.warn("[{}] Using plaintext password (plainPassword). This should only be used in local/dev profiles.", getDbName());
+            }
             return config.getPlainPassword();
         }
         if (config.getPassword() != null && !config.getPassword().isBlank()
@@ -82,14 +86,14 @@ public abstract class AbstractDataSourceAutoConfiguration {
                     props = new Properties();
                     hikariConfig.setDataSourceProperties(props);
                 }
-                if (config.getOracle().getConnectTimeout() > 0) {
-                    props.setProperty("oracle.net.CONNECT_TIMEOUT", String.valueOf(config.getOracle().getConnectTimeout()));
+                if (config.getOracle().getConnectTimeout() > 0) { // NOPMD LawOfDemeter
+                    props.setProperty("oracle.net.CONNECT_TIMEOUT", String.valueOf(config.getOracle().getConnectTimeout())); // NOPMD LawOfDemeter
                 }
-                if (config.getOracle().getReadTimeout() > 0) {
-                    props.setProperty("oracle.jdbc.ReadTimeout", String.valueOf(config.getOracle().getReadTimeout()));
+                if (config.getOracle().getReadTimeout() > 0) { // NOPMD LawOfDemeter
+                    props.setProperty("oracle.jdbc.ReadTimeout", String.valueOf(config.getOracle().getReadTimeout())); // NOPMD LawOfDemeter
                 }
-                if (config.getOracle().getDefaultRowPrefetch() > 0) {
-                    props.setProperty("defaultRowPrefetch", String.valueOf(config.getOracle().getDefaultRowPrefetch()));
+                if (config.getOracle().getDefaultRowPrefetch() > 0) { // NOPMD LawOfDemeter
+                    props.setProperty("defaultRowPrefetch", String.valueOf(config.getOracle().getDefaultRowPrefetch())); // NOPMD LawOfDemeter
                 }
             }
         } else if ("middleware".equals(dbName)) {
@@ -103,8 +107,8 @@ public abstract class AbstractDataSourceAutoConfiguration {
                 boolean isLocal = url != null && (url.contains("localhost") || url.contains("127.0.0.1") || url.contains("mem:"));
                 boolean ssl = config.getPostgres().isSsl() && !isLocal;
                 props.setProperty("ssl", String.valueOf(ssl));
-                if (config.getPostgres().getPrepareThreshold() > 0) {
-                    props.setProperty("prepareThreshold", String.valueOf(config.getPostgres().getPrepareThreshold()));
+                if (config.getPostgres().getPrepareThreshold() > 0) { // NOPMD LawOfDemeter
+                    props.setProperty("prepareThreshold", String.valueOf(config.getPostgres().getPrepareThreshold())); // NOPMD LawOfDemeter
                 }
             }
         }
@@ -112,9 +116,13 @@ public abstract class AbstractDataSourceAutoConfiguration {
 
     protected void validateStartupConnection(HikariDataSource dataSource, String dbName) {
         try (Connection connection = dataSource.getConnection()) {
-            logger.info("[{}] Startup connection validation successful", dbName);
+            if (logger.isInfoEnabled()) {
+                logger.info("[{}] Startup connection validation successful", dbName);
+            }
         } catch (SQLException e) {
-            logger.error("[{}] Startup connection validation failed: {}", dbName, e.getMessage());
+            if (logger.isErrorEnabled()) {
+                logger.error("[{}] Startup connection validation failed: {}", dbName, e.getMessage());
+            }
             throw new IllegalStateException("Failed to establish startup connection for [" + dbName + "]: " + e.getMessage(), e);
         }
     }
@@ -141,7 +149,9 @@ public abstract class AbstractDataSourceAutoConfiguration {
             proxyDataSource.addListener(slowQueryListener);
         }
 
-        logger.info("[{}] SQL logging enabled via datasource-proxy (logParameters={}, slowQueryThresholdMs={})", dbName, sqlLogging.isLogParameters(), sqlLogging.getSlowQueryThresholdMs());
+        if (logger.isInfoEnabled()) {
+            logger.info("[{}] SQL logging enabled via datasource-proxy (logParameters={}, slowQueryThresholdMs={})", dbName, sqlLogging.isLogParameters(), sqlLogging.getSlowQueryThresholdMs());
+        }
         return proxyDataSource;
     }
 

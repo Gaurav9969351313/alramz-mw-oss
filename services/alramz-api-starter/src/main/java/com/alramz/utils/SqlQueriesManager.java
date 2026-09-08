@@ -22,11 +22,15 @@ public class SqlQueriesManager {
 
     public String getSQLQueryFromConfig(String key) throws IOException {
         if (props == null) {
-            log.info("Loading config from " + environment.getRequiredProperty("sql.file"));
+            if (log.isInfoEnabled()) {
+                log.info("Loading config from " + environment.getRequiredProperty("sql.file"));
+            }
             loadSQLQueriesFromFile();
             if (props == null) {
-                log.error("Error: Loading allConfigs from " + environment.getRequiredProperty("sql.file")
-                        + " return null.");
+                if (log.isErrorEnabled()) {
+                    log.error("Error: Loading allConfigs from " + environment.getRequiredProperty("sql.file")
+                    + " return null.");
+                }
                 return null;
             }
         }
@@ -35,7 +39,9 @@ public class SqlQueriesManager {
 
     private synchronized void loadSQLQueriesFromFile() throws IOException {
         try {
-            log.info("Initializing SQL Query Manager");
+            if (log.isInfoEnabled()) {
+                log.info("Initializing SQL Query Manager");
+            }
             
             String sqlFile = environment.getRequiredProperty("sql.file");
             if (sqlFile.startsWith("classpath:")) {
@@ -53,7 +59,9 @@ public class SqlQueriesManager {
             }
             props.loadFromXML(in);
 
-            log.info("Loaded  SQL Config:: ");
+            if (log.isInfoEnabled()) {
+                log.info("Loaded  SQL Config:: ");
+            }
         } finally {
         }
     }

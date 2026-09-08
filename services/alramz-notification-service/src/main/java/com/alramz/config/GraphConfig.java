@@ -33,7 +33,9 @@ public class GraphConfig {
                 ? properties.graphScopes()
                 : "https://graph.microsoft.com/.default";
 
-        log.info("Configuring GraphServiceClient");
+        if (log.isInfoEnabled()) {
+            log.info("Configuring GraphServiceClient");
+        }
 
         ClientSecretCredential credential = new ClientSecretCredentialBuilder()
                 .tenantId(tenantId)
@@ -42,7 +44,9 @@ public class GraphConfig {
                 .build();
 
         AccessToken accessToken = credential.getToken(new TokenRequestContext().addScopes(scopes)).block();
-        log.info("Access Token: {}", accessToken.getToken());
+        if (log.isInfoEnabled()) {
+            log.info("Access Token: {}", accessToken.getToken());
+        }
 
         TokenCredentialAuthProvider authProvider =
                 new TokenCredentialAuthProvider(
@@ -54,7 +58,9 @@ public class GraphConfig {
                 .authenticationProvider(authProvider)
                 .buildClient();
 
-        log.info("=========== GraphServiceClient configured successfully =============");
+        if (log.isInfoEnabled()) {
+            log.info("=========== GraphServiceClient configured successfully =============");
+        }
         return graphClient;
     }
 }

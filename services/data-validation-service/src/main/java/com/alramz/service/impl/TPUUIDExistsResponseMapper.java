@@ -24,7 +24,7 @@ public class TPUUIDExistsResponseMapper implements ValidationResponseMapper {
         String message = exists ? "Third-party UUID already exists" : "Third-party UUID does not exist";
 
         return new ValidationResponse(
-                request.getValidationType().getValue(),
+                request.getValidationType().getValue(), // NOPMD LawOfDemeter
                 exists,
                 valid,
                 message,

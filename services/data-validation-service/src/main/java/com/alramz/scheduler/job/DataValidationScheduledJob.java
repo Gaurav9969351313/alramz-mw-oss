@@ -22,16 +22,22 @@ public class DataValidationScheduledJob implements Schedulable {
 
     @Override
     public void run(ScheduleInfoBean scheduleInfoBean) {
-        log.info("Executing scheduled data validation job: scheduleId={}, cronExpr={}, mode={}",
-                scheduleInfoBean.getScheduleId(),
-                scheduleInfoBean.getCronExpr(),
-                scheduleInfoBean.getScheduleMode());
+        if (log.isInfoEnabled()) {
+            log.info("Executing scheduled data validation job: scheduleId={}, cronExpr={}, mode={}",
+            scheduleInfoBean.getScheduleId(),
+            scheduleInfoBean.getCronExpr(),
+            scheduleInfoBean.getScheduleMode());
+        }
 
         try {
             String selectQuery = sqlQueriesManager.getSQLQueryFromConfig("schedule.job.select.by.group");
-            log.debug("Loaded SQL query: {}", selectQuery);
+            if (log.isDebugEnabled()) {
+                log.debug("Loaded SQL query: {}", selectQuery);
+            }
         } catch (IOException e) {
-            log.error("Failed to load SQL query from config", e);
+            if (log.isErrorEnabled()) {
+                log.error("Failed to load SQL query from config", e);
+            }
         }
     }
 }

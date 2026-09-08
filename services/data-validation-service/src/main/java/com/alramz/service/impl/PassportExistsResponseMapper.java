@@ -17,7 +17,7 @@ public class PassportExistsResponseMapper implements ValidationResponseMapper {
         String message = exists ? "Passport already exists" : "Passport does not exist";
 
         return new ValidationResponse(
-                request.getValidationType().getValue(),
+                request.getValidationType().getValue(), // NOPMD LawOfDemeter
                 exists,
                 valid,
                 message,

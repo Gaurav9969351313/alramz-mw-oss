@@ -24,7 +24,7 @@ public class MiddlewareDataSourceAutoConfiguration extends AbstractDataSourceAut
     @Bean(name = "middlewareDataSource", destroyMethod = "close")
     public DataSource middlewareDataSource(DatasourceProperties properties, PWProtector pwProtector) {
         HikariDataSource hikariDataSource = createHikariDataSource(properties.getMiddleware(), pwProtector, "middleware");
-        return wrapWithProxy(hikariDataSource, properties.getMiddleware().getSqlLogging(), "middleware");
+        return wrapWithProxy(hikariDataSource, properties.getMiddleware().getSqlLogging(), "middleware"); // NOPMD LawOfDemeter
     }
 
     @Bean(name = "middlewareJdbcTemplate")

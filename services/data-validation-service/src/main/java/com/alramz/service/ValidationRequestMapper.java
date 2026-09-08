@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
+import com.fasterxml.jackson.core.JsonProcessingException;
 
 @Component
 public class ValidationRequestMapper {
@@ -30,7 +31,7 @@ public class ValidationRequestMapper {
         try {
             Map<String, Object> map = objectMapper.convertValue(source, Map.class);
             return map.get(fieldName);
-        } catch (Exception e) {
+        } catch (Exception e) { // NOPMD AvoidCatchingGenericException
             return null;
         }
     }

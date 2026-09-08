@@ -17,7 +17,7 @@ public class MobileExistsResponseMapper implements ValidationResponseMapper {
         String message = exists ? "Mobile number already exists" : "Mobile number does not exist";
 
         return new ValidationResponse(
-                request.getValidationType().getValue(),
+                request.getValidationType().getValue(), // NOPMD LawOfDemeter
                 exists,
                 valid,
                 message,

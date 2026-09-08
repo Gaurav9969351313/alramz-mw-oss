@@ -17,7 +17,7 @@ public class UsernameExistsResponseMapper implements ValidationResponseMapper {
         String message = exists ? "Username already exists" : "Username does not exist";
 
         return new ValidationResponse(
-                request.getValidationType().getValue(),
+                request.getValidationType().getValue(), // NOPMD LawOfDemeter
                 exists,
                 valid,
                 message,

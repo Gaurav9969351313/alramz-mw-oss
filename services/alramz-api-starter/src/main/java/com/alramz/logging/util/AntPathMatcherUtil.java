@@ -21,7 +21,7 @@ public final class AntPathMatcherUtil {
         }
         try {
             return MATCHER.match(pattern, path);
-        } catch (Exception e) {
+        } catch (Exception e) { // NOPMD AvoidCatchingGenericException
             return false;
         }
     }

@@ -243,7 +243,7 @@
             </dependency>
           </dependencies>
           <configuration>
-            <skip>true</skip>
+            <skip>false</skip>
             <rulesets>${project.basedir}/../../config/pmd.xml</rulesets>
             <failOnViolation>${pmd.failOnViolation}</failOnViolation>
             <linkXRef>false</linkXRef>
@@ -335,7 +335,7 @@
             </dependency>
           </dependencies>
           <configuration>
-            <skip>true</skip>
+            <skip>false</skip>
             <effort>${spotbugs.effort}</effort>
             <threshold>${spotbugs.threshold}</threshold>
             <failOnError>${spotbugs.failOnError}</failOnError>

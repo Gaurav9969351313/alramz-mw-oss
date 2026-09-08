@@ -45,8 +45,10 @@ public class MethodExecutionLoggingAspect {
             if (threshold == null || threshold.isNegative() || elapsedMs >= threshold.toMillis()) {
                 String targetClass = resolveTargetClass(joinPoint);
                 String methodName = joinPoint.getSignature().getName();
-                logger.info("{}#{} executed in {}ms (correlationId={})",
-                        targetClass, methodName, elapsedMs, MDCUtil.getCorrelationId());
+                if (logger.isInfoEnabled()) {
+                    logger.info("{}#{} executed in {}ms (correlationId={})",
+                            targetClass, methodName, elapsedMs, MDCUtil.getCorrelationId());
+                }
             }
         }
     }

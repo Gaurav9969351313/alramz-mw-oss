@@ -17,7 +17,7 @@ public class EIDExistsResponseMapper implements ValidationResponseMapper {
         String message = exists ? "EID already exists" : "EID does not exist";
 
         return new ValidationResponse(
-                request.getValidationType().getValue(),
+                request.getValidationType().getValue(), // NOPMD LawOfDemeter
                 exists,
                 valid,
                 message,

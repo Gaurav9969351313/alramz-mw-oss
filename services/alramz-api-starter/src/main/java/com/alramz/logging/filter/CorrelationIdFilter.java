@@ -63,15 +63,15 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
         try {
             filterChain.doFilter(request, response);
         } finally {
-            if (properties.getCorrelationId().isResponseHeader()) {
-                response.setHeader(properties.getCorrelationId().getHeader(), correlationId);
+            if (properties.getCorrelationId().isResponseHeader()) { // NOPMD LawOfDemeter
+                response.setHeader(properties.getCorrelationId().getHeader(), correlationId); // NOPMD LawOfDemeter
             }
             MDCUtil.clear();
         }
     }
 
     private String extractCorrelationId(HttpServletRequest request) {
-        String header = properties.getCorrelationId().getHeader();
+        String header = properties.getCorrelationId().getHeader(); // NOPMD LawOfDemeter
         String correlationId = request.getHeader(header);
         if (StringUtils.hasText(correlationId)) {
             return correlationId.trim();

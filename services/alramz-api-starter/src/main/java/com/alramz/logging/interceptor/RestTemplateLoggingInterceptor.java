@@ -47,8 +47,10 @@ public class RestTemplateLoggingInterceptor implements ClientHttpRequestIntercep
             ClientHttpResponse response = execution.execute(request, body);
             long elapsedMs = (System.nanoTime() - start) / 1_000_000L;
             int status = response.getStatusCode().value();
-            logger.info("Outgoing response {} {} in {}ms status={}",
-                    request.getMethod(), request.getURI(), elapsedMs, status);
+            if (logger.isInfoEnabled()) {
+                logger.info("Outgoing response {} {} in {}ms status={}",
+                        request.getMethod(), request.getURI(), elapsedMs, status);
+            }
             warnIfSlow(elapsedMs, "outgoing call");
             return response;
         } catch (Exception ex) {
@@ -57,15 +59,12 @@ public class RestTemplateLoggingInterceptor implements ClientHttpRequestIntercep
                 logger.error("Outgoing {} {} failed in {}ms (correlationId={})",
                         request.getMethod(), request.getURI(), elapsedMs, correlationId, ex);
             }
-            if (ex instanceof IOException) {
-                throw ex;
-            }
-            throw new IOException(ex);
+            throw ex;
         }
     }
 
     private boolean shouldLogPayload() {
-        return properties.getRequest().isIncludePayload();
+        return properties.getRequest().isIncludePayload(); // NOPMD LawOfDemeter
     }
 
     private String masking(byte[] payload) {
@@ -79,7 +78,7 @@ public class RestTemplateLoggingInterceptor implements ClientHttpRequestIntercep
         if (value == null) {
             return null;
         }
-        int max = properties.getRequest().getMaxPayloadLength();
+        int max = properties.getRequest().getMaxPayloadLength(); // NOPMD LawOfDemeter
         value = LogMaskingUtil.mask(value);
         return value.length() <= max ? value : value.substring(0, max) + "...[truncated]";
     }
@@ -87,7 +86,9 @@ public class RestTemplateLoggingInterceptor implements ClientHttpRequestIntercep
     private void warnIfSlow(long durationMs, String context) {
         Duration threshold = properties.getPerformance().getThreshold();
         if (threshold != null && durationMs > threshold.toMillis()) {
-            logger.warn("Slow {} detected: {}ms (threshold {}ms)", context, durationMs, threshold.toMillis());
+            if (logger.isWarnEnabled()) {
+                logger.warn("Slow {} detected: {}ms (threshold {}ms)", context, durationMs, threshold.toMillis());
+            }
         }
     }
 }

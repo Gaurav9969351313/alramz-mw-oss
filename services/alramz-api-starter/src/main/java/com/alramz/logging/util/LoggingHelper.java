@@ -33,7 +33,7 @@ public class LoggingHelper {
         this.serviceName = environment.getProperty("spring.application.name", LoggingConstants.DEFAULT_SERVICE_NAME);
         this.properties = properties;
         this.traceContextExtractor = resolveExtractor(traceContextExtractors);
-        this.maskingEnabled = properties.getMasking().isEnabled();
+        this.maskingEnabled = properties.getMasking().isEnabled(); // NOPMD LawOfDemeter
     }
 
     private static TraceContextExtractor resolveExtractor(List<TraceContextExtractor> extractors) {
@@ -52,7 +52,7 @@ public class LoggingHelper {
     }
 
     public String getCorrelationIdHeader() {
-        return properties.getCorrelationId().getHeader();
+        return properties.getCorrelationId().getHeader(); // NOPMD LawOfDemeter
     }
 
     public boolean isMaskingEnabled() {
@@ -70,9 +70,9 @@ public class LoggingHelper {
     public void populateMdc(HttpServletRequest request) {
         MDCUtil.putServiceName(serviceName);
         MDCUtil.putClientIp(extractClientIp(request));
-        MDCUtil.putUserId(resolveHeader(request, properties.getCorrelationId().getUserIdHeader()));
-        MDCUtil.putTenantId(resolveHeader(request, properties.getCorrelationId().getTenantIdHeader()));
-        MDCUtil.putRequestId(resolveHeader(request, properties.getCorrelationId().getRequestIdHeader()));
+        MDCUtil.putUserId(resolveHeader(request, properties.getCorrelationId().getUserIdHeader())); // NOPMD LawOfDemeter
+        MDCUtil.putTenantId(resolveHeader(request, properties.getCorrelationId().getTenantIdHeader())); // NOPMD LawOfDemeter
+        MDCUtil.putRequestId(resolveHeader(request, properties.getCorrelationId().getRequestIdHeader())); // NOPMD LawOfDemeter
         MDCUtil.put(LoggingConstants.METHOD, request.getMethod());
         MDCUtil.put(LoggingConstants.URI, request.getRequestURI());
         String query = request.getQueryString();
@@ -153,8 +153,8 @@ public class LoggingHelper {
             return null;
         }
         String raw = new String(content, StandardCharsets.UTF_8);
-        String limited = raw.length() > properties.getRequest().getMaxPayloadLength()
-                ? raw.substring(0, properties.getRequest().getMaxPayloadLength()) + "...[truncated]"
+        String limited = raw.length() > properties.getRequest().getMaxPayloadLength() // NOPMD LawOfDemeter
+                ? raw.substring(0, properties.getRequest().getMaxPayloadLength()) + "...[truncated]" // NOPMD LawOfDemeter
                 : raw;
         return maskingEnabled ? LogMaskingUtil.mask(limited) : limited;
     }
@@ -168,9 +168,10 @@ public class LoggingHelper {
         if (request == null) {
             return null;
         }
-        Map<String, String> headers = properties.getRequest().isIncludeHeaders()
+        LoggingProperties.RequestProperties requestProps = properties.getRequest();
+        Map<String, String> headers = requestProps.isIncludeHeaders()
                 ? toHeaders(request) : Collections.emptyMap();
-        String payload = properties.getRequest().isIncludePayload() ? extractPayload(request) : null;
+        String payload = requestProps.isIncludePayload() ? extractPayload(request) : null;
         return RequestLog.builder()
                 .serviceName(serviceName)
                 .correlationId(correlationId)
@@ -213,11 +214,15 @@ public class LoggingHelper {
         MDCUtil.put("queryParams", query);
         try {
             if (requestLog.payload() != null) {
-                logger.info("Incoming request: {} {} {} RequestBody={}",
-                        requestLog.method(), requestLog.uri(), query, requestLog.payload());
+                if (logger.isInfoEnabled()) {
+                    logger.info("Incoming request: {} {} {} RequestBody={}",
+                    requestLog.method(), requestLog.uri(), query, requestLog.payload());
+                }
             } else {
-                logger.info("Incoming request: {} {} {}",
-                        requestLog.method(), requestLog.uri(), query);
+                if (logger.isInfoEnabled()) {
+                    logger.info("Incoming request: {} {} {}",
+                    requestLog.method(), requestLog.uri(), query);
+                }
             }
         } finally {
             MDCUtil.remove("queryParams");
@@ -236,12 +241,16 @@ public class LoggingHelper {
         MDCUtil.put(LoggingConstants.RESPONSE_SIZE_BYTES, String.valueOf(responseLog.responseSizeBytes()));
         try {
             if (responseLog.payload() != null) {
-                logger.info("Completed response: status={} duration={}ms size={}B ResponseBody={}",
-                        responseLog.status(), responseLog.responseTimeMs(),
-                        responseLog.responseSizeBytes(), responseLog.payload());
+                if (logger.isInfoEnabled()) {
+                    logger.info("Completed response: status={} duration={}ms size={}B ResponseBody={}",
+                    responseLog.status(), responseLog.responseTimeMs(),
+                    responseLog.responseSizeBytes(), responseLog.payload());
+                }
             } else {
-                logger.info("Completed response: status={} duration={}ms size={}B",
-                        responseLog.status(), responseLog.responseTimeMs(), responseLog.responseSizeBytes());
+                if (logger.isInfoEnabled()) {
+                    logger.info("Completed response: status={} duration={}ms size={}B",
+                    responseLog.status(), responseLog.responseTimeMs(), responseLog.responseSizeBytes());
+                }
             }
             logPerformanceIfSlow(logger, responseLog.responseTimeMs(), "request");
         } finally {
@@ -254,7 +263,9 @@ public class LoggingHelper {
     private void logPerformanceIfSlow(Logger logger, long durationMs, String context) {
         var threshold = properties.getPerformance().getThreshold();
         if (threshold != null && durationMs > threshold.toMillis()) {
-            logger.warn("Slow {} detected: {}ms (threshold {}ms)", context, durationMs, threshold.toMillis());
+            if (logger.isWarnEnabled()) {
+                logger.warn("Slow {} detected: {}ms (threshold {}ms)", context, durationMs, threshold.toMillis());
+            }
         }
     }
 

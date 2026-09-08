@@ -39,7 +39,7 @@ public class DataValidationServiceApplication {
 	@Bean
 	ApplicationRunner ninTradingCheckRunner(org.springframework.context.ApplicationContext context) {
 		return args -> {
-			NinTradingNumberValidationService service = context.getBeanProvider(NinTradingNumberValidationService.class).getIfAvailable();
+			NinTradingNumberValidationService service = context.getBeanProvider(NinTradingNumberValidationService.class).getIfAvailable(); // NOPMD LawOfDemeter
 			if (service == null) {
 				log.info("NinTradingNumberValidationService is not enabled (company.datasource.brok.enabled=false)");
 				return;

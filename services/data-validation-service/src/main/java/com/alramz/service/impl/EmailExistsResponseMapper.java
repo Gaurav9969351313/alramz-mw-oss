@@ -17,7 +17,7 @@ public class EmailExistsResponseMapper implements ValidationResponseMapper {
         String message = exists ? "Email already exists" : "Email does not exist";
 
         return new ValidationResponse(
-                request.getValidationType().getValue(),
+                request.getValidationType().getValue(), // NOPMD LawOfDemeter
                 exists,
                 valid,
                 message,

@@ -42,7 +42,7 @@ public class SchedulerConfiguration {
                     || environment.getProperty("spring.datasource.driver-class-name") != null) {
                 scheduleJobRepository = beanFactory.getBean(ScheduleJobRepository.class);
             }
-        } catch (Exception e) {
+        } catch (Exception e) { // NOPMD AvoidCatchingGenericException
             logger.debug("ScheduleJobRepository not available, falling back to YAML properties for scheduler jobs");
         }
 

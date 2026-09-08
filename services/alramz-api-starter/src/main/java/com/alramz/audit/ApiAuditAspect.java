@@ -42,7 +42,7 @@ public class ApiAuditAspect {
         try {
             response = pjp.proceed();
             return response;
-        } catch (Exception e) {
+        } catch (Exception e) { // NOPMD AvoidCatchingGenericException
             status = "FAILURE";
             exceptionClass = e.getClass().getName();
             exceptionCause = buildDetailedExceptionCause(e);
@@ -50,19 +50,20 @@ public class ApiAuditAspect {
         } finally {
             long durationMs = System.currentTimeMillis() - startTime;
 
-            MethodSignature signature = (MethodSignature) pjp.getSignature();
+            MethodSignature signature = (MethodSignature) pjp.getSignature(); // NOPMD LawOfDemeter
             Method method = signature.getMethod();
+            Class<?> declaringClass = method.getDeclaringClass(); // NOPMD LawOfDemeter
 
-            String className = method.getDeclaringClass().getSimpleName();
-            String methodName = method.getName();
+            String className = declaringClass.getSimpleName();
+            String methodName = method.getName(); // NOPMD LawOfDemeter
             String controllerName = className + "." + methodName;
 
             String endpoint = resolveEndpoint(method, pjp.getArgs());
             String httpMethod = resolveHttpMethod(method, pjp.getArgs());
 
             String direction = "OUTBOUND";
-            if (method.getDeclaringClass().isAnnotationPresent(org.springframework.web.bind.annotation.RestController.class)
-                    || method.getDeclaringClass().isAnnotationPresent(org.springframework.stereotype.Controller.class)) {
+            if (declaringClass.isAnnotationPresent(org.springframework.web.bind.annotation.RestController.class)
+                    || declaringClass.isAnnotationPresent(org.springframework.stereotype.Controller.class)) {
                 direction = "INBOUND";
             }
 

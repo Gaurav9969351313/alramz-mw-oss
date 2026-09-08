@@ -41,7 +41,7 @@ public class ETradeClient extends AbstractRestClient {
             ).block();
         } catch (WebClientResponseException e) {
             throw new ExternalSystemException("eTrade validation service unavailable: " + e.getMessage());
-        } catch (Exception e) {
+        } catch (Exception e) { // NOPMD AvoidCatchingGenericException
             throw new ExternalSystemException("eTrade validation service unavailable: " + e.getMessage());
         }
     }

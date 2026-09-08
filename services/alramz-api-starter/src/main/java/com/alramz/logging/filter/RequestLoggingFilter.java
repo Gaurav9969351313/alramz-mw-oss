@@ -41,7 +41,7 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         ContentCachingRequestWrapper wrapped =
-                new ContentCachingRequestWrapper(request, properties.getRequest().getMaxPayloadLength());
+                new ContentCachingRequestWrapper(request, properties.getRequest().getMaxPayloadLength()); // NOPMD LawOfDemeter
         try {
             filterChain.doFilter(wrapped, response);
         } finally {
@@ -53,7 +53,7 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !properties.getRequest().isEnabled() || loggingHelper.isExcludedPath(request);
+        return !properties.getRequest().isEnabled() || loggingHelper.isExcludedPath(request); // NOPMD LawOfDemeter
     }
 
     @Override

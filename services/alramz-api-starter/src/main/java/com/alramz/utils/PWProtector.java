@@ -9,6 +9,7 @@ import java.util.Base64;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.security.GeneralSecurityException;
 
 public class PWProtector {
 
@@ -44,7 +45,7 @@ public class PWProtector {
             String ivBase64 = Base64.getEncoder().encodeToString(iv);
 
             return new String[]{cipherTextBase64, ivBase64};
-        } catch (Exception e) {
+        } catch (GeneralSecurityException e) {
             throw new IllegalStateException("Failed to encrypt", e);
         }
     }
@@ -59,7 +60,7 @@ public class PWProtector {
             byte[] plainBytes = cipher.doFinal(cipherBytes);
 
             return new String(plainBytes, java.nio.charset.StandardCharsets.UTF_8);
-        } catch (Exception e) {
+        } catch (GeneralSecurityException e) {
             throw new IllegalStateException("Failed to decrypt", e);
         }
     }

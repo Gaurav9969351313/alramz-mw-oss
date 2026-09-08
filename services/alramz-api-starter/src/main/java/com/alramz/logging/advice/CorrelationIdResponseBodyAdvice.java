@@ -38,7 +38,7 @@ public class CorrelationIdResponseBodyAdvice implements ResponseBodyAdvice<Objec
                         : correlationId;
                 setter.invoke(body, value);
             }
-        } catch (Exception e) {
+        } catch (Exception e) { // NOPMD AvoidCatchingGenericException
             // never break the response because of correlation id injection
         }
         return body;

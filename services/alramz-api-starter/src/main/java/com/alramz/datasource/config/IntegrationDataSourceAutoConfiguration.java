@@ -24,7 +24,7 @@ public class IntegrationDataSourceAutoConfiguration extends AbstractDataSourceAu
     @Bean(name = "integrationDataSource", destroyMethod = "close")
     public DataSource integrationDataSource(DatasourceProperties properties, PWProtector pwProtector) {
         HikariDataSource hikariDataSource = createHikariDataSource(properties.getIntegration(), pwProtector, "integration");
-        return wrapWithProxy(hikariDataSource, properties.getIntegration().getSqlLogging(), "integration");
+        return wrapWithProxy(hikariDataSource, properties.getIntegration().getSqlLogging(), "integration"); // NOPMD LawOfDemeter
     }
 
     @Bean(name = "integrationJdbcTemplate")

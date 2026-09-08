@@ -47,7 +47,7 @@ public class OnboardingServiceImpl implements OnboardingService {
 
         try {
             dfmOnboardingRepository.insert(request, memberReferenceNumber);
-        } catch (Exception e) {
+        } catch (Exception e) { // NOPMD AvoidCatchingGenericException
             log.error("Failed to persist onboarding request", e);
             throw new TechnicalException("Failed to persist onboarding request: " + e.getMessage());
         }

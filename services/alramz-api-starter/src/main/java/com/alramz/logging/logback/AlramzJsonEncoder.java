@@ -65,7 +65,7 @@ public class AlramzJsonEncoder extends EncoderBase<ILoggingEvent> {
         if (json) {
             try {
                 this.objectMapper.findAndRegisterModules();
-            } catch (Exception e) {
+            } catch (Exception e) { // NOPMD AvoidCatchingGenericException
                 log.warn("Unable to register Jackson modules for JSON logging", e);
             }
         } else {
@@ -83,7 +83,7 @@ public class AlramzJsonEncoder extends EncoderBase<ILoggingEvent> {
         if (json) {
             try {
                 return toJson(event);
-            } catch (Exception e) {
+            } catch (JsonProcessingException e) {
                 // Fall back to a minimal string to never lose a log line.
                 return fallback(event, e);
             }
@@ -115,7 +115,7 @@ public class AlramzJsonEncoder extends EncoderBase<ILoggingEvent> {
     private byte[] toJson(ILoggingEvent event) throws JsonProcessingException {
         ObjectNode node = objectMapper.getNodeFactory().objectNode();
         node.put("timestamp", formatInstant(event.getTimeStamp()));
-        node.put("level", event.getLevel().toString());
+        node.put("level", event.getLevel().toString()); // NOPMD LawOfDemeter
         node.put("service", serviceName);
         node.put("logger", event.getLoggerName());
         node.put("thread", event.getThreadName());
@@ -134,7 +134,7 @@ public class AlramzJsonEncoder extends EncoderBase<ILoggingEvent> {
 
         node.put("message", event.getFormattedMessage());
 
-        var tp = event.getThrowableProxy();
+        var tp = event.getThrowableProxy(); // NOPMD LawOfDemeter
         if (tp != null) {
             String exception = tp.getClassName();
             if (tp.getMessage() != null) {

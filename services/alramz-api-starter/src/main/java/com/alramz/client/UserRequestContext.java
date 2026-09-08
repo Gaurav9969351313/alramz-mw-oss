@@ -18,7 +18,7 @@ public class UserRequestContext {
             throw new AccessDeniedException("No authentication found");
         }
 
-        Object principal = authentication.getPrincipal();
+        Object principal = authentication.getPrincipal(); // NOPMD LawOfDemeter
         UserRequestDetailsBuilder userRequestDetails = UserRequestDetails.builder();
 
         switch (principal) {
@@ -45,7 +45,7 @@ public class UserRequestContext {
             return; // profile local
         }
 
-        Jwt jwt = (Jwt) authentication.getPrincipal();
+        Jwt jwt = (Jwt) authentication.getPrincipal(); // NOPMD LawOfDemeter
         if (!jwt.getSubject().equals(userId)) {
             throw new AccessDeniedException("No user found.");
         }

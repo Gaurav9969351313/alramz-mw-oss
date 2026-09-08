@@ -52,8 +52,8 @@ public class ResponseLoggingFilter extends OncePerRequestFilter {
             long size = body.length;
             int status = cachingResponse.getStatus();
             String payload = null;
-            if (properties.getResponse().isIncludePayload() && size > 0) {
-                payload = truncate(new String(body, StandardCharsets.UTF_8), properties.getResponse().getMaxPayloadLength());
+            if (properties.getResponse().isIncludePayload() && size > 0) { // NOPMD LawOfDemeter
+                payload = truncate(new String(body, StandardCharsets.UTF_8), properties.getResponse().getMaxPayloadLength()); // NOPMD LawOfDemeter
                 if (loggingHelper.isMaskingEnabled()) {
                     payload = com.alramz.logging.util.LogMaskingUtil.mask(payload);
                 }
@@ -81,7 +81,7 @@ public class ResponseLoggingFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !properties.getResponse().isEnabled() || loggingHelper.isExcludedPath(request);
+        return !properties.getResponse().isEnabled() || loggingHelper.isExcludedPath(request); // NOPMD LawOfDemeter
     }
 
     @Override

@@ -42,19 +42,19 @@ public class ApiAuditLogFilter extends OncePerRequestFilter {
         this.environment = environment;
         this.auditLogService = auditLogService;
         this.objectMapper = objectMapper;
-        this.masker = auditLogService != null ? auditLogService.getMasker() : new SensitiveDataMasker(objectMapper, properties.getMasking().isEnabled());
+        this.masker = auditLogService != null ? auditLogService.getMasker() : new SensitiveDataMasker(objectMapper, properties.getMasking().isEnabled()); // NOPMD LawOfDemeter
     }
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        if (auditLogService == null || !properties.getDatabaseLogging().isEnabled()) {
+        if (auditLogService == null || !properties.getDatabaseLogging().isEnabled()) { // NOPMD LawOfDemeter
             return true;
         }
         String path = request.getServletPath();
         if (path == null || path.isBlank()) {
             path = request.getRequestURI();
         }
-        for (String pattern : properties.getDatabaseLogging().getExcludedPaths()) {
+        for (String pattern : properties.getDatabaseLogging().getExcludedPaths()) { // NOPMD LawOfDemeter
             if (PATH_MATCHER.match(pattern, path)) {
                 return true;
             }
@@ -76,7 +76,7 @@ public class ApiAuditLogFilter extends OncePerRequestFilter {
 
         try {
             filterChain.doFilter(wrappedRequest, wrappedResponse);
-        } catch (Exception e) {
+        } catch (Exception e) { // NOPMD AvoidCatchingGenericException
             status = "FAILURE";
             exceptionClass = e.getClass().getName();
             exceptionCause = e.getMessage();
@@ -93,7 +93,7 @@ public class ApiAuditLogFilter extends OncePerRequestFilter {
                     String responseBody = new String(wrappedResponse.getContentAsByteArray(), response.getCharacterEncoding());
                     exceptionCause = extractErrorFromResponse(responseBody);
                     exceptionClass = "HttpStatusCodeException";
-                } catch (Exception e) {
+                } catch (Exception e) { // NOPMD AvoidCatchingGenericException
                     // ignore parsing errors
                 }
             }
@@ -120,10 +120,10 @@ public class ApiAuditLogFilter extends OncePerRequestFilter {
             Object requestPayload = null;
             Object responsePayload = null;
 
-            if (properties.getDatabaseLogging().isIncludeRequestPayload()) {
+            if (properties.getDatabaseLogging().isIncludeRequestPayload()) { // NOPMD LawOfDemeter
                 requestPayload = masker.maskRequestBody(wrappedRequest);
             }
-            if (properties.getDatabaseLogging().isIncludeResponsePayload()) {
+            if (properties.getDatabaseLogging().isIncludeResponsePayload()) { // NOPMD LawOfDemeter
                 responsePayload = masker.maskResponseBody(wrappedResponse);
             }
 
@@ -163,7 +163,7 @@ public class ApiAuditLogFilter extends OncePerRequestFilter {
                 return "[" + code + "] " + message;
             }
             return node.path("responseMessage").asText("Unknown error");
-        } catch (Exception e) {
+        } catch (Exception e) { // NOPMD AvoidCatchingGenericException
             return responseBody != null && responseBody.length() > 500
                     ? responseBody.substring(0, 500) : responseBody;
         }

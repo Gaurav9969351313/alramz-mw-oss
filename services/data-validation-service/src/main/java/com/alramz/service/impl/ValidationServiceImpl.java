@@ -104,7 +104,7 @@ public class ValidationServiceImpl implements ValidationService {
     }
 
     private void validateRequest(ValidationRequest request) {
-        ValidationTypeEnum type = request.getValidationType();
+        ValidationTypeEnum type = request.getValidationType(); // NOPMD LawOfDemeter
         if (type == ValidationTypeEnum.EMAIL_EXISTS) {
             if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
                 throw new ApplicationException("email", "email is required for EMAIL_EXISTS validation");

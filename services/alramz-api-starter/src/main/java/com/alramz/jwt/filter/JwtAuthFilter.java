@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
+import io.jsonwebtoken.JwtException;
 
 public class JwtAuthFilter extends OncePerRequestFilter {
 
@@ -50,7 +51,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         String token = header.substring(7);
         Optional<String> usernameOpt = tokenProvider.validateToken(token);
         if (usernameOpt.isEmpty()) {
-            logger.debug("Invalid JWT token for request: {}", request.getRequestURI());
+            if (logger.isDebugEnabled()) {
+                logger.debug("Invalid JWT token for request: {}", request.getRequestURI());
+            }
             filterChain.doFilter(request, response);
             return;
         }
@@ -61,27 +64,29 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 new UsernamePasswordAuthenticationToken(username, null, authorities);
         authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        logger.debug("Authenticated user '{}' for request: {}", username, request.getRequestURI());
+        if (logger.isDebugEnabled()) {
+            logger.debug("Authenticated user '{}' for request: {}", username, request.getRequestURI());
+        }
 
         filterChain.doFilter(request, response);
     }
 
     private List<SimpleGrantedAuthority> extractAuthorities(String token) {
         try {
-            Claims claims = Jwts.parser()
+            Claims claims = Jwts.parser() // NOPMD LawOfDemeter
                     .verifyWith(key)
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
 
-            List<String> roles = claims.get("roles", List.class);
+            List<String> roles = claims.get("roles", List.class); // NOPMD LawOfDemeter
             if (roles == null) {
                 return List.of();
             }
-            return roles.stream()
+            return roles.stream() // NOPMD LawOfDemeter
                     .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
                     .toList();
-        } catch (Exception e) {
+        } catch (JwtException e) {
             return List.of();
         }
     }

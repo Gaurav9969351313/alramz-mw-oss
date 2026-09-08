@@ -21,7 +21,7 @@ public class PoolHealthIndicator implements HealthIndicator {
     @Override
     public Health health() {
         try {
-            HikariPoolMXBean poolMXBean = dataSource.getHikariPoolMXBean();
+            HikariPoolMXBean poolMXBean = dataSource.getHikariPoolMXBean(); // NOPMD LawOfDemeter
             if (poolMXBean == null) {
                 return Health.up()
                         .withDetail(name + ".status", "mxBean-unavailable")
@@ -34,7 +34,7 @@ public class PoolHealthIndicator implements HealthIndicator {
             builder.withDetail(name + ".idleConnections", poolMXBean.getIdleConnections());
             builder.withDetail(name + ".pendingThreads", poolMXBean.getThreadsAwaitingConnection());
             return builder.build();
-        } catch (Exception e) {
+        } catch (Exception e) { // NOPMD AvoidCatchingGenericException
             logger.error("[{}] Health check failed", name, e);
             return Health.down(e).build();
         }

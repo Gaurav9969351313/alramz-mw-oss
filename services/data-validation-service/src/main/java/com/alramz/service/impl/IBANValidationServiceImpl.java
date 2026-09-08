@@ -81,7 +81,7 @@ public class IBANValidationServiceImpl extends AbstractRestClient implements IBA
             throw new ExternalSystemException("IBAN validation service unavailable");
         } catch (WebClientResponseException e) {
             throw new ExternalSystemException("IBAN validation service unavailable");
-        } catch (RuntimeException e) {
+        } catch (RuntimeException e) { // NOPMD AvoidCatchingGenericException
             throw new TechnicalException("Internal Server Error");
         }
 
@@ -94,7 +94,7 @@ public class IBANValidationServiceImpl extends AbstractRestClient implements IBA
     }
 
     private IBANValidationResponse applyValidationRules(IBANValidationResponse response) {
-        Validations validations = response.getValidations();
+        Validations validations = response.getValidations(); // NOPMD LawOfDemeter
 
         if (validations == null) {
             return createSuccessResponse(response.getBankData(), response.getSepaData(), response.getValidations());

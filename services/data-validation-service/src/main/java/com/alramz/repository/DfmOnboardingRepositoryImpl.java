@@ -2,6 +2,7 @@ package com.alramz.repository;
 
 import com.alramz.model.OnboardingRequest;
 import com.alramz.utils.SqlQueriesManager;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -12,6 +13,7 @@ import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
+import java.io.IOException;
 
 @Repository
 @Slf4j
@@ -35,7 +37,7 @@ public class DfmOnboardingRepositoryImpl implements DfmOnboardingRepository {
         String sql;
         try {
             sql = sqlQueriesManager.getSQLQueryFromConfig("dfm.onboarding.insert");
-        } catch (Exception e) {
+        } catch (IOException e) {
             throw new IllegalStateException("Failed to load onboarding insert query", e);
         }
 
@@ -144,7 +146,7 @@ public class DfmOnboardingRepositoryImpl implements DfmOnboardingRepository {
         }
         try {
             return objectMapper.writeValueAsString(obj);
-        } catch (Exception e) {
+        } catch (JsonProcessingException e) {
             log.warn("Failed to serialize object to JSON", e);
             return null;
         }

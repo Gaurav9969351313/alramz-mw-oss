@@ -72,7 +72,7 @@ public class PhoneValidationServiceImpl extends AbstractRestClient implements Ph
             throw new ExternalSystemException("Phone validation service unavailable");
         } catch (WebClientResponseException e) {
             throw new ExternalSystemException("Phone validation service unavailable");
-        } catch (RuntimeException e) {
+        } catch (RuntimeException e) { // NOPMD AvoidCatchingGenericException
             throw new TechnicalException("Internal Server Error");
         }
 

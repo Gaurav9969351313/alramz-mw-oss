@@ -37,7 +37,7 @@ public class ApiAuditLogService {
         this.jdbcTemplate = jdbcTemplate;
         this.objectMapper = objectMapper;
         this.properties = properties;
-        this.masker = new SensitiveDataMasker(objectMapper, properties.getMasking().isEnabled());
+        this.masker = new SensitiveDataMasker(objectMapper, properties.getMasking().isEnabled()); // NOPMD LawOfDemeter
     }
 
     public void log(ApiAuditLog entry) {
@@ -59,7 +59,7 @@ public class ApiAuditLogService {
             params.put("createdAt", Timestamp.from(entry.createdAt()));
 
             jdbcTemplate.update(SQL, params);
-        } catch (Exception e) {
+        } catch (Exception e) { // NOPMD AvoidCatchingGenericException
             log.error("Failed to insert api_audit_log", e);
         }
     }
@@ -70,7 +70,7 @@ public class ApiAuditLogService {
         }
         try {
             return objectMapper.writeValueAsString(value);
-        } catch (Exception e) {
+        } catch (Exception e) { // NOPMD AvoidCatchingGenericException
             log.warn("Failed to serialize audit payload to JSON", e);
             return null;
         }
@@ -79,11 +79,12 @@ public class ApiAuditLogService {
     @Scheduled(cron = "${company.logging.database-logging.cleanup-cron:0 0 2 * * *}")
     public void cleanupExpired() {
         try {
-            int retentionDays = properties.getDatabaseLogging().getRetentionDays();
+            LoggingProperties.DatabaseLoggingProperties databaseLogging = properties.getDatabaseLogging();
+            int retentionDays = databaseLogging.getRetentionDays();
             String sql = String.format(CLEANUP_SQL, retentionDays);
             int deleted = jdbcTemplate.update(sql, Map.of());
             log.info("Cleaned up {} expired api_audit_log entries (retention={} days)", deleted, retentionDays);
-        } catch (Exception e) {
+        } catch (Exception e) { // NOPMD AvoidCatchingGenericException
             log.error("Failed to cleanup expired api_audit_log entries", e);
         }
     }

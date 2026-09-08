@@ -10,6 +10,7 @@ import org.springframework.web.util.WebUtils;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.regex.Pattern;
+import java.io.IOException;
 
 public class SensitiveDataMasker {
 
@@ -57,7 +58,7 @@ public class SensitiveDataMasker {
             }
             String body = new String(wrapper.getContentAsByteArray(), StandardCharsets.UTF_8);
             return LogMaskingUtil.mask(truncate(body, 5000));
-        } catch (Exception e) {
+        } catch (Exception e) { // NOPMD AvoidCatchingGenericException
             return null;
         }
     }
@@ -73,7 +74,7 @@ public class SensitiveDataMasker {
             }
             String str = new String(body, StandardCharsets.UTF_8);
             return LogMaskingUtil.mask(truncate(str, 5000));
-        } catch (Exception e) {
+        } catch (Exception e) { // NOPMD AvoidCatchingGenericException
             return null;
         }
     }
@@ -94,7 +95,7 @@ public class SensitiveDataMasker {
                 masked.put(name, LogMaskingUtil.maskHeader(name, values));
             }
             return objectMapper.writeValueAsString(masked);
-        } catch (Exception e) {
+        } catch (IOException e) {
             return null;
         }
     }

@@ -42,17 +42,23 @@ public class ETradeTokenProvider {
         if (cachedToken != null && cachedAt != null) {
             long elapsed = Instant.now().getEpochSecond() - cachedAt.getEpochSecond();
             if (elapsed < tokenTtlSeconds) {
-                log.debug("Returning cached eTrade token (age={}s)", elapsed);
+                if (log.isDebugEnabled()) {
+                    log.debug("Returning cached eTrade token (age={}s)", elapsed);
+                }
                 return Optional.of(cachedToken);
             }
-            log.info("eTrade token expired (age={}s, ttl={}s), refreshing", elapsed, tokenTtlSeconds);
+            if (log.isInfoEnabled()) {
+                log.info("eTrade token expired (age={}s, ttl={}s), refreshing", elapsed, tokenTtlSeconds);
+            }
         }
 
         return fetchAndCacheToken();
     }
 
     public synchronized void invalidate() {
-        log.info("Invalidating cached eTrade token");
+        if (log.isInfoEnabled()) {
+            log.info("Invalidating cached eTrade token");
+        }
         cachedToken = null;
         cachedAt = null;
     }
@@ -83,7 +89,9 @@ public class ETradeTokenProvider {
 
             if (!"0".equals(response.path("Error_code").asText())) {
                 String errorCode = response != null ? response.path("Error_code").asText("null") : "null response";
-                log.warn("Failed to fetch eTrade token: Error_code={}", errorCode);
+                if (log.isWarnEnabled()) {
+                    log.warn("Failed to fetch eTrade token: Error_code={}", errorCode);
+                }
                 return Optional.empty();
             }
 
@@ -92,7 +100,9 @@ public class ETradeTokenProvider {
             int expiresIn = resData.path("expires_in").asInt(3000);
 
             if (accessToken == null || accessToken.isEmpty()) {
-                log.warn("eTrade token response missing access_token");
+                if (log.isWarnEnabled()) {
+                    log.warn("eTrade token response missing access_token");
+                }
                 return Optional.empty();
             }
 
@@ -101,14 +111,20 @@ public class ETradeTokenProvider {
             this.cachedToken = accessToken;
             this.cachedAt = Instant.now();
 
-            log.info("Successfully fetched and cached eTrade token (ttl={}s)", tokenTtlSeconds);
+            if (log.isInfoEnabled()) {
+                log.info("Successfully fetched and cached eTrade token (ttl={}s)", tokenTtlSeconds);
+            }
             return Optional.of(accessToken);
 
         } catch (WebClientResponseException e) {
-            log.warn("Failed to fetch eTrade token: status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString());
+            if (log.isWarnEnabled()) {
+                log.warn("Failed to fetch eTrade token: status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString());
+            }
             return Optional.empty();
-        } catch (Exception e) {
-            log.warn("Failed to fetch eTrade token", e);
+        } catch (Exception e) { // NOPMD AvoidCatchingGenericException
+            if (log.isWarnEnabled()) {
+                log.warn("Failed to fetch eTrade token", e);
+            }
             return Optional.empty();
         }
     }

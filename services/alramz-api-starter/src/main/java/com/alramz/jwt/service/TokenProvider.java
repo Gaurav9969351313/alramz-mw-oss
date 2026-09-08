@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
+import io.jsonwebtoken.JwtException;
 
 @Service
 public class TokenProvider {
@@ -41,7 +42,9 @@ public class TokenProvider {
                 .signWith(key)
                 .compact();
 
-        logger.debug("Generated token pair for user '{}' with roles={}, application={}, environment={}", username, roles, application, environment);
+        if (logger.isDebugEnabled()) {
+            logger.debug("Generated token pair for user '{}' with roles={}, application={}, environment={}", username, roles, application, environment);
+        }
 
         return TokenPair.of(accessToken, refreshToken, properties.getAccessTokenExpirationMs() / 1000);
     }
@@ -62,46 +65,53 @@ public class TokenProvider {
 
     public java.util.Optional<String> validateToken(String token) {
         try {
-            io.jsonwebtoken.Claims claims = io.jsonwebtoken.Jwts.parser()
+            io.jsonwebtoken.Claims claims = io.jsonwebtoken.Jwts.parser() // NOPMD LawOfDemeter
                     .verifyWith(key)
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
 
-            if (claims.getExpiration().before(new java.util.Date())) {
-                logger.debug("Token validation failed: token expired for subject '{}'", claims.getSubject());
+            java.util.Date expiration = claims.getExpiration();
+            if (expiration.before(new java.util.Date())) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Token validation failed: token expired for subject '{}'", claims.getSubject());
+                }
                 return java.util.Optional.empty();
             }
-            logger.debug("Token validated successfully for subject '{}'", claims.getSubject());
+            if (logger.isDebugEnabled()) {
+                logger.debug("Token validated successfully for subject '{}'", claims.getSubject());
+            }
             return java.util.Optional.of(claims.getSubject());
-        } catch (Exception e) {
-            logger.debug("Token validation failed: {}", e.getMessage());
+        } catch (JwtException e) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Token validation failed: {}", e.getMessage());
+            }
             return java.util.Optional.empty();
         }
     }
 
     public String extractUsername(String token) {
         try {
-            return io.jsonwebtoken.Jwts.parser()
+            return io.jsonwebtoken.Jwts.parser() // NOPMD LawOfDemeter
                     .verifyWith(key)
                     .build()
                     .parseSignedClaims(token)
                     .getPayload()
                     .getSubject();
-        } catch (Exception e) {
+        } catch (JwtException e) {
             return null;
         }
     }
 
     public String extractClaim(String token, String claimName) {
         try {
-            return io.jsonwebtoken.Jwts.parser()
+            return io.jsonwebtoken.Jwts.parser() // NOPMD LawOfDemeter
                     .verifyWith(key)
                     .build()
                     .parseSignedClaims(token)
                     .getPayload()
                     .get(claimName, String.class);
-        } catch (Exception e) {
+        } catch (JwtException e) {
             return null;
         }
     }
