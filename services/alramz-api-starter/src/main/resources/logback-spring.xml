@@ -7,6 +7,18 @@
     <springProperty name="APP_NAME" source="spring.application.name" defaultValue="application"/>
     <springProperty name="JSON_ENABLED" source="company.logging.json.enabled" defaultValue="false"/>
     <springProperty name="APPENDER_LEVEL" source="company.logging.level" defaultValue="INFO"/>
+    <springProperty name="SEQ_ENABLED" source="company.logging.seq.enabled" defaultValue="false"/>
+    <springProperty name="SEQ_URL" source="company.logging.seq.url" defaultValue="http://localhost:5341"/>
+    <springProperty name="SEQ_API_KEY" source="company.logging.seq.api-key" defaultValue=""/>
+    <springProperty name="SEQ_BATCH_SIZE" source="company.logging.seq.batch-size" defaultValue="50"/>
+    <springProperty name="SEQ_FLUSH_INTERVAL_MS" source="company.logging.seq.flush-interval-ms" defaultValue="1000"/>
+    <springProperty name="SEQ_QUEUE_SIZE" source="company.logging.seq.queue-size" defaultValue="50000"/>
+    <springProperty name="SEQ_CONNECT_TIMEOUT_MS" source="company.logging.seq.connect-timeout-ms" defaultValue="3000"/>
+    <springProperty name="SEQ_REQUEST_TIMEOUT_MS" source="company.logging.seq.request-timeout-ms" defaultValue="5000"/>
+    <springProperty name="SEQ_MAX_RETRIES" source="company.logging.seq.max-retries" defaultValue="3"/>
+    <springProperty name="SEQ_CIRCUIT_BREAKER_ENABLED" source="company.logging.seq.circuit-breaker.enabled" defaultValue="false"/>
+    <springProperty name="SEQ_CIRCUIT_BREAKER_FAILURE_THRESHOLD" source="company.logging.seq.circuit-breaker.failure-threshold" defaultValue="3"/>
+    <springProperty name="SEQ_CIRCUIT_BREAKER_COOLDOWN_MS" source="company.logging.seq.circuit-breaker.cooldown-ms" defaultValue="10000"/>
 
     <property name="LOG_DIR" value="${LOG_PATH:-logs}"/>
     <property name="LOG_FILE" value="${LOG_FILE:-${LOG_DIR}/${APP_NAME}.log}"/>
@@ -68,10 +80,27 @@
         <appender-ref ref="FILE"/>
     </appender>
 
+    <appender name="SEQ" class="com.alramz.logging.logback.SeqAppender">
+        <url>${SEQ_URL}</url>
+        <apiKey>${SEQ_API_KEY}</apiKey>
+        <enabled>${SEQ_ENABLED}</enabled>
+        <serviceName>${APP_NAME}</serviceName>
+        <batchSize>${SEQ_BATCH_SIZE}</batchSize>
+        <flushIntervalMs>${SEQ_FLUSH_INTERVAL_MS}</flushIntervalMs>
+        <queueSize>${SEQ_QUEUE_SIZE}</queueSize>
+        <connectTimeoutMs>${SEQ_CONNECT_TIMEOUT_MS}</connectTimeoutMs>
+        <requestTimeoutMs>${SEQ_REQUEST_TIMEOUT_MS}</requestTimeoutMs>
+        <maxRetries>${SEQ_MAX_RETRIES}</maxRetries>
+        <circuitBreakerEnabled>${SEQ_CIRCUIT_BREAKER_ENABLED}</circuitBreakerEnabled>
+        <circuitBreakerFailureThreshold>${SEQ_CIRCUIT_BREAKER_FAILURE_THRESHOLD}</circuitBreakerFailureThreshold>
+        <circuitBreakerCooldownMs>${SEQ_CIRCUIT_BREAKER_COOLDOWN_MS}</circuitBreakerCooldownMs>
+    </appender>
+
     <!-- Root logger. The threshold can be overridden per-package in the child. -->
     <root level="${APPENDER_LEVEL}">
         <appender-ref ref="ASYNC_CONSOLE"/>
         <appender-ref ref="ASYNC_FILE"/>
+        <appender-ref ref="SEQ"/>
     </root>
 
     <logger name="org.springframework" level="WARN"/>

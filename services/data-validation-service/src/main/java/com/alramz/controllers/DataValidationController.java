@@ -20,6 +20,7 @@ import com.alramz.service.IBANValidationService;
 import com.alramz.service.PhoneValidationService;
 import com.alramz.service.ValidationService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -51,8 +52,8 @@ public class DataValidationController implements IbanApi, VeriPhoneApi, Existing
     }
 
     @Override
-    // @JwtSecured(roles = "APP_DFM_ONBOARDING")
-    public ResponseEntity<OnboardingResponse> onboard(OnboardingRequest onboardingRequest) {
+    @JwtSecured(roles = "APP_DATA_VALIDATION")
+    public ResponseEntity<OnboardingResponse> onboard(@Valid OnboardingRequest onboardingRequest) {
         return ResponseEntity.ok(onboardingService.onboard(onboardingRequest));
     }
 }

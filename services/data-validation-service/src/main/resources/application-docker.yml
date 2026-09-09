@@ -124,3 +124,9 @@ adapter:
 
 cipher:
   password: ${CIPHER_PASSWORD:UseMostSecretKey}
+
+company:
+  logging:
+    seq:
+      enabled: true
+      url: http://seq:80

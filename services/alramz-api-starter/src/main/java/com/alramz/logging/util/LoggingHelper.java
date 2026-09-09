@@ -188,7 +188,7 @@ public class LoggingHelper {
                 .build();
     }
 
-    public ResponseLog buildResponseLog(int status, long responseTimeMs, long responseSizeBytes, String payload) {
+    public ResponseLog buildResponseLog(int status, String statusMessage, long responseTimeMs, long responseSizeBytes, String payload) {
         return ResponseLog.builder()
                 .serviceName(serviceName)
                 .correlationId(MDCUtil.getCorrelationId())
@@ -196,6 +196,7 @@ public class LoggingHelper {
                 .spanId(MDCUtil.get(LoggingConstants.SPAN_ID))
                 .timestamp(java.time.Instant.now())
                 .status(status)
+                .statusMessage(statusMessage)
                 .responseTimeMs(responseTimeMs)
                 .responseSizeBytes(responseSizeBytes)
                 .payload(payload)
@@ -212,6 +213,9 @@ public class LoggingHelper {
         }
         String query = requestLog.queryParams().isEmpty() ? "" : requestLog.queryParams().toString();
         MDCUtil.put("queryParams", query);
+        if (requestLog.payload() != null) {
+            MDCUtil.put("requestBody", requestLog.payload());
+        }
         try {
             if (requestLog.payload() != null) {
                 if (logger.isInfoEnabled()) {
@@ -226,6 +230,7 @@ public class LoggingHelper {
             }
         } finally {
             MDCUtil.remove("queryParams");
+            MDCUtil.remove("requestBody");
             for (String key : headers.keySet()) {
                 MDCUtil.remove(key);
             }
@@ -237,8 +242,15 @@ public class LoggingHelper {
             return;
         }
         MDCUtil.put(LoggingConstants.RESPONSE_STATUS, String.valueOf(responseLog.status()));
+        MDCUtil.put("responseCode", String.valueOf(responseLog.status()));
+        if (responseLog.statusMessage() != null && !responseLog.statusMessage().isEmpty()) {
+            MDCUtil.put("responseMessage", responseLog.statusMessage());
+        }
         MDCUtil.put(LoggingConstants.RESPONSE_TIME_MS, String.valueOf(responseLog.responseTimeMs()));
         MDCUtil.put(LoggingConstants.RESPONSE_SIZE_BYTES, String.valueOf(responseLog.responseSizeBytes()));
+        if (responseLog.payload() != null) {
+            MDCUtil.put("responseBody", responseLog.payload());
+        }
         try {
             if (responseLog.payload() != null) {
                 if (logger.isInfoEnabled()) {
@@ -255,8 +267,11 @@ public class LoggingHelper {
             logPerformanceIfSlow(logger, responseLog.responseTimeMs(), "request");
         } finally {
             MDCUtil.remove(LoggingConstants.RESPONSE_STATUS);
+            MDCUtil.remove("responseCode");
+            MDCUtil.remove("responseMessage");
             MDCUtil.remove(LoggingConstants.RESPONSE_TIME_MS);
             MDCUtil.remove(LoggingConstants.RESPONSE_SIZE_BYTES);
+            MDCUtil.remove("responseBody");
         }
     }
 

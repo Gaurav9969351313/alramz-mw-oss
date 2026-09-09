@@ -178,5 +178,31 @@ public class LoggingProperties {
                 "/api/v1/info", "/actuator/**", "/swagger-ui/**", "/v3/api-docs/**"));
     }
 
+    // ------------------------------------------------------------------ seq
+
+    @Getter
+    @Setter
+    public static class CircuitBreakerProperties {
+        private boolean enabled = false;
+        private int failureThreshold = 3;
+        private long cooldownMs = 10000L;
+    }
+
+    @Getter
+    @Setter
+    public static class SeqProperties {
+        private boolean enabled = false;
+        private String url = "http://localhost:5341";
+        private String apiKey = "";
+        private int batchSize = 50;
+        private int flushIntervalMs = 1000;
+        private int queueSize = 50000;
+        private int connectTimeoutMs = 3000;
+        private int requestTimeoutMs = 5000;
+        private int maxRetries = 3;
+        private CircuitBreakerProperties circuitBreaker = new CircuitBreakerProperties();
+    }
+
     private DatabaseLoggingProperties databaseLogging = new DatabaseLoggingProperties();
+    private SeqProperties seq = new SeqProperties();
 }

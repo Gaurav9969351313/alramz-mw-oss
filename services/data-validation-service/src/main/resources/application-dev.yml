@@ -114,6 +114,8 @@ company:
         - /actuator/**
         - /swagger-ui/**
         - /v3/api-docs/**
+    seq:
+      enabled: true
   jwt:
     enabled: true
     secret: ${JWT_SECRET:defaultSecretKeyChangeMeInProduction1234567890}

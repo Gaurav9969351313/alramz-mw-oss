@@ -35,7 +35,9 @@ public class ApiAuditLogService {
                               ObjectMapper objectMapper,
                               LoggingProperties properties) {
         this.jdbcTemplate = jdbcTemplate;
-        this.objectMapper = objectMapper;
+        this.objectMapper = objectMapper.copy()
+                .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
+                .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         this.properties = properties;
         this.masker = new SensitiveDataMasker(objectMapper, properties.getMasking().isEnabled()); // NOPMD LawOfDemeter
     }

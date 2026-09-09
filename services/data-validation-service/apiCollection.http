@@ -1,7 +1,7 @@
 @baseUrl=http://localhost:8080
 # @baseUrl=https://gthomelab.online
 
-@authToken=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJkYXRhX3ZhbGlkYXRpb25fYXBwIiwiaWF0IjoxNzg4ODQ3NDE2LCJleHAiOjE3ODg4NDgzMTYsInJvbGVzIjpbIkFQUF9EQVRBX1ZBTElEQVRJT04iXSwiYXBwbGljYXRpb24iOiJkYXRhLXZhbGlkYXRpb24tc2VydmljZSIsImVudmlyb25tZW50IjoibG9jYWwifQ.4F1Zr-vNSjAuql0mh_A2OwsLXyAMr9UbtL82j3Bf_g0
+@authToken=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJkYXRhX3ZhbGlkYXRpb25fYXBwIiwiaWF0IjoxNzg4OTQ2ODkxLCJleHAiOjE3ODg5NDc3OTEsInJvbGVzIjpbIkFQUF9EQVRBX1ZBTElEQVRJT04iXSwiYXBwbGljYXRpb24iOiJkYXRhLXZhbGlkYXRpb24tc2VydmljZSIsImVudmlyb25tZW50IjoibG9jYWwifQ.8gaD2fPvcXLN8YpHRaryU5kwuJYVDqJNai8abLoCaXo
 
 ###
 GET {{baseUrl}}/api/v1/info
@@ -184,7 +184,7 @@ Authorization: Bearer {{authToken}}
     "portfolio_options": "Cash",
     "securitykey": "0981650c-de45-4f16-8f4a-1698c0dd0195",
     "cust_mobile": "009715034235",
-    "cust_email": "tes1921@hotmail.com",
+    "cust_email": "gaurav@alramz.ae",
     "cust_nin": "SYA6269323",
     "eid_dob": "1993-09-06",
     "eid_expirydate": "2031-06-07",

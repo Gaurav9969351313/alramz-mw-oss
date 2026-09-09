@@ -29,7 +29,6 @@ public class OnboardingServiceImpl implements OnboardingService {
         String correlationId = java.util.UUID.randomUUID().toString();
         String memberReferenceNumber = correlationId;
 
-        validateMandatoryFields(request);
         validateNationalityPresence(request);
         validateUsCitizen(request);
 
@@ -54,50 +53,31 @@ public class OnboardingServiceImpl implements OnboardingService {
 
         OnboardingResponse response = new OnboardingResponse();
         response.setResponseCode("200");
-        response.setResponseMessage("OK");
         response.setMemberReferenceNumber(java.util.UUID.fromString(memberReferenceNumber));
-        response.setCorrelationId(java.util.UUID.fromString(correlationId));
+        response.setMemberClientId(java.util.UUID.fromString(memberReferenceNumber));
         return response;
-    }
-
-    private void validateMandatoryFields(OnboardingRequest request) {
-        if (request.getCustMobile() == null || request.getCustMobile().isBlank()) {
-            throw new ApplicationException("cust_mobile", "Mobile Number (cust_mobile) is missing");
-        }
-        if (request.getCustEmail() == null || request.getCustEmail().isBlank()) {
-            throw new ApplicationException("cust_email", "Email Address (cust_email) is missing");
-        }
-        if (request.getCustNin() == null || request.getCustNin().isBlank()) {
-            throw new ApplicationException("cust_nin", "NIN Number (cust_nin) is missing");
-        }
-        if (request.getFatcaUscitizen() == null || request.getFatcaUscitizen().isBlank()) {
-            throw new ApplicationException("fatca_uscitizen", "USCitizen (fatca_uscitizen) is missing");
-        }
-        if (request.getKycMatch() == null || request.getKycMatch().isBlank()) {
-            throw new ApplicationException("kyc_match", "Background check (kyc_match) is missing");
-        }
     }
 
     private void validateNationalityPresence(OnboardingRequest request) {
         boolean hasEidNationality = request.getEidNationality() != null && !request.getEidNationality().isBlank();
         boolean hasPassportNationality = request.getPpNationality() != null && !request.getPpNationality().isBlank();
         if (!hasEidNationality && !hasPassportNationality) {
-            throw new ApplicationException("nationality", "Client nationality is missing");
+            throw new ApplicationException("nationality", "Client nationality is missing", "ONB006");
         }
     }
 
     private void validateUsCitizen(OnboardingRequest request) {
         if (isUsCitizenFlag(request.getFatcaUscitizen())) {
-            throw new ApplicationException("fatca_uscitizen", "Online onboarding is unavailable for US citizens");
+            throw new ApplicationException("fatca_uscitizen", "Online onboarding is unavailable for US citizens", "ONB007");
         }
         if (isUsCitizen(request.getEidNationality())) {
-            throw new ApplicationException("eid_nationality", "Online onboarding is unavailable for US citizens - eid_nationality");
+            throw new ApplicationException("eid_nationality", "Online onboarding is unavailable for US citizens - eid_nationality", "ONB008");
         }
         if (isUsCitizen(request.getPpNationality())) {
-            throw new ApplicationException("pp_nationality", "Online onboarding is unavailable for US citizens - pp_nationality");
+            throw new ApplicationException("pp_nationality", "Online onboarding is unavailable for US citizens - pp_nationality", "ONB009");
         }
         if (isUsCitizen(request.getPinfCountry())) {
-            throw new ApplicationException("pinf_country", "Online onboarding is unavailable for US citizens - pinf_country");
+            throw new ApplicationException("pinf_country", "Online onboarding is unavailable for US citizens - pinf_country", "ONB010");
         }
     }
 

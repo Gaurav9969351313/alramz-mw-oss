@@ -1,3 +1,6 @@
+docker run -d --name seq -e ACCEPT_EULA=Y -e SEQ_FIRSTRUN_ADMINPASSWORD=admin123 -p 5341:80 -p 5342:5341 datalust/seq:latest
+
+
 # Al Ramz Middleware & Infrastructure Ecosystem
 
 Welcome to the **Al Ramz Middleware and Infrastructure** repository. This repository implements a modern, secure, and highly scalable cloud-native middleware ecosystem on Microsoft Azure. It combines containerized Java microservices with fully modular Infrastructure as Code (IaC) using Terraform, backed by an automated CI/CD pipeline.
@@ -6,6 +9,8 @@ gauravtalele2025@gmail.com
 Sub Id: c65cd71d-a01c-4f33-a04f-3163f61a94c6
 tenant id: f67148a5-7855-427e-aec8-68bd69f23481
 client id: 
+
+
 
 ---
 

@@ -48,6 +48,10 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webmvc</artifactId>
         </dependency>
 
@@ -187,6 +191,7 @@
                                 <performBeanValidation>true</performBeanValidation>
                                 <openApiNullable>false</openApiNullable>
                                 <useResponseEntity>true</useResponseEntity>
+                                <useSnakeCase>true</useSnakeCase>
                             </configOptions>
                         </configuration>
                     </execution>

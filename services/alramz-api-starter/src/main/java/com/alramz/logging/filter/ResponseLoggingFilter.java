@@ -17,6 +17,7 @@ import org.springframework.web.util.ContentCachingResponseWrapper;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import org.springframework.http.HttpStatus;
 
 /**
  * Logs outgoing HTTP responses (status, duration, response size and optional
@@ -45,6 +46,15 @@ public class ResponseLoggingFilter extends OncePerRequestFilter {
         ContentCachingResponseWrapper cachingResponse = new ContentCachingResponseWrapper(response);
         try {
             filterChain.doFilter(request, cachingResponse);
+        } catch (Exception e) {
+            logger.error("Exception during response processing for {} {}", request.getMethod(), request.getRequestURI(), e);
+            if (e instanceof IOException ioe) {
+                throw ioe;
+            } else if (e instanceof ServletException se) {
+                throw se;
+            } else {
+                throw new ServletException(e);
+            }
         } finally {
             long startNanos = getStartNanos(request);
             long durationMs = startNanos == 0L ? 0L : (System.nanoTime() - startNanos) / 1_000_000L;
@@ -58,7 +68,12 @@ public class ResponseLoggingFilter extends OncePerRequestFilter {
                     payload = com.alramz.logging.util.LogMaskingUtil.mask(payload);
                 }
             }
-            ResponseLog responseLog = loggingHelper.buildResponseLog(status, durationMs, size, payload);
+            ResponseLog responseLog = loggingHelper.buildResponseLog(
+                    status,
+                    org.springframework.http.HttpStatus.valueOf(status).getReasonPhrase(),
+                    durationMs,
+                    size,
+                    payload);
             loggingHelper.logResponse(logger, responseLog);
             cachingResponse.copyBodyToResponse();
         }

@@ -235,22 +235,40 @@ paths:
             schema:
               $ref: '#/components/schemas/OnboardingRequest'
       responses:
-        '200':
-          description: Onboarding request accepted and persisted
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/OnboardingResponse'
-        '400':
-          description: Validation or business failure
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/OnboardingResponse'
-        '500':
-          description: Internal server error
-        '503':
-          description: External system unavailable
+         '200':
+           description: Onboarding request accepted and persisted
+           content:
+             application/json:
+                schema:
+                  $ref: '#/components/schemas/OnboardingResponse'
+                example:
+                  response_code: "200"
+                  member_reference_number: "550e8400-e29b-41d4-a716-446655440000"
+                  member_client_id: "550e8400-e29b-41d4-a716-446655440000"
+         '400':
+           description: Validation or business failure
+           content:
+             application/json:
+                schema:
+                  $ref: '#/components/schemas/OnboardingResponse'
+                example:
+                  response_code: "400"
+                  response_message: "Email Address (cust_email) is missing"
+                  member_reference_number: "550e8400-e29b-41d4-a716-446655440000"
+                  internal_error_code: "ONB011"
+         '500':
+           description: Internal server error
+           content:
+             application/json:
+                schema:
+                  $ref: '#/components/schemas/OnboardingResponse'
+                example:
+                  response_code: "500"
+                  response_message: "Internal Server Error"
+                  member_reference_number: "550e8400-e29b-41d4-a716-446655440000"
+                  internal_error_code: "ONB011"
+         '503':
+           description: External system unavailable
 
 components:
   schemas:
@@ -887,23 +905,23 @@ components:
     OnboardingResponse:
       type: object
       required:
-        - responseCode
-        - responseMessage
+        - response_code
+        - member_reference_number
       properties:
-        responseCode:
+        response_code:
           type: string
           example: "200"
-        responseMessage:
+        response_message:
           type: string
           example: OK
-        memberReferenceNumber:
+        member_reference_number:
           type: string
           format: uuid
-          description: Generated member reference number for traceability
-        correlationId:
+          description: Member reference number for traceability
+        member_client_id:
           type: string
           format: uuid
-          description: Correlation ID for the request
-        lastError:
+          description: Member client ID (same as member reference number on success)
+        internal_error_code:
           type: string
-          description: Captured error message on failure
+          description: Internal error code for failures

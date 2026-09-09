@@ -67,8 +67,9 @@ class LoggingHelperTest {
 
     @Test
     void buildResponseLogPopulatesFields() {
-        ResponseLog log = helper.buildResponseLog(200, 53, 128, null);
+        ResponseLog log = helper.buildResponseLog(200, "OK", 53, 128, null);
         assertThat(log.status()).isEqualTo(200);
+        assertThat(log.statusMessage()).isEqualTo("OK");
         assertThat(log.responseTimeMs()).isEqualTo(53);
         assertThat(log.responseSizeBytes()).isEqualTo(128);
         assertThat(log.correlationId()).isNull();

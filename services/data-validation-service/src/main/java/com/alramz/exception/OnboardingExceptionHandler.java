@@ -20,9 +20,26 @@ public class OnboardingExceptionHandler {
 
         OnboardingResponse response = new OnboardingResponse();
         response.setResponseCode("400");
-        response.setResponseMessage("Invalid request");
-        response.setCorrelationId(correlationId);
-        response.setLastError(ex.getField() != null ? ex.getField() + ": " + ex.getMessage() : ex.getMessage());
+        response.setResponseMessage(ex.getField() != null ? ex.getField() + ": " + ex.getMessage() : ex.getMessage());
+        response.setMemberReferenceNumber(correlationId);
+        response.setInternalErrorCode("ONB011");
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    @ExceptionHandler(org.springframework.web.bind.MethodArgumentNotValidException.class)
+    public ResponseEntity<OnboardingResponse> handleValidation(org.springframework.web.bind.MethodArgumentNotValidException ex, HttpServletRequest request) {
+        java.util.UUID correlationId = extractCorrelationId(request);
+
+        String message = ex.getBindingResult().getFieldErrors().stream()
+                .map(fe -> fe.getField() + ": " + (fe.getDefaultMessage() != null ? fe.getDefaultMessage() : "invalid"))
+                .collect(java.util.stream.Collectors.joining("; "));
+
+        OnboardingResponse response = new OnboardingResponse();
+        response.setResponseCode("400");
+        response.setResponseMessage(message);
+        response.setMemberReferenceNumber(correlationId);
+        response.setInternalErrorCode("ONB011");
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
@@ -34,8 +51,8 @@ public class OnboardingExceptionHandler {
         OnboardingResponse response = new OnboardingResponse();
         response.setResponseCode("503");
         response.setResponseMessage(ex.getMessage());
-        response.setCorrelationId(correlationId);
-        response.setLastError(ex.getMessage());
+        response.setMemberReferenceNumber(correlationId);
+        response.setInternalErrorCode("ONB011");
 
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(response);
     }
@@ -46,9 +63,9 @@ public class OnboardingExceptionHandler {
 
         OnboardingResponse response = new OnboardingResponse();
         response.setResponseCode("500");
-        response.setResponseMessage("Internal server error");
-        response.setCorrelationId(correlationId);
-        response.setLastError("Internal server error");
+        response.setResponseMessage("Internal Server Error");
+        response.setMemberReferenceNumber(correlationId);
+        response.setInternalErrorCode("ONB011");
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }

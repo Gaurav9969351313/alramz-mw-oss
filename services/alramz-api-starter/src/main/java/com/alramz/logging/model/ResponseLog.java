@@ -12,6 +12,7 @@ public record ResponseLog(
         String spanId,
         Instant timestamp,
         int status,
+        String statusMessage,
         long responseTimeMs,
         long responseSizeBytes,
         String payload
@@ -28,6 +29,7 @@ public record ResponseLog(
         private String spanId = "";
         private Instant timestamp = Instant.now();
         private int status = 0;
+        private String statusMessage = "";
         private long responseTimeMs = 0L;
         private long responseSizeBytes = 0L;
         private String payload = "";
@@ -38,12 +40,13 @@ public record ResponseLog(
         public Builder spanId(String v) { spanId = v; return this; }
         public Builder timestamp(Instant v) { timestamp = v; return this; }
         public Builder status(int v) { status = v; return this; }
+        public Builder statusMessage(String v) { statusMessage = v; return this; }
         public Builder responseTimeMs(long v) { responseTimeMs = v; return this; }
         public Builder responseSizeBytes(long v) { responseSizeBytes = v; return this; }
         public Builder payload(String v) { payload = v; return this; }
         public ResponseLog build() {
             return new ResponseLog(serviceName, correlationId, traceId, spanId, timestamp,
-                    status, responseTimeMs, responseSizeBytes, payload);
+                    status, statusMessage, responseTimeMs, responseSizeBytes, payload);
         }
     }
 }

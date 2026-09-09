@@ -44,6 +44,15 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
                 new ContentCachingRequestWrapper(request, properties.getRequest().getMaxPayloadLength()); // NOPMD LawOfDemeter
         try {
             filterChain.doFilter(wrapped, response);
+        } catch (Exception e) {
+            logger.error("Exception during request processing for {} {}", request.getMethod(), request.getRequestURI(), e);
+            if (e instanceof IOException ioe) {
+                throw ioe;
+            } else if (e instanceof ServletException se) {
+                throw se;
+            } else {
+                throw new ServletException(e);
+            }
         } finally {
             String correlationId = (String) request.getAttribute(LoggingConstants.CORRELATION_ID_ATTRIBUTE);
             RequestLog requestLog = loggingHelper.buildRequestLog(wrapped, correlationId);

@@ -28,3 +28,7 @@ company:
     permit-all-urls:
         - /api/v1/info
         - /api/v1/email/send
+
+  logging:
+    seq:
+      enabled: false

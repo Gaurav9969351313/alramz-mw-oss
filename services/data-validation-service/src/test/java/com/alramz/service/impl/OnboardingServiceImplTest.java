@@ -56,56 +56,6 @@ class OnboardingServiceImplTest {
     }
 
     @Test
-    void onboard_shouldThrowApplicationExceptionWhenMobileMissing() {
-        OnboardingRequest request = buildValidRequest();
-        request.setCustMobile(null);
-
-        assertThatThrownBy(() -> onboardingService.onboard(request))
-                .isInstanceOf(ApplicationException.class)
-                .hasFieldOrPropertyWithValue("field", "cust_mobile");
-    }
-
-    @Test
-    void onboard_shouldThrowApplicationExceptionWhenEmailMissing() {
-        OnboardingRequest request = buildValidRequest();
-        request.setCustEmail(null);
-
-        assertThatThrownBy(() -> onboardingService.onboard(request))
-                .isInstanceOf(ApplicationException.class)
-                .hasFieldOrPropertyWithValue("field", "cust_email");
-    }
-
-    @Test
-    void onboard_shouldThrowApplicationExceptionWhenNinMissing() {
-        OnboardingRequest request = buildValidRequest();
-        request.setCustNin(null);
-
-        assertThatThrownBy(() -> onboardingService.onboard(request))
-                .isInstanceOf(ApplicationException.class)
-                .hasFieldOrPropertyWithValue("field", "cust_nin");
-    }
-
-    @Test
-    void onboard_shouldThrowApplicationExceptionWhenFatcaMissing() {
-        OnboardingRequest request = buildValidRequest();
-        request.setFatcaUscitizen(null);
-
-        assertThatThrownBy(() -> onboardingService.onboard(request))
-                .isInstanceOf(ApplicationException.class)
-                .hasFieldOrPropertyWithValue("field", "fatca_uscitizen");
-    }
-
-    @Test
-    void onboard_shouldThrowApplicationExceptionWhenKycMissing() {
-        OnboardingRequest request = buildValidRequest();
-        request.setKycMatch(null);
-
-        assertThatThrownBy(() -> onboardingService.onboard(request))
-                .isInstanceOf(ApplicationException.class)
-                .hasFieldOrPropertyWithValue("field", "kyc_match");
-    }
-
-    @Test
     void onboard_shouldThrowApplicationExceptionWhenNationalityMissing() {
         OnboardingRequest request = buildValidRequest();
         request.setEidNationality(null);
@@ -113,7 +63,8 @@ class OnboardingServiceImplTest {
 
         assertThatThrownBy(() -> onboardingService.onboard(request))
                 .isInstanceOf(ApplicationException.class)
-                .hasFieldOrPropertyWithValue("field", "nationality");
+                .hasFieldOrPropertyWithValue("field", "nationality")
+                .hasFieldOrPropertyWithValue("serviceErrorResponseCode", "ONB006");
     }
 
     @Test
@@ -124,6 +75,7 @@ class OnboardingServiceImplTest {
         assertThatThrownBy(() -> onboardingService.onboard(request))
                 .isInstanceOf(ApplicationException.class)
                 .hasFieldOrPropertyWithValue("field", "fatca_uscitizen")
+                .hasFieldOrPropertyWithValue("serviceErrorResponseCode", "ONB007")
                 .hasMessageContaining("US citizens");
     }
 
@@ -135,6 +87,7 @@ class OnboardingServiceImplTest {
         assertThatThrownBy(() -> onboardingService.onboard(request))
                 .isInstanceOf(ApplicationException.class)
                 .hasFieldOrPropertyWithValue("field", "eid_nationality")
+                .hasFieldOrPropertyWithValue("serviceErrorResponseCode", "ONB008")
                 .hasMessageContaining("US citizens");
     }
 
@@ -146,6 +99,7 @@ class OnboardingServiceImplTest {
         assertThatThrownBy(() -> onboardingService.onboard(request))
                 .isInstanceOf(ApplicationException.class)
                 .hasFieldOrPropertyWithValue("field", "pp_nationality")
+                .hasFieldOrPropertyWithValue("serviceErrorResponseCode", "ONB009")
                 .hasMessageContaining("US citizens");
     }
 
@@ -157,6 +111,7 @@ class OnboardingServiceImplTest {
         assertThatThrownBy(() -> onboardingService.onboard(request))
                 .isInstanceOf(ApplicationException.class)
                 .hasFieldOrPropertyWithValue("field", "pinf_country")
+                .hasFieldOrPropertyWithValue("serviceErrorResponseCode", "ONB010")
                 .hasMessageContaining("US citizens");
     }
 
@@ -201,9 +156,10 @@ class OnboardingServiceImplTest {
 
         assertThat(response).isNotNull();
         assertThat(response.getResponseCode()).isEqualTo("200");
-        assertThat(response.getResponseMessage()).isEqualTo("OK");
+        assertThat(response.getResponseMessage()).isNull();
         assertThat(response.getMemberReferenceNumber()).isNotNull();
-        assertThat(response.getCorrelationId()).isNotNull();
+        assertThat(response.getMemberClientId()).isNotNull();
+        assertThat(response.getMemberClientId()).isEqualTo(response.getMemberReferenceNumber());
         verify(dfmOnboardingRepository).insert(any(OnboardingRequest.class), anyString());
     }
 
