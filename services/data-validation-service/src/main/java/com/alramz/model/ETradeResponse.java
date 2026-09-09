@@ -6,8 +6,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 public record ETradeResponse(
     @JsonProperty("Error_code") @JsonAlias("Error_Code") String errorCode,
-    @JsonProperty("IslamicMode") String islamicMode,
-    @JsonProperty("Lang") @JsonAlias("lang") String lang,
     @JsonProperty("Reference_No") @JsonAlias("Reference_no") String referenceNo,
     JsonNode resData,
     @JsonProperty("Exists") Boolean exists

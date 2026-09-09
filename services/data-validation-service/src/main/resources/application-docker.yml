@@ -79,40 +79,30 @@ adapter:
         path: /IntegrationAPI/IntegrationWServices/IfEmailExists
         method: POST
         request-mapping:
-          IslamicMode: islamicMode
-          Lang: language
           Reference_No: referenceNo
           emailAddress: email
       PASSPORT_EXISTS:
         path: /IntegrationAPI/IntegrationWServices/IfPassportExists
         method: POST
         request-mapping:
-          IslamicMode: islamicMode
-          Lang: language
           Reference_No: referenceNo
           pp_number: passportNumber
       USERNAME_EXISTS:
         path: /IntegrationAPI/IntegrationWServices/IfUsernameExists
         method: POST
         request-mapping:
-          IslamicMode: islamicMode
-          Lang: language
           Reference_No: referenceNo
           username: username
       EID_EXISTS:
         path: /IntegrationAPI/IntegrationWServices/IfEidExists
         method: POST
         request-mapping:
-          IslamicMode: islamicMode
-          Lang: language
           Reference_No: referenceNo
           eid_number: eidNumber
       TP_UUID_EXISTS:
         path: /IntegrationAPI/IntegrationWServices/IfTPUUIDExists
         method: POST
         request-mapping:
-          IslamicMode: islamicMode
-          Lang: language
           Reference_No: referenceNo
           UUID: uuid
           thirdParty: thirdParty

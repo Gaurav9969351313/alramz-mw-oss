@@ -84,7 +84,7 @@ class DuplicateCheckServiceImplTest {
     void checkDuplicates_shouldCheckEidWhenProvided() {
         when(etradeTokenProvider.getToken()).thenReturn(Optional.of("token"));
         when(etradeClient.callETrade(anyString(), anyString(), anyString(), any(), any()))
-                .thenReturn(new ETradeResponse("0", null, null, null, mockResData("{\"Exists\":true}"), true));
+                .thenReturn(new ETradeResponse("0", null, mockResData("{\"Exists\":true}"), true));
 
         boolean[] result = duplicateCheckService.checkDuplicates(null, "EID123", null, null);
 
@@ -95,7 +95,7 @@ class DuplicateCheckServiceImplTest {
     void checkDuplicates_shouldCheckEmailWhenProvided() {
         when(etradeTokenProvider.getToken()).thenReturn(Optional.of("token"));
         when(etradeClient.callETrade(anyString(), anyString(), anyString(), any(), any()))
-                .thenReturn(new ETradeResponse("0", null, null, null, mockResData("{\"Exists\":true}"), true));
+                .thenReturn(new ETradeResponse("0", null, mockResData("{\"Exists\":true}"), true));
 
         boolean[] result = duplicateCheckService.checkDuplicates(null, null, "test@example.com", null);
 
@@ -106,7 +106,7 @@ class DuplicateCheckServiceImplTest {
     void checkDuplicates_shouldCheckPassportWhenProvided() {
         when(etradeTokenProvider.getToken()).thenReturn(Optional.of("token"));
         when(etradeClient.callETrade(anyString(), anyString(), anyString(), any(), any()))
-                .thenReturn(new ETradeResponse("0", null, null, null, mockResData("{\"Exists\":true}"), true));
+                .thenReturn(new ETradeResponse("0", null, mockResData("{\"Exists\":true}"), true));
 
         boolean[] result = duplicateCheckService.checkDuplicates(null, null, null, "P1234567");
 
@@ -142,7 +142,7 @@ class DuplicateCheckServiceImplTest {
     void checkDuplicates_shouldThrowExternalSystemExceptionWhenETradeReturnsError() {
         when(etradeTokenProvider.getToken()).thenReturn(Optional.of("token"));
         when(etradeClient.callETrade(anyString(), anyString(), anyString(), any(), any()))
-                .thenReturn(new ETradeResponse("1", null, null, null, mockResData("{\"message\":\"error\"}"), null));
+                .thenReturn(new ETradeResponse("1", null, mockResData("{\"message\":\"error\"}"), null));
 
         assertThatThrownBy(() -> duplicateCheckService.checkDuplicates(null, null, "test@example.com", null))
                 .isInstanceOf(ExternalSystemException.class)
@@ -156,7 +156,7 @@ class DuplicateCheckServiceImplTest {
         ApiCallFailedException apiException = new ApiCallFailedException("/path", "POST", 401, "Unauthorized");
         when(etradeClient.callETrade(anyString(), anyString(), anyString(), any(), any()))
                 .thenThrow(apiException)
-                .thenReturn(new ETradeResponse("0", null, null, null, mockResData("{\"Exists\":true}"), true));
+                .thenReturn(new ETradeResponse("0", null, mockResData("{\"Exists\":true}"), true));
 
         boolean[] result = duplicateCheckService.checkDuplicates(null, null, "test@example.com", null);
 

@@ -148,40 +148,30 @@ paths:
                   validationType: "EMAIL_EXISTS"
                   referenceNo: "1"
                   email: "solattupuram@alramz.ae"
-                  language: "EN"
-                  islamicMode: "Y"
               passport:
                 summary: Passport exists validation
                 value:
                   validationType: "PASSPORT_EXISTS"
                   referenceNo: "100"
                   passportNumber: "XY1152302"
-                  language: "EN"
-                  islamicMode: "Y"
               nin:
                 summary: NIN exists validation
                 value:
                   validationType: "NIN_EXISTS"
                   referenceNo: "200"
                   nin: "1234567890"
-                  language: "EN"
-                  islamicMode: "Y"
               username:
                 summary: Username exists validation
                 value:
                   validationType: "USERNAME_EXISTS"
                   referenceNo: "300"
                   username: "yasser1"
-                  language: "EN"
-                  islamicMode: "Y"
               eid:
                 summary: EID exists validation
                 value:
                   validationType: "EID_EXISTS"
                   referenceNo: "400"
                   eidNumber: "784-1989-0751424-8"
-                  language: "EN"
-                  islamicMode: "Y"
               tp_uuid:
                 summary: Third-party UUID exists validation
                 value:
@@ -189,8 +179,6 @@ paths:
                   referenceNo: "500"
                   uuid: "101296594260088743321545352540"
                   thirdParty: "Google"
-                  language: "EN"
-                  islamicMode: "Y"
               mobile:
                 summary: Mobile number exists validation
                 value:
@@ -519,8 +507,6 @@ components:
       required:
         - validationType
         - referenceNo
-        - language
-        - islamicMode
       properties:
         validationType:
           type: string
@@ -529,12 +515,6 @@ components:
         referenceNo:
           type: string
           description: Client reference number
-        language:
-          type: string
-          example: "EN"
-        islamicMode:
-          type: string
-          example: "Y"
         email:
           type: string
           format: email

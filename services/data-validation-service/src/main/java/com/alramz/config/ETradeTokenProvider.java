@@ -73,9 +73,7 @@ public class ETradeTokenProvider {
                     "loginDevice", "1",
                     "OS", "1",
                     "Source", "1",
-                    "Reference_No", "1",
-                    "IslamicMode", "Y",
-                    "Lang", "EN"
+                    "Reference_No", "1"
             );
 
             JsonNode response = webClient.post()

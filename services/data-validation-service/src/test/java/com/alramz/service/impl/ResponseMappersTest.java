@@ -26,11 +26,9 @@ class ResponseMappersTest {
         EmailExistsResponseMapper mapper = new EmailExistsResponseMapper();
         ValidationRequest request = new ValidationRequest()
                 .validationType(ValidationTypeEnum.EMAIL_EXISTS)
-                .referenceNo("1")
-                .language("EN")
-                .islamicMode("Y");
+                .referenceNo("1");
 
-        ETradeResponse externalResponse = new ETradeResponse("0", null, null, null, mockResData("1"), null);
+        ETradeResponse externalResponse = new ETradeResponse("0", null, mockResData("1"), null);
 
         ValidationResponse response = mapper.map(externalResponse, request);
 
@@ -45,11 +43,9 @@ class ResponseMappersTest {
         EmailExistsResponseMapper mapper = new EmailExistsResponseMapper();
         ValidationRequest request = new ValidationRequest()
                 .validationType(ValidationTypeEnum.EMAIL_EXISTS)
-                .referenceNo("1")
-                .language("EN")
-                .islamicMode("Y");
+                .referenceNo("1");
 
-        ETradeResponse externalResponse = new ETradeResponse("0", null, null, null, mockResData("0"), null);
+        ETradeResponse externalResponse = new ETradeResponse("0", null, mockResData("0"), null);
 
         ValidationResponse response = mapper.map(externalResponse, request);
 
@@ -64,12 +60,10 @@ class ResponseMappersTest {
         EmailExistsResponseMapper mapper = new EmailExistsResponseMapper();
         ValidationRequest request = new ValidationRequest()
                 .validationType(ValidationTypeEnum.EMAIL_EXISTS)
-                .referenceNo("1")
-                .language("EN")
-                .islamicMode("Y");
+                .referenceNo("1");
 
         JsonNode errorResData = mockResData("{\"message\":\"some error\"}");
-        ETradeResponse externalResponse = new ETradeResponse("1", null, null, null, errorResData, null);
+        ETradeResponse externalResponse = new ETradeResponse("1", null, errorResData, null);
 
         ValidationResponse response = mapper.map(externalResponse, request);
 
@@ -82,11 +76,9 @@ class ResponseMappersTest {
         PassportExistsResponseMapper mapper = new PassportExistsResponseMapper();
         ValidationRequest request = new ValidationRequest()
                 .validationType(ValidationTypeEnum.PASSPORT_EXISTS)
-                .referenceNo("1")
-                .language("EN")
-                .islamicMode("Y");
+                .referenceNo("1");
 
-        ETradeResponse externalResponse = new ETradeResponse("0", null, null, null, mockResData("1"), null);
+        ETradeResponse externalResponse = new ETradeResponse("0", null, mockResData("1"), null);
 
         ValidationResponse response = mapper.map(externalResponse, request);
 
@@ -101,11 +93,9 @@ class ResponseMappersTest {
         NinExistsResponseMapper mapper = new NinExistsResponseMapper();
         ValidationRequest request = new ValidationRequest()
                 .validationType(ValidationTypeEnum.NIN_EXISTS)
-                .referenceNo("1")
-                .language("EN")
-                .islamicMode("Y");
+                .referenceNo("1");
 
-        ETradeResponse externalResponse = new ETradeResponse("0", null, null, null, mockResData("0"), null);
+        ETradeResponse externalResponse = new ETradeResponse("0", null, mockResData("0"), null);
 
         ValidationResponse response = mapper.map(externalResponse, request);
 
@@ -120,11 +110,9 @@ class ResponseMappersTest {
         UsernameExistsResponseMapper mapper = new UsernameExistsResponseMapper();
         ValidationRequest request = new ValidationRequest()
                 .validationType(ValidationTypeEnum.USERNAME_EXISTS)
-                .referenceNo("1")
-                .language("EN")
-                .islamicMode("Y");
+                .referenceNo("1");
 
-        ETradeResponse externalResponse = new ETradeResponse("0", null, null, null, mockResData("1"), null);
+        ETradeResponse externalResponse = new ETradeResponse("0", null, mockResData("1"), null);
 
         ValidationResponse response = mapper.map(externalResponse, request);
 
@@ -139,11 +127,9 @@ class ResponseMappersTest {
         EIDExistsResponseMapper mapper = new EIDExistsResponseMapper();
         ValidationRequest request = new ValidationRequest()
                 .validationType(ValidationTypeEnum.EID_EXISTS)
-                .referenceNo("1")
-                .language("EN")
-                .islamicMode("Y");
+                .referenceNo("1");
 
-        ETradeResponse externalResponse = new ETradeResponse("0", null, null, null, mockResData("1"), null);
+        ETradeResponse externalResponse = new ETradeResponse("0", null, mockResData("1"), null);
 
         ValidationResponse response = mapper.map(externalResponse, request);
 
@@ -158,11 +144,9 @@ class ResponseMappersTest {
         TPUUIDExistsResponseMapper mapper = new TPUUIDExistsResponseMapper();
         ValidationRequest request = new ValidationRequest()
                 .validationType(ValidationTypeEnum.TP_UUID_EXISTS)
-                .referenceNo("1")
-                .language("EN")
-                .islamicMode("Y");
+                .referenceNo("1");
 
-        ETradeResponse externalResponse = new ETradeResponse("0", null, null, null, null, true);
+        ETradeResponse externalResponse = new ETradeResponse("0", null, null, true);
 
         ValidationResponse response = mapper.map(externalResponse, request);
 
@@ -177,11 +161,9 @@ class ResponseMappersTest {
         TPUUIDExistsResponseMapper mapper = new TPUUIDExistsResponseMapper();
         ValidationRequest request = new ValidationRequest()
                 .validationType(ValidationTypeEnum.TP_UUID_EXISTS)
-                .referenceNo("1")
-                .language("EN")
-                .islamicMode("Y");
+                .referenceNo("1");
 
-        ETradeResponse externalResponse = new ETradeResponse("0", null, null, null, mockResData("1"), null);
+        ETradeResponse externalResponse = new ETradeResponse("0", null, mockResData("1"), null);
 
         ValidationResponse response = mapper.map(externalResponse, request);
 
@@ -196,11 +178,9 @@ class ResponseMappersTest {
         TPUUIDExistsResponseMapper mapper = new TPUUIDExistsResponseMapper();
         ValidationRequest request = new ValidationRequest()
                 .validationType(ValidationTypeEnum.TP_UUID_EXISTS)
-                .referenceNo("1")
-                .language("EN")
-                .islamicMode("Y");
+                .referenceNo("1");
 
-        ETradeResponse externalResponse = new ETradeResponse("0", null, null, null, null, null);
+        ETradeResponse externalResponse = new ETradeResponse("0", null, null, null);
 
         ValidationResponse response = mapper.map(externalResponse, request);
 
@@ -215,11 +195,9 @@ class ResponseMappersTest {
         MobileExistsResponseMapper mapper = new MobileExistsResponseMapper();
         ValidationRequest request = new ValidationRequest()
                 .validationType(ValidationTypeEnum.MOBILE_EXISTS)
-                .referenceNo("1")
-                .language("EN")
-                .islamicMode("Y");
+                .referenceNo("1");
 
-        ETradeResponse externalResponse = new ETradeResponse("0", null, null, null, mockResData("1"), null);
+        ETradeResponse externalResponse = new ETradeResponse("0", null, mockResData("1"), null);
 
         ValidationResponse response = mapper.map(externalResponse, request);
 

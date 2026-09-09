@@ -87,9 +87,7 @@ class ValidationServiceImplTest {
     void validate_shouldThrowApplicationExceptionWhenEmailMissing() {
         ValidationRequest request = new ValidationRequest()
                 .validationType(ValidationTypeEnum.EMAIL_EXISTS)
-                .referenceNo("1")
-                .language("EN")
-                .islamicMode("Y");
+                .referenceNo("1");
 
         assertThatThrownBy(() -> validationService.validate(request))
                 .isInstanceOf(ApplicationException.class)
@@ -100,9 +98,7 @@ class ValidationServiceImplTest {
     void validate_shouldThrowApplicationExceptionWhenPassportMissing() {
         ValidationRequest request = new ValidationRequest()
                 .validationType(ValidationTypeEnum.PASSPORT_EXISTS)
-                .referenceNo("1")
-                .language("EN")
-                .islamicMode("Y");
+                .referenceNo("1");
 
         assertThatThrownBy(() -> validationService.validate(request))
                 .isInstanceOf(ApplicationException.class)
@@ -113,9 +109,7 @@ class ValidationServiceImplTest {
     void validate_shouldThrowApplicationExceptionWhenNinMissing() {
         ValidationRequest request = new ValidationRequest()
                 .validationType(ValidationTypeEnum.NIN_EXISTS)
-                .referenceNo("1")
-                .language("EN")
-                .islamicMode("Y");
+                .referenceNo("1");
 
         assertThatThrownBy(() -> validationService.validate(request))
                 .isInstanceOf(ApplicationException.class)
@@ -126,9 +120,7 @@ class ValidationServiceImplTest {
     void validate_shouldThrowApplicationExceptionWhenUsernameMissing() {
         ValidationRequest request = new ValidationRequest()
                 .validationType(ValidationTypeEnum.USERNAME_EXISTS)
-                .referenceNo("1")
-                .language("EN")
-                .islamicMode("Y");
+                .referenceNo("1");
 
         assertThatThrownBy(() -> validationService.validate(request))
                 .isInstanceOf(ApplicationException.class)
@@ -139,9 +131,7 @@ class ValidationServiceImplTest {
     void validate_shouldThrowApplicationExceptionWhenEidMissing() {
         ValidationRequest request = new ValidationRequest()
                 .validationType(ValidationTypeEnum.EID_EXISTS)
-                .referenceNo("1")
-                .language("EN")
-                .islamicMode("Y");
+                .referenceNo("1");
 
         assertThatThrownBy(() -> validationService.validate(request))
                 .isInstanceOf(ApplicationException.class)
@@ -152,9 +142,7 @@ class ValidationServiceImplTest {
     void validate_shouldThrowApplicationExceptionWhenUuidMissing() {
         ValidationRequest request = new ValidationRequest()
                 .validationType(ValidationTypeEnum.TP_UUID_EXISTS)
-                .referenceNo("1")
-                .language("EN")
-                .islamicMode("Y");
+                .referenceNo("1");
 
         assertThatThrownBy(() -> validationService.validate(request))
                 .isInstanceOf(ApplicationException.class)
@@ -166,8 +154,6 @@ class ValidationServiceImplTest {
         ValidationRequest request = new ValidationRequest()
                 .validationType(ValidationTypeEnum.TP_UUID_EXISTS)
                 .referenceNo("1")
-                .language("EN")
-                .islamicMode("Y")
                 .uuid("some-uuid");
 
         assertThatThrownBy(() -> validationService.validate(request))
@@ -179,9 +165,7 @@ class ValidationServiceImplTest {
     void validate_shouldThrowApplicationExceptionWhenMobileMissing() {
         ValidationRequest request = new ValidationRequest()
                 .validationType(ValidationTypeEnum.MOBILE_EXISTS)
-                .referenceNo("1")
-                .language("EN")
-                .islamicMode("Y");
+                .referenceNo("1");
 
         assertThatThrownBy(() -> validationService.validate(request))
                 .isInstanceOf(ApplicationException.class)
@@ -192,9 +176,7 @@ class ValidationServiceImplTest {
     void validate_shouldThrowApplicationExceptionForUnsupportedType() {
         ValidationRequest request = new ValidationRequest()
                 .validationType(null)
-                .referenceNo("1")
-                .language("EN")
-                .islamicMode("Y");
+                .referenceNo("1");
 
         assertThatThrownBy(() -> validationService.validate(request))
                 .isInstanceOf(ApplicationException.class)
@@ -206,8 +188,6 @@ class ValidationServiceImplTest {
         ValidationRequest request = new ValidationRequest()
                 .validationType(ValidationTypeEnum.EMAIL_EXISTS)
                 .referenceNo("1")
-                .language("EN")
-                .islamicMode("Y")
                 .email("test@example.com");
 
         when(etradeTokenProvider.getToken()).thenReturn(java.util.Optional.empty());
@@ -222,13 +202,11 @@ class ValidationServiceImplTest {
         ValidationRequest request = new ValidationRequest()
                 .validationType(ValidationTypeEnum.EMAIL_EXISTS)
                 .referenceNo("1")
-                .language("EN")
-                .islamicMode("Y")
                 .email("test@example.com");
 
         when(etradeTokenProvider.getToken()).thenReturn(java.util.Optional.of("token"));
         when(etradeClient.callETrade(anyString(), anyString(), anyString(), anyMap(), any(Class.class)))
-                .thenReturn(new ETradeResponse("1", null, null, null, mockResData("{\"message\":\"error\"}"), null));
+                .thenReturn(new ETradeResponse("1", null, mockResData("{\"message\":\"error\"}"), null));
 
         assertThatThrownBy(() -> validationService.validate(request))
                 .isInstanceOf(ExternalSystemException.class)
@@ -240,13 +218,11 @@ class ValidationServiceImplTest {
         ValidationRequest request = new ValidationRequest()
                 .validationType(ValidationTypeEnum.EMAIL_EXISTS)
                 .referenceNo("1")
-                .language("EN")
-                .islamicMode("Y")
                 .email("test@example.com");
 
         when(etradeTokenProvider.getToken()).thenReturn(java.util.Optional.of("token"));
         when(etradeClient.callETrade(anyString(), anyString(), anyString(), anyMap(), any(Class.class)))
-                .thenReturn(new ETradeResponse("0", null, null, null, resData, null));
+                .thenReturn(new ETradeResponse("0", null, resData, null));
         when(responseMapperRegistry.get(ValidationTypeEnum.EMAIL_EXISTS)).thenReturn(responseMapper);
         when(responseMapper.map(any(ETradeResponse.class), any(ValidationRequest.class)))
                 .thenReturn(new ValidationResponse(ValidationTypeEnum.EMAIL_EXISTS.getValue(), true, true, "exists", "1"));
@@ -263,8 +239,6 @@ class ValidationServiceImplTest {
         ValidationRequest request = new ValidationRequest()
                 .validationType(ValidationTypeEnum.EMAIL_EXISTS)
                 .referenceNo("1")
-                .language("EN")
-                .islamicMode("Y")
                 .email("test@example.com");
 
         when(etradeTokenProvider.getToken()).thenReturn(java.util.Optional.of("token"));
@@ -272,7 +246,7 @@ class ValidationServiceImplTest {
         ApiCallFailedException apiException = new ApiCallFailedException("/path", "POST", 401, "Unauthorized");
         when(etradeClient.callETrade(anyString(), anyString(), anyString(), anyMap(), any(Class.class)))
                 .thenThrow(apiException)
-                .thenReturn(new ETradeResponse("0", null, null, null, resData, null));
+                .thenReturn(new ETradeResponse("0", null, resData, null));
         when(responseMapperRegistry.get(ValidationTypeEnum.EMAIL_EXISTS)).thenReturn(responseMapper);
         when(responseMapper.map(any(ETradeResponse.class), any(ValidationRequest.class)))
                 .thenReturn(new ValidationResponse(ValidationTypeEnum.EMAIL_EXISTS.getValue(), true, true, "exists", "1"));
@@ -289,8 +263,6 @@ class ValidationServiceImplTest {
         ValidationRequest request = new ValidationRequest()
                 .validationType(ValidationTypeEnum.EMAIL_EXISTS)
                 .referenceNo("1")
-                .language("EN")
-                .islamicMode("Y")
                 .email("test@example.com");
 
         when(etradeTokenProvider.getToken()).thenReturn(java.util.Optional.of("token"), java.util.Optional.empty());
@@ -309,8 +281,6 @@ class ValidationServiceImplTest {
         ValidationRequest request = new ValidationRequest()
                 .validationType(ValidationTypeEnum.EMAIL_EXISTS)
                 .referenceNo("1")
-                .language("EN")
-                .islamicMode("Y")
                 .email("test@example.com");
 
         when(etradeTokenProvider.getToken()).thenReturn(java.util.Optional.of("token"));

@@ -24,8 +24,6 @@ class ValidationRequestMapperTest {
         ValidationRequest request = new ValidationRequest()
                 .validationType(ValidationRequest.ValidationTypeEnum.EMAIL_EXISTS)
                 .referenceNo("1")
-                .language("EN")
-                .islamicMode("Y")
                 .email("test@example.com");
 
         ValidationDefinition definition = new ValidationDefinition(

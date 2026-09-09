@@ -69,8 +69,6 @@ public class DuplicateCheckServiceImpl implements DuplicateCheckService {
             "/IntegrationAPI/IntegrationWServices/IfEidExists",
             "POST",
             Map.of(
-                "IslamicMode", "Y",
-                "Lang", "EN",
                 "Reference_No", "1",
                 "eid_number", eid
             )
@@ -82,8 +80,6 @@ public class DuplicateCheckServiceImpl implements DuplicateCheckService {
             "/IntegrationAPI/IntegrationWServices/IfEmailExists",
             "POST",
             Map.of(
-                "IslamicMode", "Y",
-                "Lang", "EN",
                 "Reference_No", "1",
                 "emailAddress", email
             )
@@ -95,8 +91,6 @@ public class DuplicateCheckServiceImpl implements DuplicateCheckService {
             "/IntegrationAPI/IntegrationWServices/IfPassportExists",
             "POST",
             Map.of(
-                "IslamicMode", "Y",
-                "Lang", "EN",
                 "Reference_No", "1",
                 "pp_number", passport
             )
