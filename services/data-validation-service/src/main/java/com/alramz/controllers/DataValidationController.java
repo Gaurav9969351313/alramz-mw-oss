@@ -19,9 +19,17 @@ import com.alramz.model.ValidationRequest;
 import com.alramz.service.IBANValidationService;
 import com.alramz.service.PhoneValidationService;
 import com.alramz.service.ValidationService;
+import com.alramz.exception.ApplicationException;
+import com.alramz.exception.ExternalSystemException;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -48,7 +56,37 @@ public class DataValidationController implements IbanApi, VeriPhoneApi, Existing
     @Override
     @JwtSecured(roles = "APP_DATA_VALIDATION")
     public ResponseEntity<GenericResponse> validateExistingData(ValidationRequest validationRequest) {
-        return ResponseEntity.ok(validationService.validate(validationRequest));
+        try {
+            return ResponseEntity.ok(validationService.validate(validationRequest));
+        } catch (ApplicationException ex) {
+            HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getRequest();
+            String message = ex.getField() != null ? ex.getField() + ": " + ex.getMessage() : ex.getMessage();
+            GenericResponse response = new GenericResponse();
+            response.setResponseCode("400");
+            response.setResponseMessage(message);
+            response.setResponse(null);
+            response.setCorrelationId(correlationId(request));
+            return ResponseEntity.badRequest().body(response);
+        } catch (ExternalSystemException ex) {
+            HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getRequest();
+            GenericResponse response = new GenericResponse();
+            response.setResponseCode("503");
+            response.setResponseMessage(ex.getMessage());
+            response.setResponse(null);
+            response.setCorrelationId(correlationId(request));
+            return ResponseEntity.status(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE).body(response);
+        }
+    }
+
+    private UUID correlationId(HttpServletRequest request) {
+        String correlationId = request.getHeader("X-Correlation-Id");
+        if (correlationId == null || correlationId.isBlank()) {
+            correlationId = request.getParameter("correlationId");
+        }
+        if (correlationId == null || correlationId.isBlank()) {
+            correlationId = UUID.randomUUID().toString();
+        }
+        return UUID.fromString(correlationId);
     }
 
     @Override

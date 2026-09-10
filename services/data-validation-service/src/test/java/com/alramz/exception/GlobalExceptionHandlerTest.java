@@ -6,12 +6,13 @@ import com.alramz.exception.IbanValidationException;
 import com.alramz.exception.TechnicalException;
 import com.alramz.exceptions.ApiCallFailedException;
 import com.alramz.exceptions.InvalidHttpRequestException;
+import com.alramz.model.GenericResponse;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.context.request.WebRequest;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 
@@ -19,11 +20,13 @@ import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class GlobalExceptionHandlerTest {
 
     private final GlobalExceptionHandler handler = new GlobalExceptionHandler();
+    private final HttpServletRequest request = mock(HttpServletRequest.class);
 
     @Test
     void handleValidation_shouldReturnBadRequest() {
@@ -33,26 +36,36 @@ class GlobalExceptionHandlerTest {
         
         when(ex.getBindingResult()).thenReturn(bindingResult);
         when(bindingResult.getFieldErrors()).thenReturn(List.of(fieldError));
+        when(request.getRequestURI()).thenReturn("/api/v1/existing-data/validation");
+        when(request.getHeader("X-Correlation-Id")).thenReturn(null);
+        when(request.getParameter("correlationId")).thenReturn(null);
         
-        ResponseEntity<com.alramz.model.GenericResponse> response = handler.handleValidation(ex);
+        ResponseEntity<Object> response = handler.handleValidation(ex, request);
         
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isInstanceOf(GenericResponse.class);
+        GenericResponse body = (GenericResponse) response.getBody();
+        assertThat(body.getResponseCode()).isEqualTo("400");
     }
 
     @Test
     void handleConstraint_shouldReturnBadRequest() {
         ConstraintViolationException ex = new ConstraintViolationException("constraint", Set.of());
+        when(request.getRequestURI()).thenReturn("/api/v1/existing-data/validation");
+        when(request.getHeader("X-Correlation-Id")).thenReturn(null);
+        when(request.getParameter("correlationId")).thenReturn(null);
         
-        ResponseEntity<com.alramz.model.GenericResponse> response = handler.handleConstraint(ex);
+        ResponseEntity<Object> response = handler.handleConstraint(ex, request);
         
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isInstanceOf(GenericResponse.class);
     }
 
     @Test
     void handleIbanValidation_shouldReturnBadRequest() {
         IbanValidationException ex = new IbanValidationException("1069", "validation error");
         
-        ResponseEntity<com.alramz.model.GenericResponse> response = handler.handleIbanValidation(ex);
+        ResponseEntity<GenericResponse> response = handler.handleIbanValidation(ex);
         
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody().getResponseCode()).isEqualTo("400");
@@ -61,36 +74,49 @@ class GlobalExceptionHandlerTest {
     @Test
     void handleExternalSystem_shouldReturnServiceUnavailable() {
         ExternalSystemException ex = new ExternalSystemException("external error");
+        when(request.getRequestURI()).thenReturn("/api/v1/existing-data/validation");
+        when(request.getHeader("X-Correlation-Id")).thenReturn(null);
+        when(request.getParameter("correlationId")).thenReturn(null);
         
-        ResponseEntity<com.alramz.model.GenericResponse> response = handler.handleExternalSystem(ex);
+        ResponseEntity<Object> response = handler.handleExternalSystem(ex, request);
         
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+        assertThat(response.getBody()).isInstanceOf(GenericResponse.class);
     }
 
     @Test
     void handleTechnical_shouldReturnServiceUnavailable() {
         TechnicalException ex = new TechnicalException("technical error");
+        when(request.getRequestURI()).thenReturn("/api/v1/existing-data/validation");
+        when(request.getHeader("X-Correlation-Id")).thenReturn(null);
+        when(request.getParameter("correlationId")).thenReturn(null);
         
-        ResponseEntity<com.alramz.model.GenericResponse> response = handler.handleTechnical(ex);
+        ResponseEntity<Object> response = handler.handleTechnical(ex, request);
         
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+        assertThat(response.getBody()).isInstanceOf(GenericResponse.class);
     }
 
     @Test
     void handleApplication_shouldReturnBadRequest() {
         ApplicationException ex = new ApplicationException("field", "test message");
+        when(request.getRequestURI()).thenReturn("/api/v1/existing-data/validation");
+        when(request.getHeader("X-Correlation-Id")).thenReturn(null);
+        when(request.getParameter("correlationId")).thenReturn(null);
         
-        ResponseEntity<com.alramz.model.GenericResponse> response = handler.handleApplication(ex);
+        ResponseEntity<Object> response = handler.handleApplication(ex, request);
         
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(response.getBody().getResponseCode()).isEqualTo("400");
+        assertThat(response.getBody()).isInstanceOf(GenericResponse.class);
+        GenericResponse body = (GenericResponse) response.getBody();
+        assertThat(body.getResponseCode()).isEqualTo("400");
     }
 
     @Test
     void handleApiCallFailed_shouldReturnServiceUnavailable() {
         ApiCallFailedException ex = new ApiCallFailedException("/path", "POST", 500, "error");
         
-        ResponseEntity<com.alramz.model.GenericResponse> response = handler.handleApiCallFailed(ex);
+        ResponseEntity<GenericResponse> response = handler.handleApiCallFailed(ex);
         
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
     }
@@ -98,18 +124,26 @@ class GlobalExceptionHandlerTest {
     @Test
     void handleInvalidHttpRequest_shouldReturnServiceUnavailable() {
         InvalidHttpRequestException ex = new InvalidHttpRequestException("invalid request");
+        when(request.getRequestURI()).thenReturn("/api/v1/existing-data/validation");
+        when(request.getHeader("X-Correlation-Id")).thenReturn(null);
+        when(request.getParameter("correlationId")).thenReturn(null);
         
-        ResponseEntity<com.alramz.model.GenericResponse> response = handler.handleInvalidHttpRequest(ex);
+        ResponseEntity<Object> response = handler.handleInvalidHttpRequest(ex, request);
         
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+        assertThat(response.getBody()).isInstanceOf(GenericResponse.class);
     }
 
     @Test
     void handleGeneric_shouldReturnServiceUnavailable() {
         Exception ex = new Exception("generic error");
+        when(request.getRequestURI()).thenReturn("/api/v1/existing-data/validation");
+        when(request.getHeader("X-Correlation-Id")).thenReturn(null);
+        when(request.getParameter("correlationId")).thenReturn(null);
         
-        ResponseEntity<com.alramz.model.GenericResponse> response = handler.handleGeneric(ex);
+        ResponseEntity<Object> response = handler.handleGeneric(ex, request);
         
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+        assertThat(response.getBody()).isInstanceOf(GenericResponse.class);
     }
 }
