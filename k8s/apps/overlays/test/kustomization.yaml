@@ -1,0 +1,21 @@
+resources:
+  - ../../../infra/postgres/
+  - ../../../infra/redis/
+  - ../../../infra/seq/
+  - ../../base/data-validation-service/
+  - ../../base/alramz-notification-service/
+
+namespace: alramz-test
+
+images:
+  - name: data-validation-service
+    newName: ghcr.io/gauravtalele1994/alramz-mw-oss/data-validation-service
+    newTag: sha-a91c72f
+
+  - name: alramz-notification-service
+    newName: ghcr.io/gauravtalele1994/alramz-mw-oss/alramz-notification-service
+    newTag: sha-a91c72f
+
+patches:
+  - path: data-validation-service-patch.yaml
+  - path: alramz-notification-service-patch.yaml

@@ -81,22 +81,22 @@ company:
       enabled: false
       pretty-print: false
     correlation-id:
-      response-header: false
+      response-header: true
     request:
       enabled: true
-      include-headers: false
+      include-headers: true
       include-payload: true
     response:
       enabled: true
       include-payload: true
     aspect:
-      enabled: false
+      enabled: true
     performance:
       threshold: 1000ms
     database-logging:
       enabled: true
-      include-request-payload: false
-      include-response-payload: false
+      include-request-payload: true
+      include-response-payload: true
       cleanup-cron: "0 0 2 * * *"
       retention-days: 7
       excluded-paths:
@@ -120,15 +120,15 @@ company:
   datasource:
     middleware:
       enabled: true
-      url: jdbc:postgresql://localhost:5432/alramzmwdb
-      username: alramzmw
-      password: alramz!321*
-      driverClassName: org.postgresql.Driver
+      url: ${COMPANY_DATASOURCE_MIDDLEWARE_URL:jdbc:postgresql://localhost:5432/alramzmwdb}
+      username: ${COMPANY_DATASOURCE_MIDDLEWARE_USERNAME:alramzmw}
+      plainPassword: ${COMPANY_DATASOURCE_MIDDLEWARE_PLAINPASSWORD:alramz!321*}
+      driverClassName: ${COMPANY_DATASOURCE_MIDDLEWARE_DRIVERCLASSNAME:org.postgresql.Driver}
       startup-validation:
-        enabled: false
+        enabled: ${COMPANY_DATASOURCE_MIDDLEWARE_STARTUP_VALIDATION_ENABLED:false}
       pool:
-        maximum-pool-size: 10
-        minimum-idle: 2
+        maximum-pool-size: ${COMPANY_DATASOURCE_MIDDLEWARE_POOL_MAXIMUM_POOL_SIZE:10}
+        minimum-idle: ${COMPANY_DATASOURCE_MIDDLEWARE_POOL_MINIMUM_IDLE:2}
       sql-logging:
         enabled: false
     brok:

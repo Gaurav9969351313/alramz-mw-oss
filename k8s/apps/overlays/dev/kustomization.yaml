@@ -1,0 +1,21 @@
+resources:
+  - ../../../infra/postgres/
+  - ../../../infra/redis/
+  - ../../../infra/seq/
+  - ../../base/data-validation-service/
+  - ../../base/alramz-notification-service/
+
+namespace: alramz-dev
+
+images:
+  - name: data-validation-service
+    newName: gauravtalele1994/data-validation-service
+    newTag: "1.0.0"
+
+  - name: alramz-notification-service
+    newName: gauravtalele1994/alramz-notification-service
+    newTag: "1.0.0"
+
+patches:
+  - path: data-validation-service-patch.yaml
+  - path: alramz-notification-service-patch.yaml

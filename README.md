@@ -1,5 +1,21 @@
 docker run -d --name seq -e ACCEPT_EULA=Y -e SEQ_FIRSTRUN_ADMINPASSWORD=admin123 -p 5341:80 -p 5342:5341 datalust/seq:latest
 
+mvn -pl services/data-validation-service -am clean test-compile -Dmaven.compiler.useIncrementalCompilation=false
+mvn clean package
+
+kubectl -n kube-system create serviceaccount headlamp-admin
+kubectl create clusterrolebinding headlamp-admin --serviceaccount=kube-system:headlamp-admin --clusterrole=cluster-admin
+kubectl create token headlamp-admin -n kube-system
+helm repo add headlamp https://kubernetes-sigs.github.io/headlamp/
+helm install alramz-headlamp headlamp/headlamp --namespace kube-system
+
+
+# Build data-validation-service Docker image
+mvn clean package -DskipTests -pl services/data-validation-service -am && docker build -t data-validation-service:latest services/data-validation-service
+
+# Build alramz-notification-service Docker image  
+mvn clean package -DskipTests -pl services/alramz-notification-service -am && docker build -t alramz-notification-service:latest services/alramz-notification-service
+
 
 # Al Ramz Middleware & Infrastructure Ecosystem
 

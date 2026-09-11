@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: alramz-platform
+  namespace: argocd
+spec:
+  description: AlRamz Middleware Platform
+  sourceRepos:
+    - "https://github.com/Gaurav9969351313/alramz-mw-oss.git"
+  destinations:
+    - namespace: alramz-dev
+      server: https://kubernetes.default.svc
+    - namespace: alramz-test
+      server: https://kubernetes.default.svc
+    - namespace: alramz-preprod
+      server: https://kubernetes.default.svc
+    - namespace: alramz-prod
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace

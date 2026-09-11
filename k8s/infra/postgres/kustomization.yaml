@@ -1,0 +1,8 @@
+resources:
+  - deployment.yaml
+  - service.yaml
+  - pvc.yaml
+  - secret.yaml
+  - pgadmin-secret.yaml
+  - pgadmin-deployment.yaml
+  - pgadmin-service.yaml

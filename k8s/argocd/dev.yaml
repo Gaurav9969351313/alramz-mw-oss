@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: alramz-dev
+  namespace: argocd
+spec:
+  project: alramz-platform
+  source:
+    repoURL: "https://github.com/Gaurav9969351313/alramz-mw-oss.git"
+    targetRevision: feature/git-governance
+    path: k8s/apps/overlays/dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: alramz-dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

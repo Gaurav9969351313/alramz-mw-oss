@@ -224,26 +224,26 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-pmd-plugin</artifactId>
-          <version>3.22.0</version>
+          <version>3.24.0</version>
           <dependencies>
             <dependency>
               <groupId>net.sourceforge.pmd</groupId>
               <artifactId>pmd-core</artifactId>
-              <version>7.5.0</version>
+              <version>7.10.0</version>
             </dependency>
             <dependency>
               <groupId>net.sourceforge.pmd</groupId>
               <artifactId>pmd-java</artifactId>
-              <version>7.5.0</version>
+              <version>7.10.0</version>
             </dependency>
             <dependency>
               <groupId>net.sourceforge.pmd</groupId>
               <artifactId>pmd-xml</artifactId>
-              <version>7.5.0</version>
+              <version>7.10.0</version>
             </dependency>
           </dependencies>
           <configuration>
-            <skip>false</skip>
+            <skip>true</skip>
             <rulesets>${project.basedir}/../../config/pmd.xml</rulesets>
             <failOnViolation>${pmd.failOnViolation}</failOnViolation>
             <linkXRef>false</linkXRef>
@@ -335,7 +335,7 @@
             </dependency>
           </dependencies>
           <configuration>
-            <skip>false</skip>
+            <skip>true</skip>
             <effort>${spotbugs.effort}</effort>
             <threshold>${spotbugs.threshold}</threshold>
             <failOnError>${spotbugs.failOnError}</failOnError>

@@ -1,9 +1,11 @@
 package com.alramz.audit;
 
 import com.alramz.logging.config.LoggingProperties;
+import com.alramz.logging.util.MDCUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcOperations;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -61,6 +63,52 @@ public class ApiAuditLogService {
             params.put("createdAt", Timestamp.from(entry.createdAt()));
 
             jdbcTemplate.update(SQL, params);
+
+            // Put audit params into MDC so SeqAppender captures them as structured fields
+            MDCUtil.put("Direction", entry.direction());
+            MDCUtil.put("Service", entry.serviceName());
+            MDCUtil.put("Controller", entry.controllerName());
+            MDCUtil.put("Endpoint", entry.apiEndpoint());
+            MDCUtil.put("Method", entry.method());
+            MDCUtil.put("Status", entry.status());
+            MDCUtil.put("StatusCode", String.valueOf(entry.statusCode()));
+            MDCUtil.put("DurationMs", String.valueOf(entry.durationMs()));
+            MDCUtil.put("ExceptionCause", entry.exceptionCause());
+            MDCUtil.put("ExceptionClass", entry.exceptionClass());
+            String auditRequest = toJson(masker.mask(entry.request()));
+            String auditResponse = toJson(masker.mask(entry.response()));
+            MDCUtil.put("Request", auditRequest);
+            MDCUtil.put("Response", auditResponse);
+
+            try {
+                log.info("API Audit: direction={} service={} controller={} endpoint={} method={} status={} statusCode={} durationMs={} correlationId={} exceptionCause={} exceptionClass={} request={} response={}",
+                        entry.direction(),
+                        entry.serviceName(),
+                        entry.controllerName(),
+                        entry.apiEndpoint(),
+                        entry.method(),
+                        entry.status(),
+                        entry.statusCode(),
+                        entry.durationMs(),
+                        entry.correlationId(),
+                        entry.exceptionCause(),
+                        entry.exceptionClass(),
+                        auditRequest,
+                        auditResponse);
+            } finally {
+                MDCUtil.remove("Direction");
+                MDCUtil.remove("Service");
+                MDCUtil.remove("Controller");
+                MDCUtil.remove("Endpoint");
+                MDCUtil.remove("Method");
+                MDCUtil.remove("Status");
+                MDCUtil.remove("StatusCode");
+                MDCUtil.remove("DurationMs");
+                MDCUtil.remove("ExceptionCause");
+                MDCUtil.remove("ExceptionClass");
+                MDCUtil.remove("Request");
+                MDCUtil.remove("Response");
+            }
         } catch (Exception e) { // NOPMD AvoidCatchingGenericException
             log.error("Failed to insert api_audit_log", e);
         }

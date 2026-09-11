@@ -10,6 +10,37 @@ management:
         include: "*"
 
 company:
+  logging:
+    json:
+      enabled: false
+      pretty-print: false
+    correlation-id:
+      response-header: true
+    request:
+      enabled: true
+      include-headers: true
+      include-payload: true
+    response:
+      enabled: true
+      include-payload: true
+    aspect:
+      enabled: true
+    performance:
+      threshold: 1000ms
+    database-logging:
+      enabled: true
+      include-request-payload: true
+      include-response-payload: true
+      cleanup-cron: "0 0 2 * * *"
+      retention-days: 7
+      excluded-paths:
+        - /api/v1/info
+        - /actuator/**
+        - /swagger-ui/**
+        - /v3/api-docs/**
+    seq:
+      enabled: true
+      url: http://seq:80
   datasource:
     middleware:
       enabled: true
@@ -115,8 +146,4 @@ adapter:
 cipher:
   password: ${CIPHER_PASSWORD:UseMostSecretKey}
 
-company:
-  logging:
-    seq:
-      enabled: true
-      url: http://seq:80
+
