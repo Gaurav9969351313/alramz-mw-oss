@@ -1,0 +1,15 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: alramz-platform
+  namespace: argocd
+spec:
+  description: Al Ramz Platform Project
+  sourceRepos:
+    - '*'
+  destinations:
+    - namespace: alramz-platform
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace

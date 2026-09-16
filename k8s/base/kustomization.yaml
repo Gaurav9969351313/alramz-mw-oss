@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: alramz-platform
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secret.yaml
+  - postgres.yaml
+  - redis.yaml
+  - seq.yaml
+  - data-validation-service.yaml
+  - alramz-notification-service.yaml
+  - ingress.yaml
+
+commonLabels:
+  app.kubernetes.io/name: alramz-platform
+  app.kubernetes.io/managed-by: kustomize

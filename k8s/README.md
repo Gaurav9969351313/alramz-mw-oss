@@ -255,7 +255,7 @@ For local development, ensure you have the correct `kubeconfig` context set:
 kubectl config use-context <your-cluster-context>
 kubectl config current-context
 ```
-
+=====================================================================================================================
 kubectl port-forward svc/pgadmin -n alramz-dev 5555:80
 Open http://localhost:5555
 
@@ -270,6 +270,16 @@ Port: 5432
 Database: alramzmwdb
 Username: alramzmw
 Password: changeme
+=====================================================================================================================
+
+export POD_NAME=$(kubectl get pods --namespace kube-system -l "app.kubernetes.io/name=headlamp,app.kubernetes.io/instance=alramz-headlamp" -o jsonpath="{.items[0].metadata.name}")
+
+kubectl --namespace kube-system port-forward $POD_NAME 8084:4466
+
+kubectl create token headlamp-admin -n kube-system
+=====================================================================================================================
 
 kubectl port-forward svc/argocd-server -n argocd 8083:443
 KjK0bYZGO4WHIdef
+
+=====================================================================================================================

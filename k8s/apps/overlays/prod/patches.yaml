@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: data-validation-service
+spec:
+  replicas: 3
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: data-validation-service-config
+data:
+  SPRING_PROFILES_ACTIVE: "prod"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alramz-notification-service
+spec:
+  replicas: 3
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alramz-notification-service-config
+data:
+  SPRING_PROFILES_ACTIVE: "prod"
+  APP_EMAIL_SERVICE_PROVIDER: "MICROSOFT_GRAPH"

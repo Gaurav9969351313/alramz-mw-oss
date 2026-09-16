@@ -1,0 +1,7 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: data-validation-service
+  namespace: alramz-platform
+spec:
+  replicas: 2

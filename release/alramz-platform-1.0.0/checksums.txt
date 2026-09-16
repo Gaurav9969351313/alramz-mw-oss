@@ -1,0 +1,8 @@
+28ee23909ff9bcda413d2ab8d3178c1283067ee7161d4a9eed09263888508a15  /Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/release/.env
+c980dfab7516b6b465a1372a87c1d1ecbb11b691aa775a6dfef3d1537f668f09  /Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/release/.env.example
+90ac65e572196ad1b1d45de73baa1a6b8614aa6a8911af0014aafa7a5e092f30  /Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/release/README.md
+1a2630c23a6b50af3b2d1862d8ddb1d54a72c70ab7ae222134b380bedc94e984  /Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/release/RELEASE-MANIFEST.yaml
+9a56e770adc70a1a050f2234a7a02002279206d2fa7505d92026816e917e6ec3  /Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/release/RELEASE-MANIFEST.yaml.template
+023571ce045c60c926d961946fbb4f535196dcd5f80dfa951c95199f791b38b7  /Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/release/docker-compose.yml
+3a8c4d1ad710105ab97561e8bdfdde3b3084fa407a3897ab347f4d07f345aa32  /Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/release/scripts/deploy.sh
+d2853553d5d3361390e36df9d1c6fb598dc41b9b3bfecce03087d5756d98f6fb  /Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/release/scripts/release.sh
