@@ -2,12 +2,9 @@ package com.alramz.controllers;
 
 import com.alramz.model.GenericResponse;
 import com.alramz.model.IBANRequest;
-import com.alramz.model.OnboardingRequest;
-import com.alramz.model.OnboardingResponse;
 import com.alramz.model.PhoneRequest;
 import com.alramz.model.ValidationRequest;
 import com.alramz.service.IBANValidationService;
-import com.alramz.service.OnboardingService;
 import com.alramz.service.PhoneValidationService;
 import com.alramz.service.ValidationService;
 import org.junit.jupiter.api.Test;
@@ -33,12 +30,9 @@ class DataValidationControllerTest {
     @Mock
     private ValidationService validationService;
 
-    @Mock
-    private OnboardingService onboardingService;
-
     @Test
     void validateIBAN_shouldReturnOkResponse() {
-        DataValidationController controller = new DataValidationController(ibanValidationService, phoneValidationService, validationService, onboardingService);
+        DataValidationController controller = new DataValidationController(ibanValidationService, phoneValidationService, validationService);
 
         IBANRequest ibanRequest = new IBANRequest();
         GenericResponse genericResponse = new GenericResponse();
@@ -57,7 +51,7 @@ class DataValidationControllerTest {
 
     @Test
     void verifyPhone_shouldReturnOkResponse() {
-        DataValidationController controller = new DataValidationController(ibanValidationService, phoneValidationService, validationService, onboardingService);
+        DataValidationController controller = new DataValidationController(ibanValidationService, phoneValidationService, validationService);
 
         PhoneRequest phoneRequest = new PhoneRequest();
         GenericResponse genericResponse = new GenericResponse();
@@ -76,7 +70,7 @@ class DataValidationControllerTest {
 
     @Test
     void validateExistingData_shouldReturnOkResponse() {
-        DataValidationController controller = new DataValidationController(ibanValidationService, phoneValidationService, validationService, onboardingService);
+        DataValidationController controller = new DataValidationController(ibanValidationService, phoneValidationService, validationService);
 
         ValidationRequest validationRequest = new ValidationRequest();
         GenericResponse genericResponse = new GenericResponse();
@@ -91,24 +85,5 @@ class DataValidationControllerTest {
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody()).isSameAs(genericResponse);
         verify(validationService).validate(validationRequest);
-    }
-
-    @Test
-    void onboard_shouldReturnOkResponse() {
-        DataValidationController controller = new DataValidationController(ibanValidationService, phoneValidationService, validationService, onboardingService);
-
-        OnboardingRequest onboardingRequest = new OnboardingRequest();
-        OnboardingResponse onboardingResponse = new OnboardingResponse();
-        onboardingResponse.setResponseCode("200");
-        onboardingResponse.setResponseMessage("OK");
-
-        when(onboardingService.onboard(any(OnboardingRequest.class))).thenReturn(onboardingResponse);
-
-        ResponseEntity<OnboardingResponse> response = controller.onboard(onboardingRequest);
-
-        assertThat(response).isNotNull();
-        assertThat(response.getStatusCode().value()).isEqualTo(200);
-        assertThat(response.getBody()).isSameAs(onboardingResponse);
-        verify(onboardingService).onboard(onboardingRequest);
     }
 }

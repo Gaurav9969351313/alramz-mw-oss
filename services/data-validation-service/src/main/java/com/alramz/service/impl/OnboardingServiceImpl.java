@@ -29,6 +29,7 @@ public class OnboardingServiceImpl implements OnboardingService {
         String correlationId = java.util.UUID.randomUUID().toString();
         String memberReferenceNumber = correlationId;
 
+        validateRequiredFields(request);
         validateNationalityPresence(request);
         validateUsCitizen(request);
 
@@ -48,7 +49,7 @@ public class OnboardingServiceImpl implements OnboardingService {
             dfmOnboardingRepository.insert(request, memberReferenceNumber);
         } catch (Exception e) { // NOPMD AvoidCatchingGenericException
             log.error("Failed to persist onboarding request", e);
-            throw new TechnicalException("Failed to persist onboarding request: " + e.getMessage());
+            throw new TechnicalException("Failed to persist onboarding request: " + e.getMessage(), "ONB011");
         }
 
         OnboardingResponse response = new OnboardingResponse();
@@ -56,6 +57,28 @@ public class OnboardingServiceImpl implements OnboardingService {
         response.setMemberReferenceNumber(java.util.UUID.fromString(memberReferenceNumber));
         response.setMemberClientId(java.util.UUID.fromString(memberReferenceNumber));
         return response;
+    }
+
+    private void validateRequiredFields(OnboardingRequest request) {
+        if (isBlank(request.getCustMobile())) {
+            throw new ApplicationException("cust_mobile", "Mobile Number (cust_mobile) is missing", "ONB001");
+        }
+        if (isBlank(request.getCustEmail())) {
+            throw new ApplicationException("cust_email", "Email Address (cust_email) is missing", "ONB002");
+        }
+        if (isBlank(request.getCustNin())) {
+            throw new ApplicationException("cust_nin", "NIN Number (cust_nin) is missing", "ONB003");
+        }
+        if (isBlank(request.getKycMatch())) {
+            throw new ApplicationException("kyc_match", "Background check (kyc_match) is missing", "ONB004");
+        }
+        if (isBlank(request.getFatcaUscitizen())) {
+            throw new ApplicationException("fatca_uscitizen", "USCitizen (fatca_uscitizen) is missing", "ONB005");
+        }
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     private void validateNationalityPresence(OnboardingRequest request) {

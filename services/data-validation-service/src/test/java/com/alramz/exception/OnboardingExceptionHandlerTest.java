@@ -31,13 +31,13 @@ class OnboardingExceptionHandlerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().getResponseCode()).isEqualTo("400");
-        assertThat(response.getBody().getResponseMessage()).isEqualTo("cust_mobile: Mobile Number (cust_mobile) is missing");
+        assertThat(response.getBody().getResponseMessage()).isEqualTo("Mobile Number (cust_mobile) is missing");
         assertThat(response.getBody().getMemberReferenceNumber()).isNotNull();
-        assertThat(response.getBody().getInternalErrorCode()).isEqualTo("ONB011");
+        assertThat(response.getBody().getInternalErrorCode()).isEqualTo("ONB001");
     }
 
     @Test
-    void handleValidation_shouldReturnBadRequestWithONB011() {
+    void handleValidation_shouldReturnBadRequestWithONB001() {
         MethodArgumentNotValidException ex = mock(MethodArgumentNotValidException.class);
         BindingResult bindingResult = mock(BindingResult.class);
         FieldError fieldError = new FieldError("onboardingRequest", "custMobile", "", false, null, null, "size must be between 1 and 2147483647");
@@ -54,9 +54,32 @@ class OnboardingExceptionHandlerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().getResponseCode()).isEqualTo("400");
-        assertThat(response.getBody().getResponseMessage()).isEqualTo("custMobile: size must be between 1 and 2147483647");
+        assertThat(response.getBody().getResponseMessage()).isEqualTo("Mobile Number (cust_mobile) is missing");
         assertThat(response.getBody().getMemberReferenceNumber()).isNotNull();
-        assertThat(response.getBody().getInternalErrorCode()).isEqualTo("ONB011");
+        assertThat(response.getBody().getInternalErrorCode()).isEqualTo("ONB001");
+    }
+
+    @Test
+    void handleValidation_shouldReturnBadRequestWithONB002() {
+        MethodArgumentNotValidException ex = mock(MethodArgumentNotValidException.class);
+        BindingResult bindingResult = mock(BindingResult.class);
+        FieldError fieldError = new FieldError("onboardingRequest", "custEmail", "", false, null, null, "size must be between 1 and 2147483647");
+
+        when(ex.getBindingResult()).thenReturn(bindingResult);
+        when(bindingResult.getFieldErrors()).thenReturn(List.of(fieldError));
+
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getHeader("X-Correlation-Id")).thenReturn(null);
+        when(request.getParameter("correlationId")).thenReturn(null);
+
+        ResponseEntity<OnboardingResponse> response = handler.handleValidation(ex, request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getResponseCode()).isEqualTo("400");
+        assertThat(response.getBody().getResponseMessage()).isEqualTo("Email Address (cust_email) is missing and Size of email must be between 1 and 255 in charecter length");
+        assertThat(response.getBody().getMemberReferenceNumber()).isNotNull();
+        assertThat(response.getBody().getInternalErrorCode()).isEqualTo("ONB002");
     }
 
     @Test
@@ -90,6 +113,6 @@ class OnboardingExceptionHandlerTest {
         assertThat(response.getBody().getResponseCode()).isEqualTo("500");
         assertThat(response.getBody().getResponseMessage()).isEqualTo("Internal Server Error");
         assertThat(response.getBody().getMemberReferenceNumber()).isNotNull();
-        assertThat(response.getBody().getInternalErrorCode()).isEqualTo("ONB011");
+        assertThat(response.getBody().getInternalErrorCode()).isEqualTo("ONB012");
     }
 }

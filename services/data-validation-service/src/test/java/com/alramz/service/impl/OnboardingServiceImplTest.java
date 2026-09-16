@@ -116,6 +116,66 @@ class OnboardingServiceImplTest {
     }
 
     @Test
+    void onboard_shouldThrowApplicationExceptionWhenMobileMissing() {
+        OnboardingRequest request = buildValidRequest();
+        request.setCustMobile(null);
+
+        assertThatThrownBy(() -> onboardingService.onboard(request))
+                .isInstanceOf(ApplicationException.class)
+                .hasFieldOrPropertyWithValue("field", "cust_mobile")
+                .hasFieldOrPropertyWithValue("serviceErrorResponseCode", "ONB001")
+                .hasMessageContaining("Mobile Number");
+    }
+
+    @Test
+    void onboard_shouldThrowApplicationExceptionWhenEmailMissing() {
+        OnboardingRequest request = buildValidRequest();
+        request.setCustEmail("");
+
+        assertThatThrownBy(() -> onboardingService.onboard(request))
+                .isInstanceOf(ApplicationException.class)
+                .hasFieldOrPropertyWithValue("field", "cust_email")
+                .hasFieldOrPropertyWithValue("serviceErrorResponseCode", "ONB002")
+                .hasMessageContaining("Email Address");
+    }
+
+    @Test
+    void onboard_shouldThrowApplicationExceptionWhenNinMissing() {
+        OnboardingRequest request = buildValidRequest();
+        request.setCustNin("  ");
+
+        assertThatThrownBy(() -> onboardingService.onboard(request))
+                .isInstanceOf(ApplicationException.class)
+                .hasFieldOrPropertyWithValue("field", "cust_nin")
+                .hasFieldOrPropertyWithValue("serviceErrorResponseCode", "ONB003")
+                .hasMessageContaining("NIN Number");
+    }
+
+    @Test
+    void onboard_shouldThrowApplicationExceptionWhenKycMatchMissing() {
+        OnboardingRequest request = buildValidRequest();
+        request.setKycMatch(null);
+
+        assertThatThrownBy(() -> onboardingService.onboard(request))
+                .isInstanceOf(ApplicationException.class)
+                .hasFieldOrPropertyWithValue("field", "kyc_match")
+                .hasFieldOrPropertyWithValue("serviceErrorResponseCode", "ONB004")
+                .hasMessageContaining("Background check");
+    }
+
+    @Test
+    void onboard_shouldThrowApplicationExceptionWhenFatcaUscitizenMissing() {
+        OnboardingRequest request = buildValidRequest();
+        request.setFatcaUscitizen(null);
+
+        assertThatThrownBy(() -> onboardingService.onboard(request))
+                .isInstanceOf(ApplicationException.class)
+                .hasFieldOrPropertyWithValue("field", "fatca_uscitizen")
+                .hasFieldOrPropertyWithValue("serviceErrorResponseCode", "ONB005")
+                .hasMessageContaining("USCitizen");
+    }
+
+    @Test
     void onboard_shouldNormalizeMobileNumber() {
         OnboardingRequest request = buildValidRequest();
         request.setCustMobile("971502540238");
@@ -174,6 +234,7 @@ class OnboardingServiceImplTest {
 
         assertThatThrownBy(() -> onboardingService.onboard(request))
                 .isInstanceOf(TechnicalException.class)
-                .hasMessageContaining("Failed to persist onboarding request");
+                .hasMessageContaining("Failed to persist onboarding request")
+                .hasFieldOrPropertyWithValue("errorCode", "ONB011");
     }
 }

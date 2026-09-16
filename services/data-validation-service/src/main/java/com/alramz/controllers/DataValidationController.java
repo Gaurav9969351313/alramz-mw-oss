@@ -34,12 +34,11 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
-public class DataValidationController implements IbanApi, VeriPhoneApi, ExistingDataApi, DfmOnboardingApi {
+public class DataValidationController implements IbanApi, VeriPhoneApi, ExistingDataApi {
 
     private final IBANValidationService ibanValidationService;
     private final PhoneValidationService phoneValidationService;
     private final ValidationService validationService;
-    private final OnboardingService onboardingService;
 
     @Override
     @JwtSecured(roles = "APP_DATA_VALIDATION")
@@ -89,9 +88,4 @@ public class DataValidationController implements IbanApi, VeriPhoneApi, Existing
         return UUID.fromString(correlationId);
     }
 
-    @Override
-    @JwtSecured(roles = "APP_DATA_VALIDATION")
-    public ResponseEntity<OnboardingResponse> onboard(@Valid OnboardingRequest onboardingRequest) {
-        return ResponseEntity.ok(onboardingService.onboard(onboardingRequest));
-    }
 }

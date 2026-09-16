@@ -244,3 +244,22 @@ bash release.sh --no-prompt
 
 
 docker compose --env-file .env up 
+
+
+
+
+
+Next Points to implement
+1) Logging -- Key Authentication --> Consumer Field 
+              Consumer
+              Enviornment
+
+         title -- API Audit: URI
+
+   Execution time of All methods. - AOP
+
+2) Any Docs Private
+3) Framework for accessing feature flags
+4) Grouping Of Services
+5) 
+
