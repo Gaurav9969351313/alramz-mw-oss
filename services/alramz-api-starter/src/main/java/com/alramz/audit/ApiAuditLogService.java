@@ -5,6 +5,7 @@ import com.alramz.logging.util.MDCUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcOperations;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -32,16 +33,19 @@ public class ApiAuditLogService {
     private final ObjectMapper objectMapper;
     private final LoggingProperties properties;
     private final SensitiveDataMasker masker;
+    private final Environment environment;
 
     public ApiAuditLogService(@Qualifier("middlewareNamedParameterJdbcTemplate") NamedParameterJdbcTemplate jdbcTemplate,
                               ObjectMapper objectMapper,
-                              LoggingProperties properties) {
+                              LoggingProperties properties,
+                              Environment environment) {
         this.jdbcTemplate = jdbcTemplate;
         this.objectMapper = objectMapper.copy()
                 .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
                 .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         this.properties = properties;
         this.masker = new SensitiveDataMasker(objectMapper, properties.getMasking().isEnabled()); // NOPMD LawOfDemeter
+        this.environment = environment;
     }
 
     public void log(ApiAuditLog entry) {
@@ -66,46 +70,37 @@ public class ApiAuditLogService {
 
             // Put audit params into MDC so SeqAppender captures them as structured fields
             MDCUtil.put("Direction", entry.direction());
-            MDCUtil.put("Service", entry.serviceName());
+            MDCUtil.put("ServiceName", entry.serviceName());
             MDCUtil.put("Controller", entry.controllerName());
             MDCUtil.put("Endpoint", entry.apiEndpoint());
             MDCUtil.put("Method", entry.method());
-            MDCUtil.put("Status", entry.status());
             MDCUtil.put("StatusCode", String.valueOf(entry.statusCode()));
             MDCUtil.put("DurationMs", String.valueOf(entry.durationMs()));
             MDCUtil.put("ExceptionCause", entry.exceptionCause());
             MDCUtil.put("ExceptionClass", entry.exceptionClass());
+            MDCUtil.put("Environment", environment.getProperty("spring.profiles.active"));
             String auditRequest = toJson(masker.mask(entry.request()));
             String auditResponse = toJson(masker.mask(entry.response()));
             MDCUtil.put("Request", auditRequest);
             MDCUtil.put("Response", auditResponse);
 
             try {
-                log.info("API Audit: direction={} service={} controller={} endpoint={} method={} status={} statusCode={} durationMs={} correlationId={} exceptionCause={} exceptionClass={} request={} response={}",
+                log.info("--> API Audit: direction={} service={} endpoint={} status={} statusCode={}",
                         entry.direction(),
                         entry.serviceName(),
-                        entry.controllerName(),
                         entry.apiEndpoint(),
-                        entry.method(),
-                        entry.status(),
-                        entry.statusCode(),
-                        entry.durationMs(),
-                        entry.correlationId(),
-                        entry.exceptionCause(),
-                        entry.exceptionClass(),
-                        auditRequest,
-                        auditResponse);
+                        entry.statusCode());
             } finally {
                 MDCUtil.remove("Direction");
-                MDCUtil.remove("Service");
+                MDCUtil.remove("ServiceName");
                 MDCUtil.remove("Controller");
                 MDCUtil.remove("Endpoint");
                 MDCUtil.remove("Method");
-                MDCUtil.remove("Status");
                 MDCUtil.remove("StatusCode");
                 MDCUtil.remove("DurationMs");
                 MDCUtil.remove("ExceptionCause");
                 MDCUtil.remove("ExceptionClass");
+                MDCUtil.remove("Environment");
                 MDCUtil.remove("Request");
                 MDCUtil.remove("Response");
             }

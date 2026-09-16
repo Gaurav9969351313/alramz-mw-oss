@@ -24,7 +24,7 @@ public class ServiceNameTurboFilter extends TurboFilter {
                               Throwable t) {
         if (serviceName != null && !serviceName.isBlank()) {
             try {
-                MDC.put("serviceName", serviceName);
+                MDC.put("ServiceName", serviceName);
             } catch (Exception ignored) { // NOPMD AvoidCatchingGenericException
                 // MDC may be unavailable on some runtimes.
             }

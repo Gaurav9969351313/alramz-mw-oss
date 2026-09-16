@@ -7,6 +7,7 @@ import com.alramz.exception.TechnicalException;
 import com.alramz.exception.ExternalSystemException;
 import com.alramz.exception.IbanValidationException;
 import com.alramz.exceptions.ApiCallFailedException;
+import com.alramz.logging.aspect.Loggable;
 import com.alramz.model.BankData;
 import com.alramz.model.GenericResponse;
 import com.alramz.model.IBANRequest;
@@ -50,6 +51,7 @@ public class IBANValidationServiceImpl extends AbstractRestClient implements IBA
     }
 
     @Override
+    @Loggable
     public GenericResponse validate(IBANRequest request) {
         String iban = request.getIBAN();
         if (iban == null || iban.trim().isEmpty()) {

@@ -5,6 +5,7 @@ import com.alramz.api.ExistingDataApi;
 import com.alramz.api.IbanApi;
 import com.alramz.api.VeriPhoneApi;
 import com.alramz.jwt.annotation.JwtSecured;
+import com.alramz.logging.aspect.Loggable;
 import com.alramz.model.OnboardingRequest;
 import com.alramz.model.OnboardingResponse;
 import com.alramz.service.OnboardingService;
@@ -42,18 +43,21 @@ public class DataValidationController implements IbanApi, VeriPhoneApi, Existing
 
     @Override
     @JwtSecured(roles = "APP_DATA_VALIDATION")
+    @Loggable
     public ResponseEntity<GenericResponse> validateIBAN(IBANRequest ibANRequest) {
         return ResponseEntity.ok(ibanValidationService.validate(ibANRequest));
     }
 
     @Override
     @JwtSecured(roles = "APP_DATA_VALIDATION")
+    @Loggable
     public ResponseEntity<GenericResponse> verifyPhone(PhoneRequest phoneRequest) {
         return ResponseEntity.ok(phoneValidationService.validate(phoneRequest));
     }
 
     @Override
     @JwtSecured(roles = "APP_DATA_VALIDATION")
+    @Loggable
     public ResponseEntity<GenericResponse> validateExistingData(ValidationRequest validationRequest) {
         try {
             return ResponseEntity.ok(validationService.validate(validationRequest));

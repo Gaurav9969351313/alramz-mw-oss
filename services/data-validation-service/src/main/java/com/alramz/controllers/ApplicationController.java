@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.alramz.jwt.annotation.PermitAll;
+import com.alramz.logging.aspect.Loggable;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,6 +22,7 @@ public class ApplicationController {
 
     @GetMapping("/api/v1/info")
     @PermitAll
+    @Loggable
     public Map<String, Object> info() throws Exception {
 
         Map<String, Object> response = new HashMap<>();

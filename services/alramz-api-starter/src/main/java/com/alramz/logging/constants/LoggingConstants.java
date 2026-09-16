@@ -16,7 +16,7 @@ public final class LoggingConstants {
     public static final String USER_ID = "userId";
     public static final String TENANT_ID = "tenantId";
     public static final String CLIENT_IP = "clientIp";
-    public static final String SERVICE_NAME = "serviceName";
+    public static final String SERVICE_NAME = "ServiceName";
     public static final String TRACE_ID = "traceId";
     public static final String SPAN_ID = "spanId";
     public static final String METHOD = "method";

@@ -3,6 +3,7 @@ package com.alramz.service.impl;
 import com.alramz.exception.ApplicationException;
 import com.alramz.exception.ExternalSystemException;
 import com.alramz.exception.TechnicalException;
+import com.alramz.logging.aspect.Loggable;
 import com.alramz.model.OnboardingRequest;
 import com.alramz.model.OnboardingResponse;
 import com.alramz.repository.DfmOnboardingRepository;
@@ -25,6 +26,7 @@ public class OnboardingServiceImpl implements OnboardingService {
     }
 
     @Override
+    @Loggable
     public OnboardingResponse onboard(OnboardingRequest request) {
         String correlationId = java.util.UUID.randomUUID().toString();
         String memberReferenceNumber = correlationId;

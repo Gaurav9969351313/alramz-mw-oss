@@ -11,6 +11,7 @@ import com.alramz.logging.interceptor.WebClientLoggingFilter;
 import com.alramz.logging.otel.OpenTelemetryTraceContextExtractor;
 import com.alramz.logging.util.LogMaskingUtil;
 import com.alramz.logging.util.LoggingHelper;
+import com.alramz.logging.util.MethodExecutionLoggingHelper;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.Filter;
 import org.springframework.beans.factory.ObjectProvider;
@@ -19,13 +20,13 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.*;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.core.env.Environment;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.List;
@@ -43,21 +44,26 @@ import java.util.List;
 @AutoConfiguration
 @EnableConfigurationProperties(LoggingProperties.class)
 @ConditionalOnProperty(name = "company.logging.enabled", havingValue = "true", matchIfMissing = true)
+@EnableAspectJAutoProxy(proxyTargetClass = true)
 public class LoggingAutoConfiguration {
 
-    private final LoggingProperties properties;
+    private final ObjectProvider<LoggingProperties> propertiesProvider;
 
-    public LoggingAutoConfiguration(LoggingProperties properties) {
-        this.properties = properties;
+    public LoggingAutoConfiguration(ObjectProvider<LoggingProperties> propertiesProvider) {
+        this.propertiesProvider = propertiesProvider;
     }
 
     @PostConstruct
     void configureMasking() {
+        LoggingProperties properties = propertiesProvider.getIfAvailable();
+        if (properties == null) {
+            return;
+        }
         LogMaskingUtil.configure(
-                properties.getMasking().isEnabled(), // NOPMD LawOfDemeter
-                properties.getMasking().getMaskReplacement(), // NOPMD LawOfDemeter
-                properties.getMasking().getSensitiveKeys(), // NOPMD LawOfDemeter
-                properties.getMasking().getCustomPatterns()); // NOPMD LawOfDemeter
+                properties.getMasking().isEnabled(),
+                properties.getMasking().getMaskReplacement(),
+                properties.getMasking().getSensitiveKeys(),
+                properties.getMasking().getCustomPatterns());
     }
 
     @Bean
@@ -108,8 +114,29 @@ public class LoggingAutoConfiguration {
     @Bean
     @ConditionalOnProperty(name = "company.logging.aspect.enabled", havingValue = "true")
     @ConditionalOnClass(org.aspectj.lang.annotation.Aspect.class)
-    MethodExecutionLoggingAspect alramzMethodExecutionLoggingAspect(LoggingProperties properties) {
-        return new MethodExecutionLoggingAspect(properties);
+    MethodExecutionLoggingHelper alramzMethodExecutionLoggingHelper(
+            LoggingProperties properties,
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
+        return new MethodExecutionLoggingHelper(properties, objectMapper);
+    }
+
+    @Bean
+    @ConditionalOnProperty(name = "company.logging.aspect.enabled", havingValue = "true")
+    @ConditionalOnClass(org.aspectj.lang.annotation.Aspect.class)
+    MethodExecutionLoggingAspect alramzMethodExecutionLoggingAspect(
+            ObjectProvider<MethodExecutionLoggingHelper> helperProvider) {
+        MethodExecutionLoggingAspect aspect = new MethodExecutionLoggingAspect(helperProvider);
+        System.out.println("[LOGGING] MethodExecutionLoggingAspect bean created and registered");
+        return aspect;
+    }
+
+    @Bean
+    org.springframework.boot.CommandLineRunner diagnosticLogAspectLoader() {
+        return args -> {
+            System.out.println("[LOGGING] LoggingAutoConfiguration loaded successfully");
+            System.out.println("[LOGGING] AspectJ auto proxy enabled: true");
+            System.out.println("[LOGGING] Method execution logging aspect should be active");
+        };
     }
 
     // ----------------------------------------------------- outgoing http logs
@@ -161,8 +188,9 @@ public class LoggingAutoConfiguration {
     com.alramz.audit.ApiAuditLogService apiAuditLogService(
             @Qualifier("middlewareNamedParameterJdbcTemplate") org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate jdbcTemplate,
             com.fasterxml.jackson.databind.ObjectMapper objectMapper,
-            LoggingProperties properties) {
-        return new com.alramz.audit.ApiAuditLogService(jdbcTemplate, objectMapper, properties);
+            LoggingProperties properties,
+            Environment environment) {
+        return new com.alramz.audit.ApiAuditLogService(jdbcTemplate, objectMapper, properties, environment);
     }
 
     @Bean

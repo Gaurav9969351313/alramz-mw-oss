@@ -92,8 +92,6 @@ class LoggingHelperTest {
 
         helper.populateMdc(request);
 
-        assertThat(MDCUtil.get("serviceName")).isEqualTo("test-service");
-        assertThat(MDCUtil.get("method")).isEqualTo("POST");
         assertThat(MDCUtil.get("uri")).isEqualTo("/api/users");
         assertThat(MDCUtil.get("queryString")).isEqualTo("active=true");
         assertThat(MDCUtil.get("clientIp")).isEqualTo("203.0.113.7");

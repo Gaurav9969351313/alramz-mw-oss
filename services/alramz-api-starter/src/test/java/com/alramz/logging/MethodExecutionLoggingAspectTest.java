@@ -1,19 +1,25 @@
 package com.alramz.logging;
 
+import com.alramz.logging.aspect.Loggable;
 import com.alramz.logging.aspect.MethodExecutionLoggingAspect;
 import com.alramz.logging.config.LoggingProperties;
 import com.alramz.logging.util.LogMaskingUtil;
+import com.alramz.logging.util.MethodExecutionLoggingHelper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.aspectj.lang.ProceedingJoinPoint;
-import org.aspectj.lang.Signature;
+import org.aspectj.lang.reflect.MethodSignature;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.springframework.beans.factory.ObjectProvider;
 import org.slf4j.LoggerFactory;
 
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 
+import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.List;
 
@@ -25,18 +31,25 @@ class MethodExecutionLoggingAspectTest {
 
     private MethodExecutionLoggingAspect aspect;
     private ListAppender<ILoggingEvent> appender;
+    private LoggingProperties properties;
 
     @BeforeEach
     void setUp() {
         LogMaskingUtil.configure(true, "********", List.of(), List.of());
-        LoggingProperties properties = new LoggingProperties();
+        properties = new LoggingProperties();
+        properties.getAspect().setMaxPayloadLength(500);
         properties.getPerformance().setThreshold(Duration.ofMillis(0));
-        aspect = new MethodExecutionLoggingAspect(properties);
+
+        MethodExecutionLoggingHelper helper = new MethodExecutionLoggingHelper(properties, new ObjectMapper());
+        ObjectProvider<MethodExecutionLoggingHelper> provider = Mockito.mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(helper);
+        aspect = new MethodExecutionLoggingAspect(provider);
 
         Logger logger = (Logger) LoggerFactory.getLogger(MethodExecutionLoggingAspect.class);
         appender = new ListAppender<>();
         appender.start();
         logger.addAppender(appender);
+        logger.setLevel(ch.qos.logback.classic.Level.INFO);
     }
 
     @AfterEach
@@ -45,32 +58,107 @@ class MethodExecutionLoggingAspectTest {
     }
 
     @Test
-    void logsExecutionWhenThresholdIsZero() throws Throwable {
-        ProceedingJoinPoint joinPoint = mock(ProceedingJoinPoint.class);
-        Signature signature = mock(Signature.class);
-        when(joinPoint.proceed()).thenReturn("ok");
-        when(joinPoint.getTarget()).thenReturn(new Object());
-        when(joinPoint.getSignature()).thenReturn(signature);
-        when(signature.getName()).thenReturn("doWork");
+    void logsEntryAndExitWithArgsAndReturn() throws Throwable {
+        ProceedingJoinPoint pjp = mock(ProceedingJoinPoint.class);
+        MethodSignature signature = mock(MethodSignature.class);
+        Method method = TestService.class.getMethod("doWork", String.class, int.class);
 
-        aspect.logExecutionTime(joinPoint);
+        when(pjp.proceed()).thenReturn("result");
+        when(pjp.getSignature()).thenReturn(signature);
+        when(pjp.getArgs()).thenReturn(new Object[]{"arg1", 123});
+        when(signature.getMethod()).thenReturn(method);
+        when(signature.getDeclaringType()).thenReturn(TestService.class);
+
+        aspect.logMethodExecution(pjp);
 
         List<ILoggingEvent> events = appender.list;
         assertThat(events).isNotEmpty();
-        assertThat(events.get(0).getFormattedMessage()).contains("doWork").contains("executed in");
+        String allMessages = events.stream()
+                .map(ILoggingEvent::getFormattedMessage)
+                .reduce("", (a, b) -> a + "\n" + b);
+        assertThat(allMessages).contains(">>> ENTERING:");
+        assertThat(allMessages).contains(">>> ARGS:");
+        assertThat(allMessages).contains("<<< EXITING:");
+        assertThat(allMessages).contains("<<< RETURN: result");
+        assertThat(allMessages).contains("<<< EXECUTION TIME:");
     }
 
     @Test
-    void doesNotLogWhenAboveThreshold() throws Throwable {
-        LoggingProperties properties = new LoggingProperties();
-        properties.getPerformance().setThreshold(Duration.ofMinutes(5));
-        aspect = new MethodExecutionLoggingAspect(properties);
+    void logsExceptionWithStackTrace() throws Throwable {
+        ProceedingJoinPoint pjp = mock(ProceedingJoinPoint.class);
+        MethodSignature signature = mock(MethodSignature.class);
+        Method method = TestService.class.getMethod("doWork", String.class, int.class);
+        RuntimeException ex = new RuntimeException("boom");
 
-        ProceedingJoinPoint joinPoint = mock(ProceedingJoinPoint.class);
-        when(joinPoint.proceed()).thenReturn("ok");
+        when(pjp.proceed()).thenThrow(ex);
+        when(pjp.getSignature()).thenReturn(signature);
+        when(pjp.getArgs()).thenReturn(new Object[]{});
+        when(signature.getMethod()).thenReturn(method);
+        when(signature.getDeclaringType()).thenReturn(TestService.class);
 
-        aspect.logExecutionTime(joinPoint);
+        try {
+            aspect.logMethodExecution(pjp);
+        } catch (RuntimeException ignored) {
+        }
+
+        List<ILoggingEvent> events = appender.list;
+        assertThat(events).isNotEmpty();
+        String allMessages = events.stream()
+                .map(ILoggingEvent::getFormattedMessage)
+                .reduce("", (a, b) -> a + "\n" + b);
+        assertThat(allMessages).contains("<<< EXCEPTION in");
+        assertThat(allMessages).contains("boom");
+    }
+
+    @Test
+    void skipsExcludedPackage() throws Throwable {
+        ProceedingJoinPoint pjp = mock(ProceedingJoinPoint.class);
+        MethodSignature signature = mock(MethodSignature.class);
+        Method method = Object.class.getMethod("toString");
+
+        when(pjp.proceed()).thenReturn("ok");
+        when(pjp.getSignature()).thenReturn(signature);
+        when(pjp.getArgs()).thenReturn(new Object[]{});
+        when(signature.getMethod()).thenReturn(method);
+        when(signature.getDeclaringType()).thenReturn(org.springframework.web.client.RestTemplate.class);
+
+        aspect.logMethodExecution(pjp);
 
         assertThat(appender.list).isEmpty();
+    }
+
+    @Test
+    void respectsLoggableOverrideWhenClassExcluded() throws Throwable {
+        class CustomRestTemplate extends org.springframework.web.client.RestTemplate {
+            @Loggable
+            public String custom() {
+                return "ok";
+            }
+        }
+
+        ProceedingJoinPoint pjp = mock(ProceedingJoinPoint.class);
+        MethodSignature signature = mock(MethodSignature.class);
+        Method customMethod = CustomRestTemplate.class.getMethod("custom");
+
+        when(pjp.proceed()).thenReturn("ok");
+        when(pjp.getSignature()).thenReturn(signature);
+        when(pjp.getArgs()).thenReturn(new Object[]{});
+        when(signature.getMethod()).thenReturn(customMethod);
+        when(signature.getDeclaringType()).thenReturn(CustomRestTemplate.class);
+
+        aspect.logMethodExecution(pjp);
+
+        assertThat(appender.list).isNotEmpty();
+        String allMessages = appender.list.stream()
+                .map(ILoggingEvent::getFormattedMessage)
+                .reduce("", (a, b) -> a + "\n" + b);
+        assertThat(allMessages).contains(">>> ENTERING:")
+                .contains("<<< EXITING:");
+    }
+
+    static class TestService {
+        public String doWork(String arg1, int arg2) {
+            return "ok";
+        }
     }
 }

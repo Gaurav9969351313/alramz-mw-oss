@@ -4,6 +4,7 @@ import com.alramz.client.ETradeClient;
 import com.alramz.config.ETradeTokenProvider;
 import com.alramz.exception.ExternalSystemException;
 import com.alramz.exceptions.ApiCallFailedException;
+import com.alramz.logging.aspect.Loggable;
 import com.alramz.model.ETradeResponse;
 import com.alramz.service.DuplicateCheckService;
 import com.alramz.service.impl.NinTradingNumberValidationService;
@@ -30,6 +31,7 @@ public class DuplicateCheckServiceImpl implements DuplicateCheckService {
     private NinTradingNumberValidationService ninTradingNumberValidationService;
 
     @Override
+    @Loggable
     public boolean[] checkDuplicates(String nin, String eid, String email, String passport) {
         boolean ninExists = false;
         boolean eidExists = false;

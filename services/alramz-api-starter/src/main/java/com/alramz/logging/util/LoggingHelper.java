@@ -73,7 +73,6 @@ public class LoggingHelper {
         MDCUtil.putUserId(resolveHeader(request, properties.getCorrelationId().getUserIdHeader())); // NOPMD LawOfDemeter
         MDCUtil.putTenantId(resolveHeader(request, properties.getCorrelationId().getTenantIdHeader())); // NOPMD LawOfDemeter
         MDCUtil.putRequestId(resolveHeader(request, properties.getCorrelationId().getRequestIdHeader())); // NOPMD LawOfDemeter
-        MDCUtil.put(LoggingConstants.METHOD, request.getMethod());
         MDCUtil.put(LoggingConstants.URI, request.getRequestURI());
         String query = request.getQueryString();
         if (query != null && !query.isEmpty()) {

@@ -266,7 +266,6 @@ public class SeqAppender extends AppenderBase<ILoggingEvent> {
         node.put("@l", mapLevel(event.getLevel()));
         node.put("thread", event.getThreadName());
         node.put("logger", event.getLoggerName());
-        node.put("serviceName", serviceName);
 
         Map<String, String> mdcContext = event.getMDCPropertyMap();
         if (mdcContext != null) {

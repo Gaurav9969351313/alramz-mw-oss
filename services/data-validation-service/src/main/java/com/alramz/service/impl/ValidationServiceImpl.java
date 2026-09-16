@@ -8,6 +8,7 @@ import com.alramz.config.ValidationDefinitionRegistry;
 import com.alramz.exception.ApplicationException;
 import com.alramz.exception.ExternalSystemException;
 import com.alramz.exceptions.ApiCallFailedException;
+import com.alramz.logging.aspect.Loggable;
 import com.alramz.model.ETradeResponse;
 import com.alramz.model.GenericResponse;
 import com.alramz.model.ValidationRequest;
@@ -46,6 +47,7 @@ public class ValidationServiceImpl implements ValidationService {
     }
 
     @Override
+    @Loggable
     public GenericResponse validate(ValidationRequest request) {
         validateRequest(request);
 

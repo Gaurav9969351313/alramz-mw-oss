@@ -123,6 +123,19 @@ public class LoggingProperties {
     @Setter
     public static class AspectProperties {
         private boolean enabled = false;
+        private boolean logEntry = true;
+        private boolean logExit = true;
+        private boolean logArgs = true;
+        private boolean logReturn = true;
+        private boolean logExceptions = true;
+        private int maxPayloadLength = 1000;
+        private String separator = "================================================================================";
+        private List<String> excludedPackages = new ArrayList<>(List.of(
+                "org.springframework.", "org.hibernate.", "java.", "javax.", "jakarta.", "sun.", "com.sun."
+        ));
+        private List<String> excludedClassPatterns = new ArrayList<>(List.of(
+                "$$EnhancerBySpringCGLIB$$", "$$FastClassBySpringCGLIB$$"
+        ));
     }
 
     // ------------------------------------------------------------------ performance

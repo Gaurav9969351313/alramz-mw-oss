@@ -6,6 +6,7 @@ import com.alramz.exception.TechnicalException;
 import com.alramz.exception.ExternalSystemException;
 import com.alramz.exception.IbanValidationException;
 import com.alramz.exceptions.ApiCallFailedException;
+import com.alramz.logging.aspect.Loggable;
 import com.alramz.model.GenericResponse;
 import com.alramz.model.PhoneRequest;
 import com.alramz.model.PhoneValidationResponse;
@@ -43,6 +44,7 @@ public class PhoneValidationServiceImpl extends AbstractRestClient implements Ph
     }
 
     @Override
+    @Loggable
     public GenericResponse validate(PhoneRequest request) {
         if (request.getPhone() == null || request.getPhone().trim().isEmpty()) {
             throw new IbanValidationException("1069", "Missing phone number");
