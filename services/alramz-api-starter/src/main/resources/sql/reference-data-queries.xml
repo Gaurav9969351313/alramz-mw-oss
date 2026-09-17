@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+    <entry key="reference.data.find">
+        SELECT
+            ID,
+            IDENTIFIER,
+            IDENTIFIER_TYPE,
+            IDENTIFIER_TEXT,
+            STATUS
+        FROM REFERENCE_DATA
+        WHERE IDENTIFIER = :identifier
+    </entry>
+    <entry key="reference.data.find.with.type">
+        SELECT
+            ID,
+            IDENTIFIER,
+            IDENTIFIER_TYPE,
+            IDENTIFIER_TEXT,
+            STATUS
+        FROM REFERENCE_DATA
+        WHERE IDENTIFIER = :identifier
+          AND IDENTIFIER_TYPE LIKE :identifierType
+    </entry>
+    <entry key="reference.data.find.with.status">
+        SELECT
+            ID,
+            IDENTIFIER,
+            IDENTIFIER_TYPE,
+            IDENTIFIER_TEXT,
+            STATUS
+        FROM REFERENCE_DATA
+        WHERE IDENTIFIER = :identifier
+          AND STATUS = :status
+    </entry>
+    <entry key="reference.data.find.with.type.and.status">
+        SELECT
+            ID,
+            IDENTIFIER,
+            IDENTIFIER_TYPE,
+            IDENTIFIER_TEXT,
+            STATUS
+        FROM REFERENCE_DATA
+        WHERE IDENTIFIER = :identifier
+          AND IDENTIFIER_TYPE LIKE :identifierType
+          AND STATUS = :status
+    </entry>
+    <entry key="reference.data.find.identifier.texts">
+        SELECT IDENTIFIER_TEXT
+        FROM REFERENCE_DATA
+        WHERE IDENTIFIER = :identifier
+    </entry>
+    <entry key="reference.data.find.identifier.texts.with.type">
+        SELECT IDENTIFIER_TEXT
+        FROM REFERENCE_DATA
+        WHERE IDENTIFIER = :identifier
+          AND IDENTIFIER_TYPE LIKE :identifierType
+    </entry>
+    <entry key="reference.data.find.identifier.texts.with.status">
+        SELECT IDENTIFIER_TEXT
+        FROM REFERENCE_DATA
+        WHERE IDENTIFIER = :identifier
+          AND STATUS = :status
+    </entry>
+    <entry key="reference.data.find.identifier.texts.with.type.and.status">
+        SELECT IDENTIFIER_TEXT
+        FROM REFERENCE_DATA
+        WHERE IDENTIFIER = :identifier
+          AND IDENTIFIER_TYPE LIKE :identifierType
+          AND STATUS = :status
+    </entry>
+    <entry key="reference.data.update">
+        UPDATE REFERENCE_DATA
+        SET IDENTIFIER_TEXT = :identifierText
+        WHERE IDENTIFIER = :identifier
+          AND IDENTIFIER_TYPE LIKE :identifierType
+          AND STATUS = :status
+    </entry>
+    <entry key="reference.data.update.without.status">
+        UPDATE REFERENCE_DATA
+        SET IDENTIFIER_TEXT = :identifierText
+        WHERE IDENTIFIER = :identifier
+          AND IDENTIFIER_TYPE LIKE :identifierType
+    </entry>
+</properties>

@@ -1,6 +1,3 @@
-server:
-  host: localhost
-
 spring:
   application:
     name: data-validation-service
@@ -12,5 +9,8 @@ spring:
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
 
+server:
+  host: localhost
+
 sql:
-  file: classpath:sql/sql-queries.xml
+  file: classpath:sql/reference-data-queries.xml,classpath:sql/sql-queries.xml

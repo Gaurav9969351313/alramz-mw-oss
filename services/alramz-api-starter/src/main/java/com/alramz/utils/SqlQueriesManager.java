@@ -42,25 +42,35 @@ public class SqlQueriesManager {
             if (log.isInfoEnabled()) {
                 log.info("Initializing SQL Query Manager");
             }
-            
-            String sqlFile = environment.getRequiredProperty("sql.file");
-            if (sqlFile.startsWith("classpath:")) {
-                sqlFile = sqlFile.substring("classpath:".length());
-            }
-            
-            InputStream in = getClass().getClassLoader().getResourceAsStream(sqlFile);
-        
-            if (in == null) {
-                throw new IOException("Error: InputStream is null.");
-            }
+
+            String sqlFiles = environment.getRequiredProperty("sql.file");
+            String[] filePaths = sqlFiles.split(",");
 
             if (props == null) {
                 props = new Properties();
             }
-            props.loadFromXML(in);
+
+            for (String sqlFile : filePaths) {
+                sqlFile = sqlFile.trim();
+                if (sqlFile.startsWith("classpath:")) {
+                    sqlFile = sqlFile.substring("classpath:".length());
+                }
+
+                InputStream in = getClass().getClassLoader().getResourceAsStream(sqlFile);
+
+                if (in == null) {
+                    log.warn("Warning: SQL file not found: {}", sqlFile);
+                    continue;
+                }
+
+                props.loadFromXML(in);
+                if (log.isInfoEnabled()) {
+                    log.info("Loaded SQL config from: {}", sqlFile);
+                }
+            }
 
             if (log.isInfoEnabled()) {
-                log.info("Loaded  SQL Config:: ");
+                log.info("SQL Query Manager initialized with {} queries", props.size());
             }
         } finally {
         }
