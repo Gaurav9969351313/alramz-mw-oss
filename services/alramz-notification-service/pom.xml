@@ -199,7 +199,7 @@
                                 <openApiNullable>false</openApiNullable>
                                 <useResponseEntity>true</useResponseEntity>
                             </configOptions>
-                            <modelsToSkip>EmailAttachment,EmailRequest</modelsToSkip> 
+                            <modelsToGenerate>EmailSendResponse,ErrorResponse</modelsToGenerate>
                         </configuration>
                     </execution>
                 </executions>
