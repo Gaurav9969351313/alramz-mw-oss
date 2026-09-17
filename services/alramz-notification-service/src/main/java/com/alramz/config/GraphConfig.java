@@ -20,7 +20,7 @@ import java.util.List;
 @EnableConfigurationProperties(GraphProperties.class)
 public class GraphConfig {
 
-    private static final Logger log = LoggerFactory.getLogger(GraphConfig.class);
+    private static final Logger LOG = LoggerFactory.getLogger(GraphConfig.class);
 
     @Bean
     @ConditionalOnProperty(name = "app.email.service-provider", havingValue = "MICROSOFT_GRAPH")
@@ -33,8 +33,8 @@ public class GraphConfig {
                 ? properties.graphScopes()
                 : "https://graph.microsoft.com/.default";
 
-        if (log.isInfoEnabled()) {
-            log.info("Configuring GraphServiceClient");
+        if (LOG.isInfoEnabled()) {
+            LOG.info("Configuring GraphServiceClient");
         }
 
         ClientSecretCredential credential = new ClientSecretCredentialBuilder()
@@ -44,8 +44,8 @@ public class GraphConfig {
                 .build();
 
         AccessToken accessToken = credential.getToken(new TokenRequestContext().addScopes(scopes)).block();
-        if (log.isInfoEnabled()) {
-            log.info("Access Token: {}", accessToken.getToken());
+        if (LOG.isInfoEnabled()) {
+            LOG.info("Access Token: {}", accessToken.getToken());
         }
 
         TokenCredentialAuthProvider authProvider =
@@ -58,8 +58,8 @@ public class GraphConfig {
                 .authenticationProvider(authProvider)
                 .buildClient();
 
-        if (log.isInfoEnabled()) {
-            log.info("=========== GraphServiceClient configured successfully =============");
+        if (LOG.isInfoEnabled()) {
+            LOG.info("=========== GraphServiceClient configured successfully =============");
         }
         return graphClient;
     }

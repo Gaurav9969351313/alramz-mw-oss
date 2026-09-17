@@ -1,23 +1,19 @@
 package com.alramz.model;
 
-import java.net.URI;
-import java.util.Objects;
-import com.alramz.model.EmailAttachment;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonCreator;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
+
 import org.springframework.lang.Nullable;
-import java.time.OffsetDateTime;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.*;
-import org.hibernate.validator.constraints.*;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import io.swagger.v3.oas.annotations.media.Schema;
-
-
-import java.util.*;
 import jakarta.annotation.Generated;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 /**
  * EmailRequest
@@ -59,7 +55,8 @@ public class EmailRequest {
    * Recipient email address
    * @return to
    */
-  @NotNull @jakarta.validation.constraints.Email
+  @NotNull
+  @Email
   @Schema(name = "to", example = "recipient@example.com", description = "Recipient email address", requiredMode = Schema.RequiredMode.REQUIRED)
   @JsonProperty("to")
   public String getTo() {
@@ -80,7 +77,8 @@ public class EmailRequest {
    * Email subject
    * @return subject
    */
-  @NotNull @Size(max = 255)
+  @NotNull
+  @Size(max = 255)
   @Schema(name = "subject", example = "Test Email from Spring Boot", description = "Email subject", requiredMode = Schema.RequiredMode.REQUIRED)
   @JsonProperty("subject")
   public String getSubject() {
@@ -101,7 +99,8 @@ public class EmailRequest {
    * Sender email address
    * @return from
    */
-  @NotNull @jakarta.validation.constraints.Email
+  @NotNull
+  @Email
   @Schema(name = "from", example = "sender@example.com", description = "Sender email address", requiredMode = Schema.RequiredMode.REQUIRED)
   @JsonProperty("from")
   public String getFrom() {
@@ -122,7 +121,8 @@ public class EmailRequest {
    * Email body (HTML supported)
    * @return body
    */
-  @NotNull @Size(max = 10000)
+  @NotNull
+  @Size(max = 10000)
   @Schema(name = "body", example = "<h1>Hello</h1><p>This is a test email body.</p>", description = "Email body (HTML supported)", requiredMode = Schema.RequiredMode.REQUIRED)
   @JsonProperty("body")
   public String getBody() {
@@ -151,7 +151,8 @@ public class EmailRequest {
    * Optional email attachments
    * @return attachments
    */
-  @Valid @Size(max = 10)
+  @Valid
+  @Size(max = 10)
   @Schema(name = "attachments", description = "Optional email attachments", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
   @JsonProperty("attachments")
   public List<@Valid EmailAttachment> getAttachments() {

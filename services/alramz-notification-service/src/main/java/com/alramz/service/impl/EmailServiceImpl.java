@@ -30,7 +30,7 @@ import java.util.UUID;
 @Service
 public class EmailServiceImpl implements EmailService {
 
-    private static final Logger log = LoggerFactory.getLogger(EmailServiceImpl.class);
+    private static final Logger LOG = LoggerFactory.getLogger(EmailServiceImpl.class);
     private static final String PROVIDER = "MICROSOFT_GRAPH";
 
     private final EmailProperties emailProperties;
@@ -78,23 +78,19 @@ public class EmailServiceImpl implements EmailService {
             return response;
 
         } catch (Exception ex) { // NOPMD AvoidCatchingGenericException
-            if (ex instanceof com.microsoft.graph.http.GraphServiceException gse) {
-                com.microsoft.graph.http.GraphError serviceError = gse.getServiceError();
-                if (log.isErrorEnabled()) {
-                    log.error("Graph Error {} - Code: {}, Message: {}", gse.getResponseCode(),
-                    serviceError != null ? serviceError.code : "N/A",
-                    serviceError != null ? serviceError.message : "N/A", gse);
-                }
-            } else {
-                if (log.isErrorEnabled()) {
-                    log.error("Email send failed", ex);
-                }
-            }
+            logEmailError(ex);
             throw new EmailServiceException(503, "Service Unavailable", ex);
         }
     }
 
     private void validateRequest(EmailRequest request) {
+        validateRequiredFields(request);
+        validateEmailFormats(request);
+        validateFieldLengths(request);
+        validateAttachments(request);
+    }
+
+    private void validateRequiredFields(EmailRequest request) {
         if (ObjectUtils.isEmpty(request.getTo())) {
             throw new EmailValidationException("400", "Missing or invalid required field: to");
         }
@@ -107,21 +103,27 @@ public class EmailServiceImpl implements EmailService {
         if (ObjectUtils.isEmpty(request.getBody())) {
             throw new EmailValidationException("400", "Missing or invalid required field: body");
         }
+    }
 
+    private void validateEmailFormats(EmailRequest request) {
         if (!isValidEmail(request.getTo())) {
             throw new EmailValidationException("400", "Invalid Email Format");
         }
         if (!isValidEmail(request.getFrom())) {
             throw new EmailValidationException("400", "Invalid Email Format");
         }
+    }
 
+    private void validateFieldLengths(EmailRequest request) {
         if (request.getSubject() != null && request.getSubject().length() > emailProperties.maxSubjectLength()) {
             throw new EmailValidationException("400", "Invalid Subject Length");
         }
         if (request.getBody() != null && request.getBody().length() > emailProperties.maxBodyLength()) {
             throw new EmailValidationException("400", "Invalid Body Length");
         }
+    }
 
+    private void validateAttachments(EmailRequest request) {
         List<EmailAttachment> attachments = request.getAttachments();
         if (!attachments.isEmpty()) {
             if (attachments.size() > emailProperties.maxAttachments()) {
@@ -173,5 +175,20 @@ public class EmailServiceImpl implements EmailService {
         }
         String regex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
         return email.matches(regex);
+    }
+
+    private void logEmailError(Exception ex) {
+        if (ex instanceof com.microsoft.graph.http.GraphServiceException gse) {
+            com.microsoft.graph.http.GraphError serviceError = gse.getServiceError();
+            if (LOG.isErrorEnabled()) {
+                LOG.error("Graph Error {} - Code: {}, Message: {}", gse.getResponseCode(),
+                    serviceError != null ? serviceError.code : "N/A",
+                    serviceError != null ? serviceError.message : "N/A", gse);
+            }
+        } else {
+            if (LOG.isErrorEnabled()) {
+                LOG.error("Email send failed", ex);
+            }
+        }
     }
 }
