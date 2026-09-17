@@ -18,6 +18,7 @@ import java.util.List;
 
 @Configuration
 @EnableConfigurationProperties(GraphProperties.class)
+@SuppressWarnings("PMD.AtLeastOneConstructor")
 public final class GraphConfig {
 
     private static final Logger LOG = LoggerFactory.getLogger(GraphConfig.class);

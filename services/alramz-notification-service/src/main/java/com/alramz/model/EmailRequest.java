@@ -20,6 +20,7 @@ import jakarta.validation.constraints.Size;
  */
 
 @Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2026-09-17T15:45:48.865288+05:30[Asia/Kolkata]", comments = "Generator version: 7.23.0")
+@SuppressWarnings({"PMD.OnlyOneReturn", "PMD.AvoidFieldNameMatchingMethodName"})
 public class EmailRequest {
 
   private String to;
@@ -39,14 +40,14 @@ public class EmailRequest {
   /**
    * Constructor with only required parameters
    */
-  public EmailRequest(String to, String subject, String from, String body) {
+  public EmailRequest(final String to, final String subject, final String from, final String body) {
     this.to = to;
     this.subject = subject;
     this.from = from;
     this.body = body;
   }
 
-  public EmailRequest to(String to) {
+  public EmailRequest to(final String to) {
     this.to = to;
     return this;
   }
@@ -64,11 +65,11 @@ public class EmailRequest {
   }
 
   @JsonProperty("to")
-  public void setTo(String to) {
+  public void setTo(final String to) {
     this.to = to;
   }
 
-  public EmailRequest subject(String subject) {
+  public EmailRequest subject(final String subject) {
     this.subject = subject;
     return this;
   }
@@ -86,11 +87,11 @@ public class EmailRequest {
   }
 
   @JsonProperty("subject")
-  public void setSubject(String subject) {
+  public void setSubject(final String subject) {
     this.subject = subject;
   }
 
-  public EmailRequest from(String from) {
+  public EmailRequest from(final String from) {
     this.from = from;
     return this;
   }
@@ -108,11 +109,11 @@ public class EmailRequest {
   }
 
   @JsonProperty("from")
-  public void setFrom(String from) {
+  public void setFrom(final String from) {
     this.from = from;
   }
 
-  public EmailRequest body(String body) {
+  public EmailRequest body(final String body) {
     this.body = body;
     return this;
   }
@@ -130,16 +131,16 @@ public class EmailRequest {
   }
 
   @JsonProperty("body")
-  public void setBody(String body) {
+  public void setBody(final String body) {
     this.body = body;
   }
 
-  public EmailRequest attachments(List<@Valid EmailAttachment> attachments) {
+  public EmailRequest attachments(final List<@Valid EmailAttachment> attachments) {
     this.attachments = attachments != null ? new ArrayList<>(attachments) : new ArrayList<>();
     return this;
   }
 
-  public EmailRequest addAttachmentsItem(EmailAttachment attachmentsItem) {
+  public EmailRequest addAttachmentsItem(final EmailAttachment attachmentsItem) {
     if (this.attachments == null) {
       this.attachments = new ArrayList<>();
     }
@@ -160,19 +161,19 @@ public class EmailRequest {
   }
 
   @JsonProperty("attachments")
-  public void setAttachments(List<@Valid EmailAttachment> attachments) {
+  public void setAttachments(final List<@Valid EmailAttachment> attachments) {
     this.attachments = attachments != null ? new ArrayList<>(attachments) : new ArrayList<>();
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    EmailRequest emailRequest = (EmailRequest) o;
+    final EmailRequest emailRequest = (EmailRequest) o;
     return Objects.equals(this.to, emailRequest.to) &&
         Objects.equals(this.subject, emailRequest.subject) &&
         Objects.equals(this.from, emailRequest.from) &&

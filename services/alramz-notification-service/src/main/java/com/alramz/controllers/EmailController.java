@@ -11,12 +11,13 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
+@SuppressWarnings("PMD.MethodArgumentCouldBeFinal")
 public class EmailController implements ApiApi {
 
     private final EmailService emailService;
 
     @Override
-    public ResponseEntity<EmailSendResponse> sendEmail(EmailRequest emailRequest) {
+    public ResponseEntity<EmailSendResponse> sendEmail(final EmailRequest emailRequest) {
         return ResponseEntity.ok(emailService.sendEmail(emailRequest));
     }
 }

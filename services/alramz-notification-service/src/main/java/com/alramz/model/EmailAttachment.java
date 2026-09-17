@@ -16,6 +16,7 @@ import jakarta.validation.constraints.NotNull;
  */
 
 @Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2026-09-17T15:45:48.865288+05:30[Asia/Kolkata]", comments = "Generator version: 7.23.0")
+@SuppressWarnings({"PMD.AvoidFieldNameMatchingMethodName", "PMD.OnlyOneReturn"})
 public class EmailAttachment {
 
   private String name;
@@ -29,12 +30,12 @@ public class EmailAttachment {
   /**
    * Constructor with only required parameters
    */
-  public EmailAttachment(String name, byte[] content) {
+  public EmailAttachment(final String name, final byte[] content) {
     this.name = name;
     this.content = content != null ? content.clone() : new byte[0];
   }
 
-  public EmailAttachment name(String name) {
+  public EmailAttachment name(final String name) {
     this.name = name;
     return this;
   }
@@ -51,11 +52,11 @@ public class EmailAttachment {
   }
 
   @JsonProperty("name")
-  public void setName(String name) {
+  public void setName(final String name) {
     this.name = name;
   }
 
-  public EmailAttachment content(byte[] content) {
+  public EmailAttachment content(final byte[] content) {
     this.content = content != null ? content.clone() : new byte[0];
     return this;
   }
@@ -72,19 +73,19 @@ public class EmailAttachment {
   }
 
   @JsonProperty("content")
-  public void setContent(byte[] content) {
+  public void setContent(final byte[] content) {
     this.content = content != null ? content.clone() : new byte[0];
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    EmailAttachment emailAttachment = (EmailAttachment) o;
+    final EmailAttachment emailAttachment = (EmailAttachment) o;
     return Objects.equals(this.name, emailAttachment.name) &&
         Arrays.equals(this.content, emailAttachment.content);
   }

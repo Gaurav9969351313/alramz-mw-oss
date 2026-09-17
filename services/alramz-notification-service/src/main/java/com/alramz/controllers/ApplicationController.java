@@ -9,11 +9,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
+@SuppressWarnings({"PMD.AtLeastOneConstructor", "PMD.SignatureDeclareThrowsException"})
 public class ApplicationController {
 
     @GetMapping("/api/v1/info")
     public Map<String, Object> info() throws Exception {
-        Map<String, Object> response = new HashMap<>();
+        final Map<String, Object> response = new HashMap<>();
         response.put("applicationName", "alramz-notification-service");
         response.put("host", InetAddress.getLocalHost().getHostName());
         response.put("timestamp", Instant.now());
