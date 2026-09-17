@@ -123,16 +123,14 @@ public class EmailServiceImpl implements EmailService {
         }
 
         List<EmailAttachment> attachments = request.getAttachments();
-        if (attachments != null && !attachments.isEmpty()) {
+        if (!attachments.isEmpty()) {
             if (attachments.size() > emailProperties.maxAttachments()) {
                 throw new EmailValidationException("400", "Invalid Attachment Count");
             }
             for (EmailAttachment attachment : attachments) {
-                if (attachment.getContent() != null) {
-                    long sizeBytes = attachment.getContent().length;
-                    if (sizeBytes > emailProperties.maxAttachmentSizeBytes()) {
-                        throw new EmailValidationException("400", "Invalid Attachment Size");
-                    }
+                long sizeBytes = attachment.getContent().length;
+                if (sizeBytes > emailProperties.maxAttachmentSizeBytes()) {
+                    throw new EmailValidationException("400", "Invalid Attachment Size");
                 }
             }
         }
@@ -154,7 +152,7 @@ public class EmailServiceImpl implements EmailService {
         message.toRecipients = List.of(toRecipient); // NOPMD LawOfDemeter
 
         List<EmailAttachment> attachments = request.getAttachments();
-        if (attachments != null && !attachments.isEmpty()) {
+        if (!attachments.isEmpty()) {
             List<com.microsoft.graph.models.Attachment> graphAttachments = new ArrayList<>();
             for (EmailAttachment attachment : attachments) {
                 FileAttachment fileAttachment = new FileAttachment();
