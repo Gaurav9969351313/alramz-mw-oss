@@ -36,7 +36,7 @@ public class EmailAttachment {
    */
   public EmailAttachment(String name, byte[] content) {
     this.name = name;
-    this.content = content != null ? content.clone() : null;
+    this.content = content != null ? content.clone() : new byte[0];
   }
 
   public EmailAttachment name(String name) {
@@ -61,7 +61,7 @@ public class EmailAttachment {
   }
 
   public EmailAttachment content(byte[] content) {
-    this.content = content != null ? content.clone() : null;
+    this.content = content != null ? content.clone() : new byte[0];
     return this;
   }
 
@@ -73,12 +73,12 @@ public class EmailAttachment {
   @Schema(name = "content", example = "[B@50f2287d", description = "Base64-encoded attachment content", requiredMode = Schema.RequiredMode.REQUIRED)
   @JsonProperty("content")
   public byte[] getContent() {
-    return content != null ? content.clone() : null;
+    return content != null ? content.clone() : new byte[0];
   }
 
   @JsonProperty("content")
   public void setContent(byte[] content) {
-    this.content = content != null ? content.clone() : null;
+    this.content = content != null ? content.clone() : new byte[0];
   }
 
   @Override

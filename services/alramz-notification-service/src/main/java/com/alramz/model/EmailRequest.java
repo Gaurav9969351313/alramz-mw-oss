@@ -135,7 +135,7 @@ public class EmailRequest {
   }
 
   public EmailRequest attachments(List<@Valid EmailAttachment> attachments) {
-    this.attachments = attachments != null ? new ArrayList<>(attachments) : null;
+    this.attachments = attachments != null ? new ArrayList<>(attachments) : new ArrayList<>();
     return this;
   }
 
@@ -155,12 +155,12 @@ public class EmailRequest {
   @Schema(name = "attachments", description = "Optional email attachments", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
   @JsonProperty("attachments")
   public List<@Valid EmailAttachment> getAttachments() {
-    return attachments != null ? new ArrayList<>(attachments) : null;
+    return attachments != null ? new ArrayList<>(attachments) : new ArrayList<>();
   }
 
   @JsonProperty("attachments")
   public void setAttachments(List<@Valid EmailAttachment> attachments) {
-    this.attachments = attachments != null ? new ArrayList<>(attachments) : null;
+    this.attachments = attachments != null ? new ArrayList<>(attachments) : new ArrayList<>();
   }
 
   @Override
