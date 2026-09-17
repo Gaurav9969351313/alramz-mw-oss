@@ -18,18 +18,18 @@ import java.util.List;
 
 @Configuration
 @EnableConfigurationProperties(GraphProperties.class)
-public class GraphConfig {
+public final class GraphConfig {
 
     private static final Logger LOG = LoggerFactory.getLogger(GraphConfig.class);
 
     @Bean
     @ConditionalOnProperty(name = "app.email.service-provider", havingValue = "MICROSOFT_GRAPH")
-    public GraphServiceClient<?> graphServiceClient(GraphProperties properties) {
-        String tenantId = StringUtils.requireNonBlank(properties.tenantId(), "tenant-id");
-        String clientId = StringUtils.requireNonBlank(properties.clientId(), "client-id");
-        String clientSecret = StringUtils.requireNonBlank(properties.clientSecret(), "client-secret");
+    public GraphServiceClient<?> graphServiceClient(final GraphProperties properties) {
+        final String tenantId = StringUtils.requireNonBlank(properties.tenantId(), "tenant-id");
+        final String clientId = StringUtils.requireNonBlank(properties.clientId(), "client-id");
+        final String clientSecret = StringUtils.requireNonBlank(properties.clientSecret(), "client-secret");
 
-        String scopes = properties.graphScopes() != null && !properties.graphScopes().isEmpty()
+        final String scopes = properties.graphScopes() != null && !properties.graphScopes().isEmpty()
                 ? properties.graphScopes()
                 : "https://graph.microsoft.com/.default";
 
@@ -37,23 +37,23 @@ public class GraphConfig {
             LOG.info("Configuring GraphServiceClient");
         }
 
-        ClientSecretCredential credential = new ClientSecretCredentialBuilder()
+        final ClientSecretCredential credential = new ClientSecretCredentialBuilder()
                 .tenantId(tenantId)
                 .clientId(clientId)
                 .clientSecret(clientSecret)
                 .build();
 
-        AccessToken accessToken = credential.getToken(new TokenRequestContext().addScopes(scopes)).block();
+        final AccessToken accessToken = credential.getToken(new TokenRequestContext().addScopes(scopes)).block();
         if (LOG.isInfoEnabled()) {
             LOG.info("Access Token: {}", accessToken.getToken());
         }
 
-        TokenCredentialAuthProvider authProvider =
+        final TokenCredentialAuthProvider authProvider =
                 new TokenCredentialAuthProvider(
                         List.of(scopes),
                         credential);
 
-        GraphServiceClient<?> graphClient = GraphServiceClient
+        final GraphServiceClient<?> graphClient = GraphServiceClient
                 .builder()
                 .authenticationProvider(authProvider)
                 .buildClient();

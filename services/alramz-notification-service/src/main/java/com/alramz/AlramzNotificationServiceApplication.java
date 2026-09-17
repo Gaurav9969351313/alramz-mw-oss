@@ -10,7 +10,7 @@ import com.alramz.config.EmailProperties;
 @EnableConfigurationProperties(EmailProperties.class)
 public class AlramzNotificationServiceApplication {
 
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
         SpringApplication.run(AlramzNotificationServiceApplication.class, args);
     }
 

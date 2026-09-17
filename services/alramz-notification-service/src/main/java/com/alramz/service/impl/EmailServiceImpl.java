@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
+@SuppressWarnings({"PMD.TooManyMethods", "PMD.MethodArgumentCouldBeFinal"})
 public class EmailServiceImpl implements EmailService {
 
     private static final Logger LOG = LoggerFactory.getLogger(EmailServiceImpl.class);
@@ -37,27 +38,32 @@ public class EmailServiceImpl implements EmailService {
     private final org.springframework.beans.factory.ObjectProvider<GraphServiceClient<?>> graphClientProvider;
 
     public EmailServiceImpl(
-            EmailProperties emailProperties,
-            @Qualifier("graphServiceClient") org.springframework.beans.factory.ObjectProvider<GraphServiceClient<?>> graphClientProvider
+            final EmailProperties emailProperties,
+            @Qualifier("graphServiceClient") final org.springframework.beans.factory.ObjectProvider<GraphServiceClient<?>> graphClientProvider
     ) {
         this.emailProperties = emailProperties;
         this.graphClientProvider = graphClientProvider;
     }
 
     @Override
-    public EmailSendResponse sendEmail(EmailRequest request) {
+    public EmailSendResponse sendEmail(final EmailRequest request) {
         validateRequest(request);
 
-        UUID correlationId = UUID.randomUUID();
-        UUID traceId = UUID.randomUUID();
+        final UUID correlationId = UUID.randomUUID();
+        final UUID traceId = UUID.randomUUID();
 
-        GraphServiceClient<?> graphClient = graphClientProvider.getIfAvailable(); // NOPMD LawOfDemeter
+        final GraphServiceClient<?> graphClient = graphClientProvider.getIfAvailable(); // NOPMD LawOfDemeter
         if (graphClient == null) {
             throw new EmailConfigurationException("Preferred email service provider not configured");
         }
 
+        return sendEmailWithGraphClient(request, correlationId, traceId, graphClient);
+    }
+
+    private EmailSendResponse sendEmailWithGraphClient(final EmailRequest request, final UUID correlationId,
+                                                        final UUID traceId, final GraphServiceClient<?> graphClient) {
         try {
-            Message message = buildGraphMessage(request);
+            final Message message = buildGraphMessage(request);
             graphClient.users(request.getFrom()) // NOPMD LawOfDemeter
                     .sendMail(UserSendMailParameterSet.newBuilder()
                             .withMessage(message)
@@ -66,7 +72,7 @@ public class EmailServiceImpl implements EmailService {
                     .buildRequest()
                     .post();
 
-            EmailSendResponse response = new EmailSendResponse();
+            final EmailSendResponse response = new EmailSendResponse();
             response.setCorrelationID(correlationId);
             response.setStatus("SUCCESS");
             response.setResponseCode("200");
@@ -90,7 +96,7 @@ public class EmailServiceImpl implements EmailService {
         validateAttachments(request);
     }
 
-    private void validateRequiredFields(EmailRequest request) {
+    private void validateRequiredFields(final EmailRequest request) {
         if (ObjectUtils.isEmpty(request.getTo())) {
             throw new EmailValidationException("400", "Missing or invalid required field: to");
         }
@@ -105,7 +111,7 @@ public class EmailServiceImpl implements EmailService {
         }
     }
 
-    private void validateEmailFormats(EmailRequest request) {
+    private void validateEmailFormats(final EmailRequest request) {
         if (!isValidEmail(request.getTo())) {
             throw new EmailValidationException("400", "Invalid Email Format");
         }
@@ -114,7 +120,7 @@ public class EmailServiceImpl implements EmailService {
         }
     }
 
-    private void validateFieldLengths(EmailRequest request) {
+    private void validateFieldLengths(final EmailRequest request) {
         if (request.getSubject() != null && request.getSubject().length() > emailProperties.maxSubjectLength()) {
             throw new EmailValidationException("400", "Invalid Subject Length");
         }
@@ -123,14 +129,14 @@ public class EmailServiceImpl implements EmailService {
         }
     }
 
-    private void validateAttachments(EmailRequest request) {
-        List<EmailAttachment> attachments = request.getAttachments();
+    private void validateAttachments(final EmailRequest request) {
+        final List<EmailAttachment> attachments = request.getAttachments();
         if (!attachments.isEmpty()) {
             if (attachments.size() > emailProperties.maxAttachments()) {
                 throw new EmailValidationException("400", "Invalid Attachment Count");
             }
-            for (EmailAttachment attachment : attachments) {
-                long sizeBytes = attachment.getContent().length;
+            for (final EmailAttachment attachment : attachments) {
+                final long sizeBytes = attachment.getContent().length;
                 if (sizeBytes > emailProperties.maxAttachmentSizeBytes()) {
                     throw new EmailValidationException("400", "Invalid Attachment Size");
                 }
@@ -138,26 +144,26 @@ public class EmailServiceImpl implements EmailService {
         }
     }
 
-    private Message buildGraphMessage(EmailRequest request) {
-        Message message = new Message();
+    private Message buildGraphMessage(final EmailRequest request) {
+        final Message message = new Message();
         message.subject = request.getSubject();
 
-        ItemBody body = new ItemBody();
+        final ItemBody body = new ItemBody();
         body.contentType = BodyType.HTML; // NOPMD LawOfDemeter
         body.content = request.getBody();
         message.body = body; // NOPMD LawOfDemeter
 
-        Recipient toRecipient = new Recipient();
-        EmailAddress toAddress = new EmailAddress();
+        final Recipient toRecipient = new Recipient();
+        final EmailAddress toAddress = new EmailAddress();
         toAddress.address = request.getTo();
         toRecipient.emailAddress = toAddress; // NOPMD LawOfDemeter
         message.toRecipients = List.of(toRecipient); // NOPMD LawOfDemeter
 
-        List<EmailAttachment> attachments = request.getAttachments();
+        final List<EmailAttachment> attachments = request.getAttachments();
         if (!attachments.isEmpty()) {
-            List<com.microsoft.graph.models.Attachment> graphAttachments = new ArrayList<>();
-            for (EmailAttachment attachment : attachments) {
-                FileAttachment fileAttachment = new FileAttachment();
+            final List<com.microsoft.graph.models.Attachment> graphAttachments = new ArrayList<>();
+            for (final EmailAttachment attachment : attachments) {
+                final FileAttachment fileAttachment = new FileAttachment();
                 fileAttachment.name = attachment.getName();
                 fileAttachment.contentBytes = attachment.getContent(); // NOPMD LawOfDemeter
                 fileAttachment.size = attachment.getContent().length;
@@ -169,17 +175,17 @@ public class EmailServiceImpl implements EmailService {
         return message;
     }
 
-    private boolean isValidEmail(String email) {
+    private boolean isValidEmail(final String email) {
         if (email == null || email.isBlank()) {
             return false;
         }
-        String regex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
+        final String regex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
         return email.matches(regex);
     }
 
-    private void logEmailError(Exception ex) {
+    private void logEmailError(final Exception ex) {
         if (ex instanceof com.microsoft.graph.http.GraphServiceException gse) {
-            com.microsoft.graph.http.GraphError serviceError = gse.getServiceError();
+            final com.microsoft.graph.http.GraphError serviceError = gse.getServiceError();
             if (LOG.isErrorEnabled()) {
                 LOG.error("Graph Error {} - Code: {}, Message: {}", gse.getResponseCode(),
                     serviceError != null ? serviceError.code : "N/A",
