@@ -6,15 +6,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.env.Environment;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcOperations;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 @Slf4j
 public class ApiAuditLogService {
@@ -27,7 +24,7 @@ public class ApiAuditLogService {
                     CAST(:request AS JSON), CAST(:response AS JSON), :status, :statusCode, :exceptionCause, :exceptionClass, :durationMs, :createdAt)
             """;
 
-    private static final String CLEANUP_SQL = "DELETE FROM api_audit_log WHERE created_at < NOW() - INTERVAL '%d days'";
+    private static final String CLEANUP_SQL = "DELETE FROM api_audit_log WHERE created_at < NOW() - INTERVAL ? * INTERVAL '1 day'";
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
@@ -50,15 +47,22 @@ public class ApiAuditLogService {
 
     public void log(ApiAuditLog entry) {
         try {
-            Map<String, Object> params = new HashMap<>();
+            // Mask and serialize once, reuse results (eliminates duplicate processing)
+            Object maskedRequest = masker.mask(entry.request());
+            Object maskedResponse = masker.mask(entry.response());
+            String requestJson = toJson(maskedRequest);
+            String responseJson = toJson(maskedResponse);
+
+            // Build parameters map with initial capacity hint
+            Map<String, Object> params = new HashMap<>(16);
             params.put("correlationId", entry.correlationId());
             params.put("direction", entry.direction());
             params.put("serviceName", entry.serviceName());
             params.put("controllerName", entry.controllerName());
             params.put("apiEndpoint", entry.apiEndpoint());
             params.put("method", entry.method());
-            params.put("request", toJson(masker.mask(entry.request())));
-            params.put("response", toJson(masker.mask(entry.response())));
+            params.put("request", requestJson);
+            params.put("response", responseJson);
             params.put("status", entry.status());
             params.put("statusCode", entry.statusCode());
             params.put("exceptionCause", entry.exceptionCause());
@@ -67,45 +71,45 @@ public class ApiAuditLogService {
             params.put("createdAt", Timestamp.from(entry.createdAt()));
 
             jdbcTemplate.update(SQL, params);
-
-            // Put audit params into MDC so SeqAppender captures them as structured fields
-            MDCUtil.put("Direction", entry.direction());
-            MDCUtil.put("ServiceName", entry.serviceName());
-            MDCUtil.put("Controller", entry.controllerName());
-            MDCUtil.put("Endpoint", entry.apiEndpoint());
-            MDCUtil.put("Method", entry.method());
-            MDCUtil.put("StatusCode", String.valueOf(entry.statusCode()));
-            MDCUtil.put("DurationMs", String.valueOf(entry.durationMs()));
-            MDCUtil.put("ExceptionCause", entry.exceptionCause());
-            MDCUtil.put("ExceptionClass", entry.exceptionClass());
-            MDCUtil.put("Environment", environment.getProperty("spring.profiles.active"));
-            String auditRequest = toJson(masker.mask(entry.request()));
-            String auditResponse = toJson(masker.mask(entry.response()));
-            MDCUtil.put("Request", auditRequest);
-            MDCUtil.put("Response", auditResponse);
-
-            try {
-                log.info("--> API Audit: direction={} service={} endpoint={} status={} statusCode={}",
-                        entry.direction(),
-                        entry.serviceName(),
-                        entry.apiEndpoint(),
-                        entry.statusCode());
-            } finally {
-                MDCUtil.remove("Direction");
-                MDCUtil.remove("ServiceName");
-                MDCUtil.remove("Controller");
-                MDCUtil.remove("Endpoint");
-                MDCUtil.remove("Method");
-                MDCUtil.remove("StatusCode");
-                MDCUtil.remove("DurationMs");
-                MDCUtil.remove("ExceptionCause");
-                MDCUtil.remove("ExceptionClass");
-                MDCUtil.remove("Environment");
-                MDCUtil.remove("Request");
-                MDCUtil.remove("Response");
-            }
+            logAuditEvent(entry, requestJson, responseJson);
         } catch (Exception e) { // NOPMD AvoidCatchingGenericException
             log.error("Failed to insert api_audit_log", e);
+        }
+    }
+
+    private void logAuditEvent(ApiAuditLog entry, String requestJson, String responseJson) {
+        // Use try-with-resources style MDC management for cleaner code
+        String[] mdcKeys = {"Direction", "ServiceName", "Controller", "Endpoint", "Method",
+                            "StatusCode", "DurationMs", "ExceptionCause", "ExceptionClass",
+                            "Environment", "Request", "Response"};
+        String[] mdcValues = {
+            entry.direction(),
+            entry.serviceName(),
+            entry.controllerName(),
+            entry.apiEndpoint(),
+            entry.method(),
+            String.valueOf(entry.statusCode()),
+            String.valueOf(entry.durationMs()),
+            entry.exceptionCause(),
+            entry.exceptionClass(),
+            environment.getProperty("spring.profiles.active"),
+            requestJson,
+            responseJson
+        };
+
+        // Put all values
+        for (int i = 0; i < mdcKeys.length; i++) {
+            MDCUtil.put(mdcKeys[i], mdcValues[i]);
+        }
+
+        try {
+            log.info("--> API Audit: direction={} service={} endpoint={} status={} statusCode={}",
+                    entry.direction(), entry.serviceName(), entry.apiEndpoint(), entry.status(), entry.statusCode());
+        } finally {
+            // Remove all values
+            for (String key : mdcKeys) {
+                MDCUtil.remove(key);
+            }
         }
     }
 
@@ -126,8 +130,7 @@ public class ApiAuditLogService {
         try {
             LoggingProperties.DatabaseLoggingProperties databaseLogging = properties.getDatabaseLogging();
             int retentionDays = databaseLogging.getRetentionDays();
-            String sql = String.format(CLEANUP_SQL, retentionDays);
-            int deleted = jdbcTemplate.update(sql, Map.of());
+            int deleted = jdbcTemplate.update(CLEANUP_SQL, Map.of("retentionDays", retentionDays));
             log.info("Cleaned up {} expired api_audit_log entries (retention={} days)", deleted, retentionDays);
         } catch (Exception e) { // NOPMD AvoidCatchingGenericException
             log.error("Failed to cleanup expired api_audit_log entries", e);

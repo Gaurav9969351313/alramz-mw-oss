@@ -229,7 +229,7 @@ class OnboardingServiceImplTest {
 
         when(duplicateCheckService.checkDuplicates(any(), any(), any(), any()))
                 .thenReturn(new boolean[]{false, false, false, false});
-        doThrow(new DataAccessException("DB error") {})
+        doThrow(new org.springframework.dao.DataIntegrityViolationException("DB error"))
                 .when(dfmOnboardingRepository).insert(any(OnboardingRequest.class), anyString());
 
         assertThatThrownBy(() -> onboardingService.onboard(request))

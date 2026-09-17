@@ -116,6 +116,7 @@ public class AlramzJsonEncoder extends EncoderBase<ILoggingEvent> {
         ObjectNode node = objectMapper.getNodeFactory().objectNode();
         node.put("timestamp", formatInstant(event.getTimeStamp()));
         node.put("level", event.getLevel().toString()); // NOPMD LawOfDemeter
+        node.put("service", serviceName);
         node.put("logger", event.getLoggerName());
         node.put("thread", event.getThreadName());
 

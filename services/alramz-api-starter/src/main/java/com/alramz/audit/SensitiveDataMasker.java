@@ -11,17 +11,29 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.io.IOException;
+import java.util.Collections;
 
 public class SensitiveDataMasker {
 
-    private static final List<String> SENSITIVE_KEYS = List.of(
-            "client_secret", "api_key", "apiKey", "access_token", "accessToken",
+    private static final Set<String> SENSITIVE_KEYS_SET = buildSensitiveKeysSet();
+
+    private static Set<String> buildSensitiveKeysSet() {
+        Set<String> keys = new HashSet<>();
+        // Add all keys in lowercase for case-insensitive O(1) lookup
+        String[] sensitiveKeys = {
+            "client_secret", "api_key", "apikey", "access_token", "accesstoken",
             "authorization", "password", "secret", "cookie",
             "eid_attachment_front", "eid_attachment_back", "pinf_signatureimage", "pp_attachment",
-            "cust_nin", "eid_no", "passportNumber", "pp_no"
-    );
+            "cust_nin", "eid_no", "passportnumber", "pp_no"
+        };
+        for (String key : sensitiveKeys) {
+            keys.add(key.toLowerCase());
+        }
+        return Collections.unmodifiableSet(keys);
+    }
 
     private static final Pattern BASE64_LONG_PATTERN = Pattern.compile("^[A-Za-z0-9+/]{40,}={0,2}$");
+    private static final int MAX_RECURSION_DEPTH = 20;
 
     private final ObjectMapper objectMapper;
     private final boolean enabled;
@@ -101,20 +113,22 @@ public class SensitiveDataMasker {
     }
 
     private Map<String, Object> maskMap(Map<?, ?> map) {
-        Map<String, Object> result = new LinkedHashMap<>();
+        Map<String, Object> result = new LinkedHashMap<>(map.size());
         for (Map.Entry<?, ?> entry : map.entrySet()) {
-            String key = entry.getKey() != null ? entry.getKey().toString().toLowerCase() : "";
+            String keyStr = entry.getKey() != null ? entry.getKey().toString() : "";
+            String keyLower = keyStr.toLowerCase();
             Object value = entry.getValue();
-            if (isSensitiveKey(key)) {
-                result.put(entry.getKey().toString(), maskSensitiveValue(key, value));
+
+            if (isSensitiveKey(keyLower)) {
+                result.put(keyStr, maskSensitiveValue(keyLower, value));
             } else if (value instanceof Map<?, ?> nested) {
-                result.put(entry.getKey().toString(), maskMap(nested));
+                result.put(keyStr, maskMap(nested));
             } else if (value instanceof Collection<?> coll) {
-                result.put(entry.getKey().toString(), maskCollection(coll));
+                result.put(keyStr, maskCollection(coll));
             } else if (value instanceof String str) {
-                result.put(entry.getKey().toString(), maskString(key, str));
+                result.put(keyStr, maskString(keyLower, str));
             } else {
-                result.put(entry.getKey().toString(), value);
+                result.put(keyStr, value);
             }
         }
         return result;
@@ -165,12 +179,10 @@ public class SensitiveDataMasker {
     }
 
     private boolean isSensitiveKey(String key) {
-        if (key == null) {
+        if (key == null || key.isEmpty()) {
             return false;
         }
-        String lower = key.toLowerCase();
-        return SENSITIVE_KEYS.stream().anyMatch(sensitive -> sensitive.equalsIgnoreCase(lower))
-                || LogMaskingUtil.isSensitiveKey(lower);
+        return SENSITIVE_KEYS_SET.contains(key) || LogMaskingUtil.isSensitiveKey(key);
     }
 
     private boolean isBase64Image(String key, String value) {

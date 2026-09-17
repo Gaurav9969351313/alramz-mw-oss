@@ -1,9 +1,5 @@
 package com.alramz.exception;
 
-import com.alramz.exception.ApplicationException;
-import com.alramz.exception.ExternalSystemException;
-import com.alramz.exception.IbanValidationException;
-import com.alramz.exception.TechnicalException;
 import com.alramz.exceptions.ApiCallFailedException;
 import com.alramz.exceptions.InvalidHttpRequestException;
 import com.alramz.model.GenericResponse;

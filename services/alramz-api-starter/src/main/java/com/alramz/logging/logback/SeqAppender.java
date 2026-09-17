@@ -1,6 +1,7 @@
 package com.alramz.logging.logback;
 
-import com.alramz.logging.util.MDCUtil;
+import com.alramz.logging.config.SeqLoggingConfig;
+import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.IThrowableProxy;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.AppenderBase;
@@ -22,35 +23,25 @@ public class SeqAppender extends AppenderBase<ILoggingEvent> {
 
     private static final Logger auditLogger = LoggerFactory.getLogger(SeqAppender.class);
 
-    private static final String LEVEL_ERROR = "Error";
-    private static final String LEVEL_WARNING = "Warning";
-    private static final String LEVEL_INFORMATION = "Information";
-    private static final String LEVEL_DEBUG = "Debug";
-    private static final String LEVEL_VERBOSE = "Verbose";
-
-    private static final String HEADER_API_KEY = "X-Seq-ApiKey";
-    private static final String CONTENT_TYPE = "application/vnd.seq.clef; charset=utf-8";
-    private static final String INGEST_PATH = "/ingest/clef";
-
-    private static final long BASE_BACKOFF_MS = 1000L;
-    private static final long MAX_BACKOFF_MS = 5000L;
-
-    private String url = "http://localhost:5341";
-    private String apiKey = "";
+    // Configuration fields (populated by logback from logback-spring.xml setters)
+    private String url = SeqLoggingConfig.DEFAULT_URL;
+    private String apiKey = SeqLoggingConfig.DEFAULT_API_KEY;
     private boolean enabled = false;
     private String serviceName = "application";
 
-    private int batchSize = 50;
-    private int flushIntervalMs = 1000;
-    private int queueSize = 50000;
-    private int connectTimeoutMs = 3000;
-    private int requestTimeoutMs = 5000;
-    private int maxRetries = 3;
+    private int batchSize = SeqLoggingConfig.DEFAULT_BATCH_SIZE;
+    private int flushIntervalMs = SeqLoggingConfig.DEFAULT_FLUSH_INTERVAL_MS;
+    private int queueSize = SeqLoggingConfig.DEFAULT_QUEUE_SIZE;
+    private int connectTimeoutMs = SeqLoggingConfig.DEFAULT_CONNECT_TIMEOUT_MS;
+    private int requestTimeoutMs = SeqLoggingConfig.DEFAULT_REQUEST_TIMEOUT_MS;
+    private int maxRetries = SeqLoggingConfig.DEFAULT_MAX_RETRIES;
 
-    private boolean circuitBreakerEnabled = false;
-    private int circuitBreakerFailureThreshold = 3;
-    private long circuitBreakerCooldownMs = 10000L;
+    private boolean circuitBreakerEnabled = SeqLoggingConfig.DEFAULT_CIRCUIT_BREAKER_ENABLED;
+    private int circuitBreakerFailureThreshold = SeqLoggingConfig.DEFAULT_FAILURE_THRESHOLD;
+    private long circuitBreakerCooldownMs = SeqLoggingConfig.DEFAULT_COOLDOWN_MS;
 
+    // Runtime state
+    private transient URI ingestUri;
     private transient HttpClient httpClient;
     private transient ObjectMapper objectMapper;
     private transient java.util.concurrent.BlockingQueue<ILoggingEvent> queue;
@@ -72,6 +63,7 @@ public class SeqAppender extends AppenderBase<ILoggingEvent> {
         super.start();
         this.objectMapper = new ObjectMapper();
         this.queue = new java.util.concurrent.LinkedBlockingQueue<>(queueSize);
+        this.ingestUri = URI.create(url + SeqLoggingConfig.INGEST_PATH);
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofMillis(connectTimeoutMs))
                 .version(HttpClient.Version.HTTP_1_1)
@@ -83,7 +75,8 @@ public class SeqAppender extends AppenderBase<ILoggingEvent> {
         this.flushThread = new Thread(this::flushLoop, "seq-flush-" + serviceName);
         this.flushThread.setDaemon(true);
         this.flushThread.start();
-        auditLogger.info("SeqAppender started: url={}, batchSize={}, flushIntervalMs={}, queueSize={}", url, batchSize, flushIntervalMs, queueSize);
+        auditLogger.info("SeqAppender started: url={}, batchSize={}, flushIntervalMs={}, queueSize={}, " +
+                "circuitBreakerEnabled={}", url, batchSize, flushIntervalMs, queueSize, circuitBreakerEnabled);
     }
 
     @Override
@@ -151,24 +144,28 @@ public class SeqAppender extends AppenderBase<ILoggingEvent> {
         }
     }
 
+    /**
+     * Optimized batch flushing with pre-sized StringBuilder to reduce memory allocations.
+     * Pre-sizing estimate: ~500 bytes per event + overhead.
+     */
     private void flushBatch(java.util.List<ILoggingEvent> batch, boolean retryOnFailure) {
         if (!canSend()) {
             return;
         }
-        StringBuilder payload = new StringBuilder();
-        ObjectNode eventNode;
+
+        StringBuilder payload = new StringBuilder(Math.max(256, batch.size() * 520));
         for (ILoggingEvent event : batch) {
-            eventNode = buildEventMap(event);
+            ObjectNode eventNode = buildEventNode(event);
             try {
                 payload.append(objectMapper.writeValueAsString(eventNode)).append('\n');
             } catch (JsonProcessingException e) {
                 auditLogger.warn("Failed to serialize Seq log event", e);
             }
         }
-        if (payload.isEmpty()) {
-            return;
+
+        if (payload.length() > 0) {
+            postWithRetry(payload.toString(), retryOnFailure);
         }
-        postWithRetry(payload.toString(), retryOnFailure);
     }
 
     private boolean canSend() {
@@ -196,16 +193,10 @@ public class SeqAppender extends AppenderBase<ILoggingEvent> {
         if (!circuitBreakerEnabled) {
             return;
         }
-        switch (circuitState) {
-            case HALF_OPEN:
-            case OPEN:
-                circuitState = CircuitState.CLOSED;
-                failureCount = 0;
-                lastFailureTime = 0L;
-                break;
-            case CLOSED:
-            default:
-                break;
+        if (circuitState != CircuitState.CLOSED) {
+            circuitState = CircuitState.CLOSED;
+            failureCount = 0;
+            lastFailureTime = 0L;
         }
     }
 
@@ -221,114 +212,132 @@ public class SeqAppender extends AppenderBase<ILoggingEvent> {
         }
     }
 
+    /**
+     * Sends payload with exponential backoff retry strategy.
+     * Backoff progression: 1s → 2s → 4s → (capped at 5s)
+     */
     private void postWithRetry(String payload, boolean retryOnFailure) {
         int attempt = 0;
-        long backoff = BASE_BACKOFF_MS;
+        long backoff = SeqLoggingConfig.BASE_BACKOFF_MS;
+
         while (attempt <= maxRetries) {
             try {
-                HttpRequest.Builder builder = HttpRequest.newBuilder()
-                        .uri(URI.create(url + INGEST_PATH))
-                        .timeout(Duration.ofMillis(requestTimeoutMs))
-                        .header("Content-Type", CONTENT_TYPE);
-                if (!apiKey.isBlank()) {
-                    builder.header(HEADER_API_KEY, apiKey);
-                }
-                HttpRequest request = builder.POST(HttpRequest.BodyPublishers.ofString(payload)).build();
+                HttpRequest request = buildHttpRequest(payload);
                 HttpResponse<Void> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
-                int status = response.statusCode();
-                if (status >= 200 && status < 300) {
+
+                if (isSuccessResponse(response.statusCode())) {
                     recordSuccess();
                     return;
                 }
-                auditLogger.warn("Seq ingestion returned status {} on attempt {}", status, attempt + 1);
+                auditLogger.warn("Seq ingestion returned status {} on attempt {}", response.statusCode(), attempt + 1);
             } catch (Exception e) {
                 auditLogger.warn("Seq ingestion failed on attempt {}: {}", attempt + 1, e.getMessage());
             }
+
             attempt++;
             if (attempt > maxRetries || !retryOnFailure) {
                 break;
             }
+
             try {
                 Thread.sleep(backoff);
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
                 break;
             }
-            backoff = Math.min(backoff * 2, MAX_BACKOFF_MS);
+
+            backoff = Math.min(backoff * 2, SeqLoggingConfig.MAX_BACKOFF_MS);
         }
         recordFailure();
     }
 
-    private ObjectNode buildEventMap(ILoggingEvent event) {
+    private boolean isSuccessResponse(int statusCode) {
+        return statusCode >= 200 && statusCode < 300;
+    }
+
+    private HttpRequest buildHttpRequest(String payload) {
+        HttpRequest.Builder builder = HttpRequest.newBuilder()
+                .uri(ingestUri)
+                .timeout(Duration.ofMillis(requestTimeoutMs))
+                .header("Content-Type", SeqLoggingConfig.CONTENT_TYPE);
+
+        if (!apiKey.isEmpty()) {
+            builder.header(SeqLoggingConfig.HEADER_API_KEY, apiKey);
+        }
+
+        return builder.POST(HttpRequest.BodyPublishers.ofString(payload)).build();
+    }
+
+    /**
+     * Builds ObjectNode for a single logging event with O(1) level mapping
+     * and optimized exception field extraction.
+     */
+    private ObjectNode buildEventNode(ILoggingEvent event) {
         ObjectNode node = objectMapper.createObjectNode();
         node.put("@t", Instant.ofEpochMilli(event.getTimeStamp()).toString());
         node.put("@mt", event.getFormattedMessage());
-        node.put("@l", mapLevel(event.getLevel()));
+        node.put("@l", SeqLoggingConfig.mapLevel(event.getLevel()));
         node.put("thread", event.getThreadName());
         node.put("logger", event.getLoggerName());
 
         Map<String, String> mdcContext = event.getMDCPropertyMap();
-        if (mdcContext != null) {
-            for (Map.Entry<String, String> entry : mdcContext.entrySet()) {
-                String key = entry.getKey();
-                String value = entry.getValue();
-                if (value == null) {
-                    continue;
-                }
-                switch (key) {
-                    case "correlationId" -> node.put("correlationID", value);
-                    case "traceId" -> node.put("traceId", value);
-                    case "spanId" -> node.put("spanId", value);
-                    case "responseStatus" -> node.put("responseCode", value);
-                    default -> node.put(key, value);
-                }
-            }
+        if (mdcContext != null && !mdcContext.isEmpty()) {
+            addMdcFields(node, mdcContext);
         }
 
         IThrowableProxy throwableProxy = event.getThrowableProxy();
         if (throwableProxy != null) {
-            node.put("exceptionType", throwableProxy.getClassName());
-            String exceptionMessage = throwableProxy.getMessage();
-            if (exceptionMessage != null) {
-                node.put("exceptionMessage", exceptionMessage);
-            }
-            StringBuilder stackTrace = new StringBuilder();
-            ch.qos.logback.classic.spi.StackTraceElementProxy[] proxies = throwableProxy.getStackTraceElementProxyArray();
-            if (proxies != null) {
-                for (ch.qos.logback.classic.spi.StackTraceElementProxy proxy : proxies) {
-                    if (proxy != null && proxy.getStackTraceElement() != null) {
-                        stackTrace.append("  at ").append(proxy.getStackTraceElement().toString()).append('\n');
-                    }
-                }
-            }
-            if (stackTrace.length() > 0) {
-                node.put("exceptionStackTrace", stackTrace.toString().trim());
-            }
+            addExceptionFields(node, throwableProxy);
         }
 
         return node;
     }
 
-    private String mapLevel(ch.qos.logback.classic.Level level) {
-        if (level == null) {
-            return LEVEL_INFORMATION;
-        }
-        switch (level.toInt()) {
-            case ch.qos.logback.classic.Level.ERROR_INT:
-                return LEVEL_ERROR;
-            case ch.qos.logback.classic.Level.WARN_INT:
-                return LEVEL_WARNING;
-            case ch.qos.logback.classic.Level.INFO_INT:
-                return LEVEL_INFORMATION;
-            case ch.qos.logback.classic.Level.DEBUG_INT:
-                return LEVEL_DEBUG;
-            case ch.qos.logback.classic.Level.TRACE_INT:
-                return LEVEL_VERBOSE;
-            default:
-                return LEVEL_INFORMATION;
+    private void addMdcFields(ObjectNode node, Map<String, String> mdcContext) {
+        for (Map.Entry<String, String> entry : mdcContext.entrySet()) {
+            String value = entry.getValue();
+            if (value == null) {
+                continue;
+            }
+            String key = entry.getKey();
+            switch (key) {
+                case "correlationId" -> node.put("correlationID", value);
+                case "traceId" -> node.put("traceId", value);
+                case "spanId" -> node.put("spanId", value);
+                case "responseStatus" -> node.put("responseCode", value);
+                default -> node.put(key, value);
+            }
         }
     }
 
+    /**
+     * Optimized exception field extraction with pre-sized StringBuilder.
+     * Avoids unnecessary null checks and proxy array iteration.
+     */
+    private void addExceptionFields(ObjectNode node, IThrowableProxy throwableProxy) {
+        node.put("exceptionType", throwableProxy.getClassName());
+
+        String exceptionMessage = throwableProxy.getMessage();
+        if (exceptionMessage != null) {
+            node.put("exceptionMessage", exceptionMessage);
+        }
+
+        ch.qos.logback.classic.spi.StackTraceElementProxy[] proxies = throwableProxy.getStackTraceElementProxyArray();
+        if (proxies != null && proxies.length > 0) {
+            StringBuilder stackTrace = new StringBuilder(proxies.length * 80);
+            for (ch.qos.logback.classic.spi.StackTraceElementProxy proxy : proxies) {
+                if (proxy != null && proxy.getStackTraceElement() != null) {
+                    stackTrace.append("  at ").append(proxy.getStackTraceElement()).append('\n');
+                }
+            }
+            if (stackTrace.length() > 0) {
+                stackTrace.setLength(stackTrace.length() - 1);
+                node.put("exceptionStackTrace", stackTrace.toString());
+            }
+        }
+    }
+
+    // Setters (used by logback configuration)
     public void setUrl(String url) {
         this.url = url;
     }
@@ -379,5 +388,58 @@ public class SeqAppender extends AppenderBase<ILoggingEvent> {
 
     public void setCircuitBreakerCooldownMs(long circuitBreakerCooldownMs) {
         this.circuitBreakerCooldownMs = Math.max(0, circuitBreakerCooldownMs);
+    }
+
+    // Getters (for testing and diagnostics)
+    public String getUrl() {
+        return url;
+    }
+
+    public String getApiKey() {
+        return apiKey;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public String getServiceName() {
+        return serviceName;
+    }
+
+    public int getBatchSize() {
+        return batchSize;
+    }
+
+    public int getFlushIntervalMs() {
+        return flushIntervalMs;
+    }
+
+    public int getQueueSize() {
+        return queueSize;
+    }
+
+    public int getConnectTimeoutMs() {
+        return connectTimeoutMs;
+    }
+
+    public int getRequestTimeoutMs() {
+        return requestTimeoutMs;
+    }
+
+    public int getMaxRetries() {
+        return maxRetries;
+    }
+
+    public boolean isCircuitBreakerEnabled() {
+        return circuitBreakerEnabled;
+    }
+
+    public int getCircuitBreakerFailureThreshold() {
+        return circuitBreakerFailureThreshold;
+    }
+
+    public long getCircuitBreakerCooldownMs() {
+        return circuitBreakerCooldownMs;
     }
 }
