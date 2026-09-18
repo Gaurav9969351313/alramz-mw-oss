@@ -61,11 +61,14 @@ jobs:
             SPECS=$(echo "$SPECS" | jq ". += [$SPEC_DATA]")
           done < <(find services -path "*/specs/*.yaml" -o -path "*/specs/*.yml" | sort)
 
-          echo "specs=$SPECS" >> "$GITHUB_OUTPUT"
+          # Output specs as JSON (handle multiline)
+          echo "specs<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$SPECS" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
 
           if [ "$SPECS" != "[]" ]; then
             echo "has-changes=true" >> "$GITHUB_OUTPUT"
-            echo "Found API specs: $SPECS"
+            echo "Found API specs"
           else
             echo "has-changes=false" >> "$GITHUB_OUTPUT"
             echo "No API specs found"
