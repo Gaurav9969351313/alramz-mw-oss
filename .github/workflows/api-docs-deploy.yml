@@ -138,7 +138,7 @@ jobs:
           sed -i "s|%%API_MANIFEST%%|$ESCAPED_SPECS|g" ${{ env.DOCS_DIR }}/docs.html
 
       - name: Create Auth Wrapper (if GitHub Secrets configured)
-        if: ${{ secrets.DOCS_USERNAME != '' && secrets.DOCS_PASSWORD != null }}
+        if: secrets.DOCS_USERNAME != '' && secrets.DOCS_PASSWORD != ''
         shell: bash
         run: |
           # Create auth wrapper
@@ -154,7 +154,7 @@ jobs:
           fi
 
       - name: Setup Index Page (if no auth)
-        if: ${{ secrets.DOCS_USERNAME == '' || secrets.DOCS_PASSWORD == null }}
+        if: secrets.DOCS_USERNAME == '' || secrets.DOCS_PASSWORD == ''
         shell: bash
         run: |
           # If no auth wrapper, make docs.html the index page
