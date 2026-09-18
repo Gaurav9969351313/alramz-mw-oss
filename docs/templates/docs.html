@@ -79,6 +79,13 @@
       color: white;
       padding: 1.5rem;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-left {
+      flex: 1;
     }
 
     header h1 {
@@ -89,6 +96,22 @@
     header p {
       opacity: 0.9;
       font-size: 0.9rem;
+    }
+
+    .logout-btn {
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid rgba(239, 68, 68, 0.5);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.2s ease;
+    }
+
+    .logout-btn:hover {
+      background: rgba(239, 68, 68, 0.3);
+      border-color: rgba(239, 68, 68, 0.8);
     }
 
     .docs-viewer {
@@ -112,8 +135,11 @@
 
     <div class="main">
       <header>
-        <h1 id="apiTitle">🚀 API Documentation</h1>
-        <p id="apiDesc">Select an API from the list</p>
+        <div class="header-left">
+          <h1 id="apiTitle">🚀 API Documentation</h1>
+          <p id="apiDesc">Select an API from the list</p>
+        </div>
+        <button class="logout-btn" onclick="logout()">🚪 Logout</button>
       </header>
 
       <div class="docs-viewer">
@@ -167,6 +193,13 @@
 </html>`;
 
       iframe.srcdoc = html;
+    }
+
+    function logout() {
+      if (confirm('Are you sure you want to logout?')) {
+        sessionStorage.removeItem('auth_token');
+        window.location.href = './index.html';
+      }
     }
 
     document.addEventListener('DOMContentLoaded', () => {
