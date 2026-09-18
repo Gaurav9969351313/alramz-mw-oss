@@ -99,7 +99,7 @@ notes.md
 .env
 .xlsx
 .png
-**/docs/**
+docs/dist/
 
 .kilo/**
 
