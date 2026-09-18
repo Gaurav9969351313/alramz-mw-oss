@@ -51,11 +51,13 @@ jobs:
 
             SERVICE=$(echo "$spec_file" | cut -d'/' -f2)
             SERVICE_NAME=$(echo "$SERVICE" | sed 's/-/ /g' | sed 's/\b\(.\)/\u\1/g')
+            # Convert path from services/service/specs/file.yaml to service/file.yaml
+            SPEC_PATH=$(echo "$spec_file" | sed 's|services/||' | sed 's|/specs/|/|')
 
             SPEC_DATA=$(jq -n \
               --arg service "$SERVICE" \
               --arg service_name "$SERVICE_NAME" \
-              --arg spec_file "$spec_file" \
+              --arg spec_file "$SPEC_PATH" \
               '{service: $service, service_name: $service_name, spec_file: $spec_file}')
 
             SPECS=$(echo "$SPECS" | jq ". += [$SPEC_DATA]")
@@ -95,9 +97,12 @@ jobs:
         shell: bash
         run: |
           SPECS='${{ needs.detect-specs.outputs.specs }}'
-          echo "$SPECS" | jq -r '.[] | .spec_file' | while read -r spec; do
-            mkdir -p "${{ env.DOCS_DIR }}/specs/$(dirname "$spec" | sed 's|services/||')"
-            cp "$spec" "${{ env.DOCS_DIR }}/specs/$(echo "$spec" | sed 's|services/||')"
+          # Get original paths from detect-specs (before transformation)
+          find services -path "*/specs/*.yaml" -o -path "*/specs/*.yml" | sort | while read -r spec; do
+            SERVICE=$(echo "$spec" | cut -d'/' -f2)
+            FILENAME=$(basename "$spec")
+            mkdir -p "${{ env.DOCS_DIR }}/specs/$SERVICE"
+            cp "$spec" "${{ env.DOCS_DIR }}/specs/$SERVICE/$FILENAME"
           done
 
           echo "Copied specs:"
