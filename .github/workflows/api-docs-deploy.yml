@@ -1,0 +1,73 @@
+name: Deploy API Documentation
+
+on:
+  push:
+    branches:
+      - feature/*
+      - main
+    paths:
+      - 'services/*/specs/**'
+      - 'redocly.yaml'
+      - 'docs/**'
+      - '.github/workflows/api-docs-deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build API Documentation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Redocly CLI
+        run: npm install -g @redocly/cli@latest
+
+      - name: Create docs directory
+        run: mkdir -p docs/dist
+
+      - name: Build API documentation
+        run: redocly build-docs redocly.yaml -o docs/dist/redoc.html
+
+      - name: Create authentication wrapper
+        env:
+          DOCS_USERNAME: ${{ secrets.DOCS_USERNAME }}
+          DOCS_PASSWORD: ${{ secrets.DOCS_PASSWORD }}
+        run: |
+          node docs/create-auth-index.js
+
+      - name: Create .nojekyll file (for GitHub Pages)
+        run: touch docs/dist/.nojekyll
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/dist
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

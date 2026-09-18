@@ -1,0 +1,22 @@
+extends:
+  - recommended
+
+apis:
+  notification-service:
+    root: ./services/alramz-notification-service/specs/openapi.yaml
+  data-validation-service:
+    root: ./services/data-validation-service/specs/apiSpecs.yaml
+
+output:
+  html: ./docs/dist/index.html
+
+lint:
+  extends:
+    - recommended
+  rules:
+    operation-operationId: off
+    info-description: warn
+
+build:
+  mockServer:
+    enabled: false
