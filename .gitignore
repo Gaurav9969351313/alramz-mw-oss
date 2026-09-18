@@ -129,6 +129,8 @@ docs/dist/
 # macOS
 .DS_Store
 
+**/api-docs-build/**
+
 # Logs
 *.log
 *.class
