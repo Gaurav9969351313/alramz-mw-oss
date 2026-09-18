@@ -21,6 +21,13 @@ log_info() { echo -e "${BLUE}ℹ${NC} $1"; }
 log_success() { echo -e "${GREEN}✓${NC} $1"; }
 log_error() { echo -e "${RED}✗${NC} $1"; }
 
+<<<<<<< Updated upstream
+=======
+capitalize_words() {
+    echo "$1" | awk '{for(i=1;i<=NF;i++)$i=toupper(substr($i,1,1))substr($i,2)}1'
+}
+
+>>>>>>> Stashed changes
 main() {
     log_info "API Documentation Generator"
     log_info "================================"
@@ -73,7 +80,11 @@ EOF
     first=true
     for spec in "${specs_array[@]}"; do
         IFS=':' read -r parent filename <<< "$spec"
+<<<<<<< Updated upstream
         service_name=$(echo "$parent" | sed 's/-/ /g' | sed 's/\b\(.\)/\u\1/g')
+=======
+        service_name=$(capitalize_words "$(echo "$parent" | sed 's/-/ /g')")
+>>>>>>> Stashed changes
 
         if [ "$first" = false ]; then
             echo "," >> "$OUTPUT_DIR/specs/manifest.json"
@@ -96,6 +107,7 @@ EOF
 
     log_success "Manifest created"
 
+<<<<<<< Updated upstream
     # Generate HTML
     log_info "Generating HTML..."
 
@@ -513,24 +525,81 @@ manifest_str = json.dumps(manifest_data)
 
 # Read HTML file
 with open('$OUTPUT_DIR/index.html', 'r') as f:
+=======
+    # Generate docs.html from template
+    log_info "Generating documentation HTML..."
+
+    # Copy template to docs.html
+    if [ -f "$PROJECT_ROOT/docs/templates/docs.html" ]; then
+        cp "$PROJECT_ROOT/docs/templates/docs.html" "$OUTPUT_DIR/docs.html"
+        log_success "Copied template to docs.html"
+    else
+        log_error "Template not found: docs/templates/docs.html"
+        exit 1
+    fi
+
+    # Replace manifest placeholder in docs.html
+    python3 << PYTHON_EOF
+import json
+
+# Read the manifest JSON
+with open('$OUTPUT_DIR/specs/manifest.json', 'r') as f:
+    manifest_data = json.load(f)
+    manifest_str = json.dumps(manifest_data)
+
+# Read HTML file
+with open('$OUTPUT_DIR/docs.html', 'r') as f:
+>>>>>>> Stashed changes
     html_content = f.read()
 
 # Replace placeholder
 html_content = html_content.replace('%%API_MANIFEST%%', manifest_str)
 
 # Write back
+<<<<<<< Updated upstream
 with open('$OUTPUT_DIR/index.html', 'w') as f:
     f.write(html_content)
 PYTHON_EOF
 
+=======
+with open('$OUTPUT_DIR/docs.html', 'w') as f:
+    f.write(html_content)
+PYTHON_EOF
+
+    # Create login gate (index.html)
+    log_info "Creating login gate..."
+    DOCS_USERNAME="${DOCS_USERNAME:-admin}" \
+    DOCS_PASSWORD="${DOCS_PASSWORD:-SecurePass123!}" \
+    node "$PROJECT_ROOT/scripts/create-auth-wrapper.js" "$OUTPUT_DIR"
+
+    # Rename auth wrapper to be the index
+    if [ -f "$OUTPUT_DIR/auth-index.html" ]; then
+        mv "$OUTPUT_DIR/auth-index.html" "$OUTPUT_DIR/index.html"
+        log_success "✓ Login gate created as index.html"
+    else
+        log_error "Auth wrapper not created"
+        exit 1
+    fi
+
+>>>>>>> Stashed changes
     log_success "================================"
     log_success "Documentation generated!"
     log_info "Output: $OUTPUT_DIR/"
     log_info "Specs: $OUTPUT_DIR/specs/"
     log_info ""
+<<<<<<< Updated upstream
     log_info "To serve locally:"
     log_info "  cd $OUTPUT_DIR"
     log_info "  python -m http.server 8000"
+=======
+    log_info "Login credentials:"
+    log_info "  Username: ${DOCS_USERNAME:-admin}"
+    log_info "  Password: ${DOCS_PASSWORD:-SecurePass123!}"
+    log_info ""
+    log_info "To serve locally:"
+    log_info "  cd $OUTPUT_DIR"
+    log_info "  python3 -m http.server 8000"
+>>>>>>> Stashed changes
     log_info "  # Open: http://localhost:8000"
 }
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+<<<<<<< Updated upstream
 /**
  * Create Auth Wrapper for API Docs
  * Generates an HTML wrapper with login gate that requires GitHub Secret credentials
@@ -9,11 +10,14 @@
  *   node create-auth-wrapper.js admin SecurePass123
  */
 
+=======
+>>>>>>> Stashed changes
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
 const outputDir = process.argv[2] || 'api-docs-build';
+<<<<<<< Updated upstream
 const username = process.env.DOCS_USERNAME || process.argv[3];
 const password = process.env.DOCS_PASSWORD || process.argv[4];
 
@@ -33,11 +37,26 @@ console.log(`✓ Creating auth wrapper for user: ${username}`);
 
 // Create auth wrapper HTML
 const authWrapperHtml = `<!DOCTYPE html>
+=======
+const username = process.env.DOCS_USERNAME || 'admin';
+const password = process.env.DOCS_PASSWORD || 'SecurePass123!';
+
+// Create password hash using SHA256
+const passwordHash = crypto.createHash('sha256').update(password).digest('hex');
+
+console.log('✓ Creating auth wrapper for user: ' + username);
+
+const authHtml = `<!DOCTYPE html>
+>>>>>>> Stashed changes
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<<<<<<< Updated upstream
   <title>API Documentation</title>
+=======
+  <title>API Documentation - Login</title>
+>>>>>>> Stashed changes
   <style>
     * {
       margin: 0;
@@ -136,13 +155,18 @@ const authWrapperHtml = `<!DOCTYPE html>
 
     .login-button:hover {
       transform: translateY(-2px);
+<<<<<<< Updated upstream
       box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+=======
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+>>>>>>> Stashed changes
     }
 
     .login-button:active {
       transform: translateY(0);
     }
 
+<<<<<<< Updated upstream
     .error-message {
       color: var(--color-error);
       font-size: 0.875rem;
@@ -233,10 +257,49 @@ const authWrapperHtml = `<!DOCTYPE html>
         <button type="submit" class="login-button">
           🔓 Access Documentation
         </button>
+=======
+    .alert {
+      margin-top: 1rem;
+      padding: 0.75rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      display: none;
+    }
+
+    .alert-error {
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--color-error);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .alert-error.show {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-card">
+      <h1>🔐 API Documentation</h1>
+      <p>Enter your credentials to access the documentation</p>
+
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" placeholder="Enter username" required>
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="Enter password" required>
+        </div>
+        <button type="submit" class="login-button">🔓 Access Documentation</button>
+        <div id="errorAlert" class="alert alert-error"></div>
+>>>>>>> Stashed changes
       </form>
     </div>
   </div>
 
+<<<<<<< Updated upstream
   <div id="docsSection" class="docs-container">
     <button class="logout-button" onclick="logout()">Logout</button>
     <iframe id="docsFrame" src="docs.html"></iframe>
@@ -341,11 +404,49 @@ const authWrapperHtml = `<!DOCTYPE html>
       if (event.persisted) {
         checkAuth();
       }
+=======
+  <script>
+    const PASSWORD_HASH = '${passwordHash}';
+    const EXPECTED_USERNAME = '${username}';
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const usernameInput = document.getElementById('username').value;
+      const passwordInput = document.getElementById('password').value;
+      const errorAlert = document.getElementById('errorAlert');
+
+      if (usernameInput !== EXPECTED_USERNAME) {
+        errorAlert.textContent = 'Invalid username or password';
+        errorAlert.classList.add('show');
+        return;
+      }
+
+      // Hash the input password with SHA256
+      const encoder = new TextEncoder();
+      const data = encoder.encode(passwordInput);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const inputHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+      if (inputHash !== PASSWORD_HASH) {
+        errorAlert.textContent = 'Invalid username or password';
+        errorAlert.classList.add('show');
+        return;
+      }
+
+      // Store auth in sessionStorage
+      sessionStorage.setItem('auth_token', 'authenticated');
+
+      // Redirect to docs
+      window.location.href = './docs.html';
+>>>>>>> Stashed changes
     });
   </script>
 </body>
 </html>`;
 
+<<<<<<< Updated upstream
 // Write auth wrapper
 const authWrapperPath = path.join(outputDir, 'auth-index.html');
 fs.writeFileSync(authWrapperPath, authWrapperHtml);
@@ -353,6 +454,14 @@ fs.writeFileSync(authWrapperPath, authWrapperHtml);
 console.log(`✓ Auth wrapper created: ${authWrapperPath}`);
 console.log(`✓ Username: ${username}`);
 console.log(`✓ Password hash: ${passwordHash}`);
+=======
+const authIndexPath = path.join(outputDir, 'auth-index.html');
+fs.writeFileSync(authIndexPath, authHtml);
+
+console.log('✓ Auth wrapper created: ' + authIndexPath);
+console.log('✓ Username: ' + username);
+console.log('✓ Password hash: ' + passwordHash);
+>>>>>>> Stashed changes
 console.log('');
 console.log('📝 Next steps:');
 console.log('  1. Rename your current index.html to docs.html');
