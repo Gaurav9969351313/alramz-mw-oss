@@ -1,0 +1,14 @@
+[
+  {
+    "service": "alramz-notification-service",
+    "service_name": "alramz notification service",
+    "spec_file": "alramz-notification-service/openapi.yaml"
+  }
+,
+  {
+    "service": "data-validation-service",
+    "service_name": "data validation service",
+    "spec_file": "data-validation-service/apiSpecs.yaml"
+  }
+
+]

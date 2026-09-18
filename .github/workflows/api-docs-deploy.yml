@@ -1,75 +1,247 @@
-name: Deploy API Documentation
+name: Deploy API Docs
 
 on:
   push:
     branches:
-      - feature/*
       - main
+      - feature/*
     paths:
-      - 'services/*/specs/**'
-      - 'redocly.yaml'
-      - 'docs/**'
+      - 'services/**/specs/**.yaml'
+      - 'services/**/specs/**.yml'
       - '.github/workflows/api-docs-deploy.yml'
+      - 'scripts/generate-api-docs.sh'
+      - 'docs/api-docs/**'
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true
+
+env:
+  DOCS_DIR: api-docs-build
 
 jobs:
-  build:
-    name: Build API Documentation
+  detect-specs:
     runs-on: ubuntu-latest
-
+    outputs:
+      specs: ${{ steps.detect.outputs.specs }}
+      has-changes: ${{ steps.detect.outputs.has-changes }}
     steps:
-      - name: Checkout code
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect OpenAPI specs
+        id: detect
+        shell: bash
+        run: |
+          SPECS="[]"
+
+          # Find all OpenAPI spec files
+          while IFS= read -r spec_file; do
+            if [ -z "$spec_file" ]; then continue; fi
+
+            SERVICE=$(echo "$spec_file" | cut -d'/' -f2)
+            SERVICE_NAME=$(echo "$SERVICE" | sed 's/-/ /g' | sed 's/\b\(.\)/\u\1/g')
+
+            SPEC_DATA=$(jq -n \
+              --arg service "$SERVICE" \
+              --arg service_name "$SERVICE_NAME" \
+              --arg spec_file "$spec_file" \
+              '{service: $service, service_name: $service_name, spec_file: $spec_file}')
+
+            SPECS=$(echo "$SPECS" | jq ". += [$SPEC_DATA]")
+          done < <(find services -path "*/specs/*.yaml" -o -path "*/specs/*.yml" | sort)
+
+          echo "specs=$SPECS" >> "$GITHUB_OUTPUT"
+
+          if [ "$SPECS" != "[]" ]; then
+            echo "has-changes=true" >> "$GITHUB_OUTPUT"
+            echo "Found API specs: $SPECS"
+          else
+            echo "has-changes=false" >> "$GITHUB_OUTPUT"
+            echo "No API specs found"
+          fi
+
+  build:
+    needs: detect-specs
+    if: needs.detect-specs.outputs.has-changes == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '18'
 
-      - name: Install Redocly CLI
-        run: npm install -g @redocly/cli@latest
+      - name: Create docs build directory
+        shell: bash
+        run: mkdir -p ${{ env.DOCS_DIR }}/specs
 
-      - name: Create docs directory
-        run: mkdir -p docs/dist
-
-      - name: Build API documentation
+      - name: Copy OpenAPI specs
+        shell: bash
         run: |
-          redocly build-docs services/alramz-notification-service/specs/openapi.yaml -o docs/dist/notification-service.html
-          redocly build-docs services/data-validation-service/specs/apiSpecs.yaml -o docs/dist/data-validation-service.html
+          SPECS='${{ needs.detect-specs.outputs.specs }}'
+          echo "$SPECS" | jq -r '.[] | .spec_file' | while read -r spec; do
+            mkdir -p "${{ env.DOCS_DIR }}/specs/$(dirname "$spec" | sed 's|services/||')"
+            cp "$spec" "${{ env.DOCS_DIR }}/specs/$(echo "$spec" | sed 's|services/||')"
+          done
 
-      - name: Create authentication wrapper
+          echo "Copied specs:"
+          find "${{ env.DOCS_DIR }}/specs" -type f
+
+      - name: Generate API docs manifest
+        shell: bash
         env:
-          DOCS_USERNAME: ${{ secrets.DOCS_USERNAME }}
-          DOCS_PASSWORD: ${{ secrets.DOCS_PASSWORD }}
+          SPECS: ${{ needs.detect-specs.outputs.specs }}
         run: |
-          node docs/create-auth-index.js
+          cat > ${{ env.DOCS_DIR }}/specs/manifest.json << 'EOF'
+          ${{ needs.detect-specs.outputs.specs }}
+          EOF
+          cat ${{ env.DOCS_DIR }}/specs/manifest.json
 
-      - name: Create .nojekyll file (for GitHub Pages)
-        run: touch docs/dist/.nojekyll
+      - name: Copy HTML Template
+        shell: bash
+        run: |
+          cp docs/templates/index.html ${{ env.DOCS_DIR }}/index.html
+          echo "✓ HTML template copied"
+
+      - name: Copy Viewer Files
+        shell: bash
+        run: |
+          if [ -f "api-docs-build/viewer-notification.html" ]; then
+            cp api-docs-build/viewer-notification.html ${{ env.DOCS_DIR }}/viewer-notification.html
+          fi
+
+          if [ -f "api-docs-build/viewer-validation.html" ]; then
+            cp api-docs-build/viewer-validation.html ${{ env.DOCS_DIR }}/viewer-validation.html
+          fi
+
+          echo "Viewer files status:"
+          ls -la ${{ env.DOCS_DIR }}/viewer-*.html 2>/dev/null || echo "No viewer files found"
+
+      - name: Replace API manifest
+        shell: bash
+        run: |
+          SPECS='${{ needs.detect-specs.outputs.specs }}'
+          ESCAPED_SPECS=$(echo "$SPECS" | sed 's/\\/\\\\/g' | sed 's/"/\\"/g' | tr '\n' ' ')
+          sed -i "s|%%API_MANIFEST%%|$ESCAPED_SPECS|g" ${{ env.DOCS_DIR }}/index.html
+
+      - name: Create Auth Wrapper (if GitHub Secrets configured)
+        if: ${{ secrets.DOCS_USERNAME != '' && secrets.DOCS_PASSWORD != '' }}
+        shell: bash
+        run: |
+          # Create auth wrapper
+          DOCS_USERNAME='${{ secrets.DOCS_USERNAME }}' \
+          DOCS_PASSWORD='${{ secrets.DOCS_PASSWORD }}' \
+          node scripts/create-auth-wrapper.js ${{ env.DOCS_DIR }}
+
+          # Rename files
+          mv ${{ env.DOCS_DIR }}/index.html ${{ env.DOCS_DIR }}/docs.html
+          mv ${{ env.DOCS_DIR }}/auth-index.html ${{ env.DOCS_DIR }}/index.html
+
+          echo "✓ Auth wrapper enabled"
+          echo "✓ Login required: ${{ secrets.DOCS_USERNAME }}"
+
+      - name: Validate Documentation
+        shell: bash
+        run: |
+          echo "📋 Validation Report:"
+          echo ""
+
+          # Check index.html exists
+          if [ -f "${{ env.DOCS_DIR }}/index.html" ]; then
+            echo "✓ index.html exists"
+          else
+            echo "✗ index.html missing"
+            exit 1
+          fi
+
+          # Check docs.html exists (auth wrapper)
+          if [ -f "${{ env.DOCS_DIR }}/docs.html" ]; then
+            echo "✓ docs.html exists"
+          else
+            echo "✓ docs.html not present (no auth wrapper)"
+          fi
+
+          # Check specs exist
+          SPEC_COUNT=$(find "${{ env.DOCS_DIR }}/specs" -name "*.yaml" -o -name "*.yml" | wc -l)
+          if [ "$SPEC_COUNT" -gt 0 ]; then
+            echo "✓ Found $SPEC_COUNT OpenAPI specs"
+          else
+            echo "✗ No OpenAPI specs found"
+            exit 1
+          fi
+
+          # Check manifest
+          if [ -f "${{ env.DOCS_DIR }}/specs/manifest.json" ]; then
+            echo "✓ manifest.json exists"
+          else
+            echo "✗ manifest.json missing"
+            exit 1
+          fi
+
+          # List all files
+          echo ""
+          echo "📁 Generated files:"
+          find "${{ env.DOCS_DIR }}" -type f | sed 's/^/  /'
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/dist
+          path: ${{ env.DOCS_DIR }}
 
   deploy:
-    name: Deploy to GitHub Pages
     needs: build
-    runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-
+    runs-on: ubuntu-latest
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Deployment Summary
+        run: |
+          echo "## 📚 API Documentation Deployed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Docs available at: ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ -n "${{ secrets.DOCS_USERNAME }}" ] && [ -n "${{ secrets.DOCS_PASSWORD }}" ]; then
+            echo "### 🔐 Login Gate Enabled" >> $GITHUB_STEP_SUMMARY
+            echo "Username: \`${{ secrets.DOCS_USERNAME }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ⚠️ Login Gate Not Configured" >> $GITHUB_STEP_SUMMARY
+            echo "To add a login gate, set GitHub Secrets:" >> $GITHUB_STEP_SUMMARY
+            echo "- \`DOCS_USERNAME\`" >> $GITHUB_STEP_SUMMARY
+            echo "- \`DOCS_PASSWORD\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "### 🔐 API Authentication Methods:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Basic Auth**: Username and Password" >> $GITHUB_STEP_SUMMARY
+          echo "- **JWT Token**: Bearer token authentication" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### 🌍 Available APIs:" >> $GITHUB_STEP_SUMMARY
+          echo '${{ needs.detect-specs.outputs.specs }}' | jq -r '.[] | "- " + .service_name' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### 📖 Documentation" >> $GITHUB_STEP_SUMMARY
+          echo "- [Quick Start](../../docs/QUICK-START.md)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Local Setup](../../docs/LOCAL-SETUP.md)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Full Guide](../../docs/API-DOCS.md)" >> $GITHUB_STEP_SUMMARY
