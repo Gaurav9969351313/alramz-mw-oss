@@ -137,30 +137,29 @@ jobs:
           ESCAPED_SPECS=$(echo "$SPECS" | sed 's/\\/\\\\/g' | sed 's/"/\\"/g' | tr '\n' ' ')
           sed -i "s|%%API_MANIFEST%%|$ESCAPED_SPECS|g" ${{ env.DOCS_DIR }}/docs.html
 
-      - name: Create Auth Wrapper (if GitHub Secrets configured)
-        if: secrets.DOCS_USERNAME != '' && secrets.DOCS_PASSWORD != ''
+      - name: Create Auth Wrapper and Setup Index
         shell: bash
+        env:
+          DOCS_USERNAME: ${{ secrets.DOCS_USERNAME }}
+          DOCS_PASSWORD: ${{ secrets.DOCS_PASSWORD }}
         run: |
-          # Create auth wrapper
-          DOCS_USERNAME='${{ secrets.DOCS_USERNAME }}' \
-          DOCS_PASSWORD='${{ secrets.DOCS_PASSWORD }}' \
-          node scripts/create-auth-wrapper.js ${{ env.DOCS_DIR }}
+          # If secrets are configured, create auth wrapper
+          if [ ! -z "$DOCS_USERNAME" ] && [ ! -z "$DOCS_PASSWORD" ]; then
+            echo "Creating auth wrapper..."
+            node scripts/create-auth-wrapper.js ${{ env.DOCS_DIR }}
 
-          # Rename auth wrapper to be the index
-          if [ -f "${{ env.DOCS_DIR }}/auth-index.html" ]; then
-            mv ${{ env.DOCS_DIR }}/auth-index.html ${{ env.DOCS_DIR }}/index.html
-            echo "✓ Auth wrapper enabled"
-            echo "✓ Login required: ${{ secrets.DOCS_USERNAME }}"
-          fi
-
-      - name: Setup Index Page (if no auth)
-        if: secrets.DOCS_USERNAME == '' || secrets.DOCS_PASSWORD == ''
-        shell: bash
-        run: |
-          # If no auth wrapper, make docs.html the index page
-          if [ ! -f "${{ env.DOCS_DIR }}/index.html" ] && [ -f "${{ env.DOCS_DIR }}/docs.html" ]; then
-            cp ${{ env.DOCS_DIR }}/docs.html ${{ env.DOCS_DIR }}/index.html
-            echo "✓ Setup docs.html as index (no auth)"
+            # Rename auth wrapper to be the index
+            if [ -f "${{ env.DOCS_DIR }}/auth-index.html" ]; then
+              mv ${{ env.DOCS_DIR }}/auth-index.html ${{ env.DOCS_DIR }}/index.html
+              echo "✓ Auth wrapper enabled"
+              echo "✓ Login required: $DOCS_USERNAME"
+            fi
+          else
+            # No auth - make docs.html the index page
+            if [ ! -f "${{ env.DOCS_DIR }}/index.html" ] && [ -f "${{ env.DOCS_DIR }}/docs.html" ]; then
+              cp ${{ env.DOCS_DIR }}/docs.html ${{ env.DOCS_DIR }}/index.html
+              echo "✓ Setup docs.html as index (no auth)"
+            fi
           fi
 
       - name: Validate Documentation
