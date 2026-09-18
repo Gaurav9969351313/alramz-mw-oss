@@ -138,7 +138,7 @@ jobs:
           sed -i "s|%%API_MANIFEST%%|$ESCAPED_SPECS|g" ${{ env.DOCS_DIR }}/docs.html
 
       - name: Create Auth Wrapper (if GitHub Secrets configured)
-        if: ${{ secrets.DOCS_USERNAME != '' && secrets.DOCS_PASSWORD != '' }}
+        if: ${{ secrets.DOCS_USERNAME != '' && secrets.DOCS_PASSWORD != null }}
         shell: bash
         run: |
           # Create auth wrapper
@@ -154,7 +154,7 @@ jobs:
           fi
 
       - name: Setup Index Page (if no auth)
-        if: ${{ secrets.DOCS_USERNAME == '' || secrets.DOCS_PASSWORD == '' }}
+        if: ${{ secrets.DOCS_USERNAME == '' || secrets.DOCS_PASSWORD == null }}
         shell: bash
         run: |
           # If no auth wrapper, make docs.html the index page
@@ -233,7 +233,7 @@ jobs:
           echo "✅ Docs available at: ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          if [ -n "${{ secrets.DOCS_USERNAME }}" ] && [ -n "${{ secrets.DOCS_PASSWORD }}" ]; then
+          if [ ! -z "${{ secrets.DOCS_USERNAME }}" ] && [ ! -z "${{ secrets.DOCS_PASSWORD }}" ]; then
             echo "### 🔐 Login Gate Enabled" >> $GITHUB_STEP_SUMMARY
             echo "Username: \`${{ secrets.DOCS_USERNAME }}\`" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
