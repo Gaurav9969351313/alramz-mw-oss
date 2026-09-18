@@ -10,6 +10,8 @@ on:
       - 'services/**/specs/**.yml'
       - '.github/workflows/api-docs-deploy.yml'
       - 'scripts/generate-api-docs.sh'
+      - 'scripts/create-auth-wrapper.js'
+      - 'docs/templates/**'
       - 'docs/api-docs/**'
   workflow_dispatch:
 
@@ -111,7 +113,7 @@ jobs:
       - name: Copy HTML Template
         shell: bash
         run: |
-          cp docs/templates/index.html ${{ env.DOCS_DIR }}/index.html
+          cp docs/templates/docs.html ${{ env.DOCS_DIR }}/docs.html
           echo "✓ HTML template copied"
 
       - name: Copy Viewer Files
@@ -133,7 +135,7 @@ jobs:
         run: |
           SPECS='${{ needs.detect-specs.outputs.specs }}'
           ESCAPED_SPECS=$(echo "$SPECS" | sed 's/\\/\\\\/g' | sed 's/"/\\"/g' | tr '\n' ' ')
-          sed -i "s|%%API_MANIFEST%%|$ESCAPED_SPECS|g" ${{ env.DOCS_DIR }}/index.html
+          sed -i "s|%%API_MANIFEST%%|$ESCAPED_SPECS|g" ${{ env.DOCS_DIR }}/docs.html
 
       - name: Create Auth Wrapper (if GitHub Secrets configured)
         if: ${{ secrets.DOCS_USERNAME != '' && secrets.DOCS_PASSWORD != '' }}
@@ -144,12 +146,22 @@ jobs:
           DOCS_PASSWORD='${{ secrets.DOCS_PASSWORD }}' \
           node scripts/create-auth-wrapper.js ${{ env.DOCS_DIR }}
 
-          # Rename files
-          mv ${{ env.DOCS_DIR }}/index.html ${{ env.DOCS_DIR }}/docs.html
-          mv ${{ env.DOCS_DIR }}/auth-index.html ${{ env.DOCS_DIR }}/index.html
+          # Rename auth wrapper to be the index
+          if [ -f "${{ env.DOCS_DIR }}/auth-index.html" ]; then
+            mv ${{ env.DOCS_DIR }}/auth-index.html ${{ env.DOCS_DIR }}/index.html
+            echo "✓ Auth wrapper enabled"
+            echo "✓ Login required: ${{ secrets.DOCS_USERNAME }}"
+          fi
 
-          echo "✓ Auth wrapper enabled"
-          echo "✓ Login required: ${{ secrets.DOCS_USERNAME }}"
+      - name: Setup Index Page (if no auth)
+        if: ${{ secrets.DOCS_USERNAME == '' || secrets.DOCS_PASSWORD == '' }}
+        shell: bash
+        run: |
+          # If no auth wrapper, make docs.html the index page
+          if [ ! -f "${{ env.DOCS_DIR }}/index.html" ] && [ -f "${{ env.DOCS_DIR }}/docs.html" ]; then
+            cp ${{ env.DOCS_DIR }}/docs.html ${{ env.DOCS_DIR }}/index.html
+            echo "✓ Setup docs.html as index (no auth)"
+          fi
 
       - name: Validate Documentation
         shell: bash
@@ -165,11 +177,12 @@ jobs:
             exit 1
           fi
 
-          # Check docs.html exists (auth wrapper)
+          # Check docs.html exists
           if [ -f "${{ env.DOCS_DIR }}/docs.html" ]; then
             echo "✓ docs.html exists"
           else
-            echo "✓ docs.html not present (no auth wrapper)"
+            echo "✗ docs.html missing"
+            exit 1
           fi
 
           # Check specs exist
