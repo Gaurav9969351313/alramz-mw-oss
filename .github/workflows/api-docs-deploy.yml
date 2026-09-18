@@ -135,26 +135,27 @@ jobs:
 
       - name: Replace API manifest
         shell: bash
-        run: python3 << 'EOF'
-import json
+        run: |
+          python3 << 'EOF'
+          import json
 
-specs = """${{ needs.detect-specs.outputs.specs }}"""
-try:
-    specs_json = json.loads(specs)
-    specs_str = json.dumps(specs_json)
-except:
-    specs_str = '[]'
+          specs = """${{ needs.detect-specs.outputs.specs }}"""
+          try:
+              specs_json = json.loads(specs)
+              specs_str = json.dumps(specs_json)
+          except:
+              specs_str = '[]'
 
-with open('${{ env.DOCS_DIR }}/docs.html', 'r') as f:
-    content = f.read()
+          with open('${{ env.DOCS_DIR }}/docs.html', 'r') as f:
+              content = f.read()
 
-content = content.replace('%%API_MANIFEST%%', specs_str)
+          content = content.replace('%%API_MANIFEST%%', specs_str)
 
-with open('${{ env.DOCS_DIR }}/docs.html', 'w') as f:
-    f.write(content)
+          with open('${{ env.DOCS_DIR }}/docs.html', 'w') as f:
+              f.write(content)
 
-print("✓ Injected API specs")
-EOF
+          print("✓ Injected API specs")
+          EOF
 
       - name: Create Auth Wrapper and Setup Index
         shell: bash
