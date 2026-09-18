@@ -33,7 +33,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Install Redocly CLI
         run: npm install -g @redocly/cli@latest
@@ -42,7 +42,9 @@ jobs:
         run: mkdir -p docs/dist
 
       - name: Build API documentation
-        run: redocly build-docs redocly.yaml -o docs/dist/redoc.html
+        run: |
+          redocly build-docs services/alramz-notification-service/specs/openapi.yaml -o docs/dist/notification-service.html
+          redocly build-docs services/data-validation-service/specs/apiSpecs.yaml -o docs/dist/data-validation-service.html
 
       - name: Create authentication wrapper
         env:
