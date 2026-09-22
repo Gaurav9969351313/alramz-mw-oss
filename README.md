@@ -245,21 +245,88 @@ bash release.sh --no-prompt
 
 docker compose --env-file .env up 
 
+i want you to add api key authentication layer in the service from which which application is calling our api's can be determind. i want keys are maintained in middleware database table. 
 
+i want you to grill me while taking the requirement 
+
+we alraedy have a jwt authentication in api-starter 
+
+we need api-key authentication as well in api-starter project 
+
+we need a flag based 
 
 
 
 Next Points to implement
-1) Logging -- Key Authentication --> Consumer Field 
-              Consumer
-              Enviornment
+1) Logging -- Key Authentication --> Consumer Field  
+              Consumer              Hold 
+              Enviornment  
 
          title -- API Audit: URI    --> Done
 
-   Execution time of All methods. - AOP --> Done
+   Execution time of All methods. - AOP  --> Done
 
-2) Any Docs Private
-3) Framework for accessing feature flags
+2) Any Docs Private                      --> Done
+3) Framework for accessing feature flags --> Done
 4) Grouping Of Services
-5) 
+5) Key Based Authentication   - HOLD
+   X-Api-Key: 123453434-34343-sadad-121  (Inside Database)
 
+6) based on Scedule CACHE
+      - api to FLUSH and recreate a cache
+7) Why do we maintain Other Teams Settings == static_data (MW)
+      - redis
+8) Software ag based docs login screen
+9) ADR - Scedules why not on azure
+10) self-service-portal -- ( Optional )
+
+
+1) Create a POC on Database driven Sceduling. 
+2) Implement this framework as a lib and check integrating it in one of the service.
+3) Add Configurations Data in Redis Cache. Flush Redis Cache. Cache Reload API Endpoint. 
+4) Draft ADR's and publish them for API Security, Consumer field in SeqLog, Logging, configuration management etc.
+5) Software AG based Docs Login Screen Implementation.
+6) GitHub Workflow for the Software AG based Docs Publishing.
+7) Explore requirements and initial scope for the self-service-portal feature. (Optional) (Config Data + Reference Data)
+8) Claude Setup for Spring Boot Developement (Optional) -- Agent Building -- (2 weeks)
+   
+   /sdlc i have given dfm onboarding specs can convert this to spring boot based service implementation in onbaording-service.
+
+   spec --> plan --> impl --> build --> test --> junit --> integration --> fix pmd --> fix: spot bugs --> commit --> create PR
+
+9) reset appsubscriptions password (optional)
+10) AZURE keyvault implementation for a services using managed identity. (optional)
+
+10) https://github.com/floci-io/floci-ui.git
+
+
+ADR - Security will be not considered till AZURE API gateway is not available. for dev lets not focus on auth mechnisms.
+ADR - Consumer field in seq log Dependent on security. So, since security is dependent on the previous ADR, we won't be able to add that inside SecLog.
+ADR - 
+
+
+JWT 
+---
+Finoux
+FIT
+
+External System 
+-------------------
+DFM - Onbairding - API Gateway Checks 
+    - AccountUpdate - (IP Whitelisting)
+
+UAEPASS
+TradingView
+
+
+Internal - API Key 
+------------------
+CRM
+ALGO
+AlramzWebsite
+MMF
+RMS
+HealthMon
+PowerAutomate
+SSO
+AI

@@ -16,24 +16,24 @@ public class AuthController {
 
     @PostMapping("/api/auth/login")
     public ResponseEntity<TokenResponse> login(@RequestBody LoginRequest request) {
-        if (request.username() == null || request.username().isBlank() ||
-            request.password() == null || request.password().isBlank()) {
+        if (request.consumer() == null || request.consumer().isBlank() ||
+            request.consumerPassword() == null || request.consumerPassword().isBlank()) {
             return ResponseEntity.badRequest().build();
         }
-        TokenPair tokens = authService.login(request.username(), request.password());
+        TokenPair tokens = authService.login(request.consumer(), request.consumerPassword());
         return ResponseEntity.ok(new TokenResponse(tokens.accessToken(), tokens.refreshToken(), tokens.tokenType(), tokens.expiresIn()));
     }
 
     @PostMapping("/api/auth/register")
     public ResponseEntity<TokenResponse> register(@RequestBody RegisterRequest request) {
-        if (request.username() == null || request.username().isBlank() ||
+        if (request.consumer() == null || request.consumer().isBlank() ||
             request.email() == null || request.email().isBlank() ||
-            request.password() == null || request.password().isBlank() ||
+            request.consumerPassword() == null || request.consumerPassword().isBlank() ||
             request.application() == null || request.application().isBlank() ||
             request.environment() == null || request.environment().isBlank()) {
             return ResponseEntity.badRequest().build();
         }
-        TokenPair tokens = authService.register(request.username(), request.email(), request.password(), request.roles(), request.application(), request.environment());
+        TokenPair tokens = authService.register(request.consumer(), request.email(), request.consumerPassword(), request.roles(), request.application(), request.environment());
         return ResponseEntity.ok(new TokenResponse(tokens.accessToken(), tokens.refreshToken(), tokens.tokenType(), tokens.expiresIn()));
     }
 
@@ -55,12 +55,12 @@ public class AuthController {
         return ResponseEntity.ok(new TokenResponse(tokens.accessToken(), tokens.refreshToken(), tokens.tokenType(), tokens.expiresIn()));
     }
 
-    public record LoginRequest(String username, String password) {}
+    public record LoginRequest(String consumer, String consumerPassword) {}
 
     public record RegisterRequest(
-            String username,
+            String consumer,
             String email,
-            String password,
+            String consumerPassword,
             java.util.List<String> roles,
             String application,
             String environment

@@ -38,8 +38,7 @@ public class AlramzJsonEncoder extends EncoderBase<ILoggingEvent> {
      * Classic (non-JSON) log pattern. Defaults to a line that already carries the
      * most relevant diagnostic context entries.
      */
-    private String classicPattern = "[%d{yyyy-MM-dd HH:mm:ss.SSS}] [%thread] %-5level [service=%X{serviceName}]"
-            + " [corr=%X{correlationId}] [trace=%X{traceId}] [span=%X{spanId}] %logger{36} - %msg%n";
+    private String classicPattern = "[%d{yyyy-MM-dd HH:mm:ss.SSS}] [%thread] %-5level %logger{36} - %msg%n";
 
     /** Fully qualified service name pulled from {@code spring.application.name}. */
     private String serviceName = "unknown";

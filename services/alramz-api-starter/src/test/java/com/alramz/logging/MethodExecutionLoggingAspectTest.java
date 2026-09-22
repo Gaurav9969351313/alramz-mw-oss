@@ -156,6 +156,30 @@ class MethodExecutionLoggingAspectTest {
                 .contains("<<< EXITING:");
     }
 
+    @Test
+    void separatorReplacesEscapedNewlines() throws Throwable {
+        properties.getAspect().setSeparator("===\\n===");
+
+        ProceedingJoinPoint pjp = mock(ProceedingJoinPoint.class);
+        MethodSignature signature = mock(MethodSignature.class);
+        Method method = TestService.class.getMethod("doWork", String.class, int.class);
+
+        when(pjp.proceed()).thenReturn("result");
+        when(pjp.getSignature()).thenReturn(signature);
+        when(pjp.getArgs()).thenReturn(new Object[]{"arg1", 123});
+        when(signature.getMethod()).thenReturn(method);
+        when(signature.getDeclaringType()).thenReturn(TestService.class);
+
+        aspect.logMethodExecution(pjp);
+
+        List<ILoggingEvent> events = appender.list;
+        assertThat(events).isNotEmpty();
+        String allMessages = events.stream()
+                .map(ILoggingEvent::getFormattedMessage)
+                .reduce("", (a, b) -> a + "\n" + b);
+        assertThat(allMessages).contains("===\n===");
+    }
+
     static class TestService {
         public String doWork(String arg1, int arg2) {
             return "ok";

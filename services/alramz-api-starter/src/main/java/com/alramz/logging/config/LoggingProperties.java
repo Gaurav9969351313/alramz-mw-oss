@@ -129,7 +129,7 @@ public class LoggingProperties {
         private boolean logReturn = true;
         private boolean logExceptions = true;
         private int maxPayloadLength = 1000;
-        private String separator = "================================================================================";
+        private String separator = "========== ";
         private List<String> excludedPackages = new ArrayList<>(List.of(
                 "org.springframework.", "org.hibernate.", "java.", "javax.", "jakarta.", "sun.", "com.sun."
         ));

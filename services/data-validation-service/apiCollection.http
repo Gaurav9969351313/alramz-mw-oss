@@ -1,8 +1,8 @@
 @baseUrl=http://localhost:8080
 # @baseUrl=https://gthomelab.online
 
-@authToken=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJkYXRhX3ZhbGlkYXRpb25fYXBwIiwiaWF0IjoxNzg5NjI0NDk4LCJleHAiOjE3ODk2MjUzOTgsInJvbGVzIjpbIkFQUF9EQVRBX1ZBTElEQVRJT04iXSwiYXBwbGljYXRpb24iOiJkYXRhLXZhbGlkYXRpb24tc2VydmljZSIsImVudmlyb25tZW50IjoibG9jYWwifQ.4RQaveJuNbJBo3sfgEWDsoe1PE3iR2Ej31J8njT7vUk
-
+@authToken=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJkYXRhX3ZhbGlkYXRpb25fYXBwIiwiaWF0IjoxNzkwMDYwNzM3LCJleHAiOjE3OTAwNjE2MzcsInJvbGVzIjpbIkFQUF9EQVRBX1ZBTElEQVRJT04iXSwiYXBwbGljYXRpb24iOiJkYXRhLXZhbGlkYXRpb24tc2VydmljZSIsImVudmlyb25tZW50IjoibG9jYWwifQ.7dWoUvnINaHmnRejFOPTPQIFtLRTxD1qPL_mJqvbpaw
+###
 GET {{baseUrl}}/api/v1/info
 
 
@@ -11,9 +11,10 @@ POST {{baseUrl}}/api/auth/register
 Content-Type: application/json
 
 {
-    "username": "data_validation_app",
+    "authType": "JWT",
+    "consumer": "data_validation_app",
     "email": "data.validation@alramz.ae",
-    "password": "password123",
+    "consumerPassword": "password123",
     "roles": ["APP_DATA_VALIDATION"],
     "application": "data-validation-service",
     "environment": "local"
@@ -26,8 +27,8 @@ POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
 
 {
-    "username": "data_validation_app",
-    "password": "password123"
+    "consumer": "data_validation_app",
+    "consumerPassword": "password123"
 }
 
 ###

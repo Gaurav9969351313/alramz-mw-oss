@@ -22,7 +22,7 @@ public class SensitiveDataMasker {
         // Add all keys in lowercase for case-insensitive O(1) lookup
         String[] sensitiveKeys = {
             "client_secret", "api_key", "apikey", "access_token", "accesstoken",
-            "authorization", "password", "secret", "cookie",
+            "authorization", "password", "consumerpassword", "secret", "cookie",
             "eid_attachment_front", "eid_attachment_back", "pinf_signatureimage", "pp_attachment",
             "cust_nin", "eid_no", "passportnumber", "pp_no"
         };

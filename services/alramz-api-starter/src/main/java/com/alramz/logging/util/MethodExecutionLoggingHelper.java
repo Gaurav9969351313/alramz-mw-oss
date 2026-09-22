@@ -26,6 +26,11 @@ public final class MethodExecutionLoggingHelper {
 
     public String getSeparator() {
         String sep = properties.getAspect().getSeparator();
+        if (sep != null && !sep.isBlank()) {
+            sep = sep.replace("\\r\\n", "\r\n")
+                    .replace("\\n", "\n")
+                    .replace("\\r", "\r");
+        }
         return sep != null && !sep.isBlank() ? sep : DEFAULT_SEPARATOR;
     }
 

@@ -81,7 +81,8 @@ public class ApiAuditLogService {
         // Use try-with-resources style MDC management for cleaner code
         String[] mdcKeys = {"Direction", "ServiceName", "Controller", "Endpoint", "Method",
                             "StatusCode", "DurationMs", "ExceptionCause", "ExceptionClass",
-                            "Environment", "Request", "Response"};
+                            "Environment", "Request", "Response", "Consumer"};
+        String consumerValue = extractConsumer(entry.request());
         String[] mdcValues = {
             entry.direction(),
             entry.serviceName(),
@@ -94,7 +95,8 @@ public class ApiAuditLogService {
             entry.exceptionClass(),
             environment.getProperty("spring.profiles.active"),
             requestJson,
-            responseJson
+            responseJson,
+            consumerValue
         };
 
         // Put all values
@@ -123,6 +125,28 @@ public class ApiAuditLogService {
             log.warn("Failed to serialize audit payload to JSON", e);
             return null;
         }
+    }
+
+    private String extractConsumer(Object request) {
+        if (request instanceof Map<?, ?> map) {
+            Object raw = map.get("consumer");
+            if (raw != null) {
+                return raw.toString();
+            }
+            return null;
+        }
+        if (request instanceof String str) {
+            try {
+                com.fasterxml.jackson.databind.JsonNode node = objectMapper.readTree(str);
+                com.fasterxml.jackson.databind.JsonNode consumer = node.get("consumer");
+                if (consumer != null && !consumer.isMissingNode()) {
+                    return consumer.asText();
+                }
+            } catch (Exception e) { // NOPMD AvoidCatchingGenericException
+                // ignore parse errors
+            }
+        }
+        return null;
     }
 
     @Scheduled(cron = "${company.logging.database-logging.cleanup-cron:0 0 2 * * *}")

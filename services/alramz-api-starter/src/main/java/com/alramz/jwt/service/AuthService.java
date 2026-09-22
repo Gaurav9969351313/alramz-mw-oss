@@ -33,35 +33,35 @@ public class AuthService {
         this.refreshTokenRepository = refreshTokenRepository;
     }
 
-    public TokenPair login(String username, String password) {
-        User user = userRepository.findByUsername(username)
+    public TokenPair login(String consumer, String consumerPassword) {
+        User user = userRepository.findByUsername(consumer)
                 .orElseThrow(() -> {
                     if (logger.isWarnEnabled()) {
-                        logger.warn("Login failed: user '{}' not found", username);
+                        logger.warn("Login failed: user '{}' not found", consumer);
                     }
                     return new BadCredentialsException("Invalid username or password");
                 });
 
-        if (!passwordEncoder.matches(password, user.password())) {
+        if (!passwordEncoder.matches(consumerPassword, user.password())) {
             if (logger.isWarnEnabled()) {
-                logger.warn("Login failed: invalid password for user '{}'", username);
+                logger.warn("Login failed: invalid password for user '{}'", consumer);
             }
             throw new BadCredentialsException("Invalid username or password");
         }
 
         if (!user.enabled()) {
             if (logger.isWarnEnabled()) {
-                logger.warn("Login failed: account disabled for user '{}'", username);
+                logger.warn("Login failed: account disabled for user '{}'", consumer);
             }
             throw new BadCredentialsException("Account is disabled");
         }
 
         if (logger.isInfoEnabled()) {
-            logger.info("User '{}' logged in successfully with application={}, environment={}", username, user.application(), user.environment());
+            logger.info("User '{}' logged in successfully with application={}, environment={}", consumer, user.application(), user.environment());
         }
 
         TokenPair tokenPair = tokenProvider.generateTokenPair(
-                username,
+                consumer,
                 user.roles(),
                 user.application(),
                 user.environment()
@@ -70,7 +70,7 @@ public class AuthService {
         RefreshToken refreshToken = new RefreshToken(
                 null,
                 tokenPair.refreshToken(),
-                username,
+                consumer,
                 Instant.now().plusSeconds(7 * 24 * 60 * 60),
                 Instant.now(),
                 false
@@ -80,20 +80,20 @@ public class AuthService {
         return tokenPair;
     }
 
-    public TokenPair register(String username, String email, String password, List<String> roles, String application, String environment) {
-        if (userRepository.existsByUsername(username)) {
+    public TokenPair register(String consumer, String email, String consumerPassword, List<String> roles, String application, String environment) {
+        if (userRepository.existsByUsername(consumer)) {
             throw new IllegalArgumentException("Username already exists");
         }
         if (userRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("Email already exists");
         }
 
-        String encodedPassword = passwordEncoder.encode(password);
-        User user = new User(null, username, email, encodedPassword, roles, true, application, environment);
+        String encodedPassword = passwordEncoder.encode(consumerPassword);
+        User user = new User(null, consumer, email, encodedPassword, roles, true, application, environment);
         User savedUser = userRepository.save(user);
 
         if (logger.isInfoEnabled()) {
-            logger.info("User '{}' registered successfully with application={}, environment={}, roles={}", username, application, environment, roles);
+            logger.info("User '{}' registered successfully with application={}, environment={}, roles={}", consumer, application, environment, roles);
         }
 
         return tokenProvider.generateTokenPair(savedUser.username(), savedUser.roles(), savedUser.application(), savedUser.environment());

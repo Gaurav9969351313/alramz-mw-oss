@@ -26,13 +26,13 @@
     <!-- Plain (no ANSI) pattern shared by the file/encoder classic output so log
          files stay clean for aggregators. -->
     <property name="CLASSIC_PATTERN"
-              value="[%d{yyyy-MM-dd HH:mm:ss.SSS}] [%thread] %-5level [service=%X{serviceName}] [corr=%X{correlationId}] [trace=%X{traceId}] [span=%X{spanId}] [%X{method} %X{uri} %X{responseStatus} %X{responseTimeMs}ms] %logger{36} - %msg%n"/>
+              value="[%d{yyyy-MM-dd HH:mm:ss.SSS}] [%thread] %-5level [%X{method} %X{uri} %X{responseStatus} %X{responseTimeMs}ms] %logger{36} - %msg%n"/>
 
     <!-- ANSI-colored pattern for the human-facing console only. Color codes are
          emitted by logback when the output supports a terminal; piped/CI output
          automatically falls back to plain text. -->
     <property name="CONSOLE_PATTERN"
-              value="[%d{yyyy-MM-dd HH:mm:ss.SSS}] [%thread] %highlight(%5p) [service=%cyan(%X{serviceName})] [corr=%cyan(%X{correlationId})] [trace=%magenta(%X{traceId})] [span=%magenta(%X{spanId})] [%X{method} %X{uri} %X{responseStatus} %X{responseTimeMs}ms] %logger{36} - %msg%n"/>
+              value="[%d{yyyy-MM-dd HH:mm:ss.SSS}] [%thread] %highlight(%5p) [%X{method} %X{uri} %X{responseStatus} %X{responseTimeMs}ms] %logger{36} - %msg%n"/>
 
     <!-- Injects the service name into every MDC so startup logs show it too. -->
     <turboFilter class="com.alramz.logging.logback.ServiceNameTurboFilter">
