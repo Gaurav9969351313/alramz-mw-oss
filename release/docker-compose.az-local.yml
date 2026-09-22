@@ -1,0 +1,32 @@
+services:  
+  floci-az:
+    image: floci/floci-az:latest
+    container_name: floci-az
+    ports:
+      - "4577:4577"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock # Required if you use Azure Functions or managed SQL containers
+      - floci-az-data:/app/data
+    environment:
+      - FLOCI_AZ_PORT=4577
+      - FLOCI_AZ_BASE_URL=http://localhost:4577
+      - FLOCI_AZ_HOSTNAME=floci-az
+      - FLOCI_AZ_TLS_ENABLED=false
+      - FLOCI_AZ_STORAGE_MODE=hybrid
+      - FLOCI_AZ_STORAGE_PATH=/app/data
+      - FLOCI_AZ_DOCKER_DOCKER_HOST=unix:///var/run/docker.sock
+
+  floci-ui:
+    image: floci/floci-ui:latest
+    container_name: floci-ui
+    ports:
+      - "4500:4500"
+    environment:
+      - FLOCI_AZURE_ENDPOINT=http://floci-az:4577 # Connects UI to the Azure emulator
+    depends_on:
+      - floci-az
+
+volumes:
+  floci-az-data:
+
+# https://floci.io/floci-az/services/key-vault/

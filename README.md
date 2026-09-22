@@ -281,12 +281,12 @@ Next Points to implement
 10) self-service-portal -- ( Optional )
 
 
-1) Create a POC on Database driven Sceduling. 
-2) Implement this framework as a lib and check integrating it in one of the service.
+1) Create a POC on Database driven Sceduling. -- Done
+2) Implement this framework as a lib and check integrating it in one of the service. -- Done
 3) Add Configurations Data in Redis Cache. Flush Redis Cache. Cache Reload API Endpoint. 
 4) Draft ADR's and publish them for API Security, Consumer field in SeqLog, Logging, configuration management etc.
-5) Software AG based Docs Login Screen Implementation.
-6) GitHub Workflow for the Software AG based Docs Publishing.
+5) Software AG based Docs Login Screen Implementation. -- Done
+6) GitHub Workflow for the Software AG based Docs Publishing. -- Done
 7) Explore requirements and initial scope for the self-service-portal feature. (Optional) (Config Data + Reference Data)
 8) Claude Setup for Spring Boot Developement (Optional) -- Agent Building -- (2 weeks)
    
@@ -330,3 +330,6 @@ HealthMon
 PowerAutomate
 SSO
 AI
+
+
+=====================================================================================
