@@ -36,6 +36,27 @@ public class LoggingExceptionHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(LoggingExceptionHandler.class);
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException ex, HttpServletRequest request) {
+        String correlationId = MDCUtil.getCorrelationId();
+        String uri = request != null ? request.getRequestURI() : null;
+        String method = request != null ? request.getMethod() : null;
+
+        if (uri != null && method != null) {
+            logger.warn("Bad request: {} {} (correlationId={})", method, uri, correlationId, ex);
+        } else {
+            logger.warn("Bad request (correlationId={})", correlationId, ex);
+        }
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("timestamp", Instant.now().toString());
+        body.put("status", 400);
+        body.put("error", "Bad Request: " + ex.getMessage());
+        body.put("message", ex.getMessage());
+        body.put(LoggingConstants.CORRELATION_ID, correlationId);
+        return ResponseEntity.status(400).contentType(MediaType.APPLICATION_JSON).body(body);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handle(Exception ex, HttpServletRequest request) {
         String correlationId = MDCUtil.getCorrelationId();
