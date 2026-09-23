@@ -1,7 +1,7 @@
-package com.alramz.referencedata.repository;
+package com.alramz.globalconfigurationsettings.repository;
 
-import com.alramz.referencedata.mapper.ReferenceDataRowMapper;
-import com.alramz.referencedata.model.ReferenceData;
+import com.alramz.globalconfigurationsettings.mapper.GlobalConfigurationSettingsRowMapper;
+import com.alramz.globalconfigurationsettings.model.GlobalConfigurationSettings;
 import com.alramz.utils.SqlQueriesManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,22 +23,22 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class JdbcReferenceDataRepositoryTest {
+class JdbcGlobalConfigurationSettingsRepositoryTest {
 
     @Mock
     private NamedParameterJdbcTemplate mockJdbcTemplate;
 
     @Mock
-    private ReferenceDataRowMapper mockRowMapper;
+    private GlobalConfigurationSettingsRowMapper mockRowMapper;
 
     @Mock
     private SqlQueriesManager mockSqlQueriesManager;
 
-    private JdbcReferenceDataRepository repository;
+    private JdbcGlobalConfigurationSettingsRepository repository;
 
     @BeforeEach
     void setUp() {
-        repository = new JdbcReferenceDataRepository(
+        repository = new JdbcGlobalConfigurationSettingsRepository(
             mockJdbcTemplate,
             mockRowMapper,
             mockSqlQueriesManager
@@ -49,106 +49,106 @@ class JdbcReferenceDataRepositoryTest {
 
     @Test
     void find_withAllArgsNonBlank_selectsCorrectQueryKey() throws Exception {
-        String sql = "SELECT * FROM REFERENCE_DATA WHERE ...";
-        when(mockSqlQueriesManager.getSQLQueryFromConfig("reference.data.find.with.type.and.status"))
+        String sql = "SELECT * FROM GLOBAL_CONFIGURATION_SETTINGS WHERE ...";
+        when(mockSqlQueriesManager.getSQLQueryFromConfig("global.configuration.settings.find.with.type.and.status"))
             .thenReturn(sql);
         when(mockJdbcTemplate.query(eq(sql), any(MapSqlParameterSource.class), eq(mockRowMapper)))
             .thenReturn(List.of());
 
         repository.find("COUNTRY", "ISO", "ACTIVE");
-        verify(mockSqlQueriesManager).getSQLQueryFromConfig("reference.data.find.with.type.and.status");
+        verify(mockSqlQueriesManager).getSQLQueryFromConfig("global.configuration.settings.find.with.type.and.status");
     }
 
     @Test
     void find_withNullIdentifierType_selectsStatusQuery() throws Exception {
-        String sql = "SELECT * FROM REFERENCE_DATA WHERE ...";
-        when(mockSqlQueriesManager.getSQLQueryFromConfig("reference.data.find.with.status"))
+        String sql = "SELECT * FROM GLOBAL_CONFIGURATION_SETTINGS WHERE ...";
+        when(mockSqlQueriesManager.getSQLQueryFromConfig("global.configuration.settings.find.with.status"))
             .thenReturn(sql);
         when(mockJdbcTemplate.query(eq(sql), any(MapSqlParameterSource.class), eq(mockRowMapper)))
             .thenReturn(List.of());
 
         repository.find("COUNTRY", null, "ACTIVE");
-        verify(mockSqlQueriesManager).getSQLQueryFromConfig("reference.data.find.with.status");
+        verify(mockSqlQueriesManager).getSQLQueryFromConfig("global.configuration.settings.find.with.status");
     }
 
     @Test
     void find_withBlankIdentifierType_selectsStatusQuery() throws Exception {
-        String sql = "SELECT * FROM REFERENCE_DATA WHERE ...";
-        when(mockSqlQueriesManager.getSQLQueryFromConfig("reference.data.find.with.status"))
+        String sql = "SELECT * FROM GLOBAL_CONFIGURATION_SETTINGS WHERE ...";
+        when(mockSqlQueriesManager.getSQLQueryFromConfig("global.configuration.settings.find.with.status"))
             .thenReturn(sql);
         when(mockJdbcTemplate.query(eq(sql), any(MapSqlParameterSource.class), eq(mockRowMapper)))
             .thenReturn(List.of());
 
         repository.find("COUNTRY", "  ", "ACTIVE");
-        verify(mockSqlQueriesManager).getSQLQueryFromConfig("reference.data.find.with.status");
+        verify(mockSqlQueriesManager).getSQLQueryFromConfig("global.configuration.settings.find.with.status");
     }
 
     @Test
     void find_withNullStatus_selectsTypeQuery() throws Exception {
-        String sql = "SELECT * FROM REFERENCE_DATA WHERE ...";
-        when(mockSqlQueriesManager.getSQLQueryFromConfig("reference.data.find.with.type"))
+        String sql = "SELECT * FROM GLOBAL_CONFIGURATION_SETTINGS WHERE ...";
+        when(mockSqlQueriesManager.getSQLQueryFromConfig("global.configuration.settings.find.with.type"))
             .thenReturn(sql);
         when(mockJdbcTemplate.query(eq(sql), any(MapSqlParameterSource.class), eq(mockRowMapper)))
             .thenReturn(List.of());
 
         repository.find("COUNTRY", "ISO", null);
-        verify(mockSqlQueriesManager).getSQLQueryFromConfig("reference.data.find.with.type");
+        verify(mockSqlQueriesManager).getSQLQueryFromConfig("global.configuration.settings.find.with.type");
     }
 
     @Test
     void find_withBlankStatus_selectsTypeQuery() throws Exception {
-        String sql = "SELECT * FROM REFERENCE_DATA WHERE ...";
-        when(mockSqlQueriesManager.getSQLQueryFromConfig("reference.data.find.with.type"))
+        String sql = "SELECT * FROM GLOBAL_CONFIGURATION_SETTINGS WHERE ...";
+        when(mockSqlQueriesManager.getSQLQueryFromConfig("global.configuration.settings.find.with.type"))
             .thenReturn(sql);
         when(mockJdbcTemplate.query(eq(sql), any(MapSqlParameterSource.class), eq(mockRowMapper)))
             .thenReturn(List.of());
 
         repository.find("COUNTRY", "ISO", "   ");
-        verify(mockSqlQueriesManager).getSQLQueryFromConfig("reference.data.find.with.type");
+        verify(mockSqlQueriesManager).getSQLQueryFromConfig("global.configuration.settings.find.with.type");
     }
 
     @Test
     void find_withOnlyIdentifier_selectsBaseQuery() throws Exception {
-        String sql = "SELECT * FROM REFERENCE_DATA WHERE ...";
-        when(mockSqlQueriesManager.getSQLQueryFromConfig("reference.data.find"))
+        String sql = "SELECT * FROM GLOBAL_CONFIGURATION_SETTINGS WHERE ...";
+        when(mockSqlQueriesManager.getSQLQueryFromConfig("global.configuration.settings.find"))
             .thenReturn(sql);
         when(mockJdbcTemplate.query(eq(sql), any(MapSqlParameterSource.class), eq(mockRowMapper)))
             .thenReturn(List.of());
 
         repository.find("COUNTRY", null, null);
-        verify(mockSqlQueriesManager).getSQLQueryFromConfig("reference.data.find");
+        verify(mockSqlQueriesManager).getSQLQueryFromConfig("global.configuration.settings.find");
     }
 
     @Test
     void find_withIdentifierOnly_delegatesToThreeArgMethod() throws Exception {
-        String sql = "SELECT * FROM REFERENCE_DATA WHERE ...";
-        when(mockSqlQueriesManager.getSQLQueryFromConfig("reference.data.find"))
+        String sql = "SELECT * FROM GLOBAL_CONFIGURATION_SETTINGS WHERE ...";
+        when(mockSqlQueriesManager.getSQLQueryFromConfig("global.configuration.settings.find"))
             .thenReturn(sql);
         when(mockJdbcTemplate.query(eq(sql), any(MapSqlParameterSource.class), eq(mockRowMapper)))
             .thenReturn(List.of());
 
         repository.find("COUNTRY");
-        verify(mockSqlQueriesManager).getSQLQueryFromConfig("reference.data.find");
+        verify(mockSqlQueriesManager).getSQLQueryFromConfig("global.configuration.settings.find");
     }
 
     @Test
     void find_withIdentifierAndType_delegatesToThreeArgMethod() throws Exception {
-        String sql = "SELECT * FROM REFERENCE_DATA WHERE ...";
-        when(mockSqlQueriesManager.getSQLQueryFromConfig("reference.data.find.with.type"))
+        String sql = "SELECT * FROM GLOBAL_CONFIGURATION_SETTINGS WHERE ...";
+        when(mockSqlQueriesManager.getSQLQueryFromConfig("global.configuration.settings.find.with.type"))
             .thenReturn(sql);
         when(mockJdbcTemplate.query(eq(sql), any(MapSqlParameterSource.class), eq(mockRowMapper)))
             .thenReturn(List.of());
 
         repository.find("COUNTRY", "ISO");
-        verify(mockSqlQueriesManager).getSQLQueryFromConfig("reference.data.find.with.type");
+        verify(mockSqlQueriesManager).getSQLQueryFromConfig("global.configuration.settings.find.with.type");
     }
 
     @Test
     void findIdentifierTexts_withAllArgs_returnsTextList() throws Exception {
-        String sql = "SELECT IDENTIFIER_TEXT FROM REFERENCE_DATA WHERE ...";
+        String sql = "SELECT IDENTIFIER_TEXT FROM GLOBAL_CONFIGURATION_SETTINGS WHERE ...";
         List<String> expectedTexts = List.of("US", "GB", "DE");
 
-        when(mockSqlQueriesManager.getSQLQueryFromConfig("reference.data.find.identifier.texts.with.type.and.status"))
+        when(mockSqlQueriesManager.getSQLQueryFromConfig("global.configuration.settings.find.identifier.texts.with.type.and.status"))
             .thenReturn(sql);
         when(mockJdbcTemplate.queryForList(eq(sql), any(MapSqlParameterSource.class), eq(String.class)))
             .thenReturn(expectedTexts);
@@ -159,35 +159,35 @@ class JdbcReferenceDataRepositoryTest {
 
     @Test
     void findIdentifierTexts_withNullType_usesCorrectQueryKey() throws Exception {
-        String sql = "SELECT IDENTIFIER_TEXT FROM REFERENCE_DATA WHERE ...";
-        when(mockSqlQueriesManager.getSQLQueryFromConfig("reference.data.find.identifier.texts.with.status"))
+        String sql = "SELECT IDENTIFIER_TEXT FROM GLOBAL_CONFIGURATION_SETTINGS WHERE ...";
+        when(mockSqlQueriesManager.getSQLQueryFromConfig("global.configuration.settings.find.identifier.texts.with.status"))
             .thenReturn(sql);
         when(mockJdbcTemplate.queryForList(eq(sql), any(MapSqlParameterSource.class), eq(String.class)))
             .thenReturn(List.of());
 
         repository.findIdentifierTexts("COUNTRY", null, "ACTIVE");
-        verify(mockSqlQueriesManager).getSQLQueryFromConfig("reference.data.find.identifier.texts.with.status");
+        verify(mockSqlQueriesManager).getSQLQueryFromConfig("global.configuration.settings.find.identifier.texts.with.status");
     }
 
     @Test
     void findIdentifierTexts_withNullStatus_usesCorrectQueryKey() throws Exception {
-        String sql = "SELECT IDENTIFIER_TEXT FROM REFERENCE_DATA WHERE ...";
-        when(mockSqlQueriesManager.getSQLQueryFromConfig("reference.data.find.identifier.texts.with.type"))
+        String sql = "SELECT IDENTIFIER_TEXT FROM GLOBAL_CONFIGURATION_SETTINGS WHERE ...";
+        when(mockSqlQueriesManager.getSQLQueryFromConfig("global.configuration.settings.find.identifier.texts.with.type"))
             .thenReturn(sql);
         when(mockJdbcTemplate.queryForList(eq(sql), any(MapSqlParameterSource.class), eq(String.class)))
             .thenReturn(List.of());
 
         repository.findIdentifierTexts("COUNTRY", "ISO", null);
-        verify(mockSqlQueriesManager).getSQLQueryFromConfig("reference.data.find.identifier.texts.with.type");
+        verify(mockSqlQueriesManager).getSQLQueryFromConfig("global.configuration.settings.find.identifier.texts.with.type");
     }
 
     @Test
     void findAsMap_returnsMapWithIdentifierAsKey() throws Exception {
-        ReferenceData data1 = new ReferenceData(1L, "COUNTRY", "ISO", "US", "ACTIVE");
-        ReferenceData data2 = new ReferenceData(2L, "COUNTRY", "ISO", "GB", "ACTIVE");
+        GlobalConfigurationSettings data1 = new GlobalConfigurationSettings(1L, "COUNTRY", "ISO", "US", "ACTIVE");
+        GlobalConfigurationSettings data2 = new GlobalConfigurationSettings(2L, "COUNTRY", "ISO", "GB", "ACTIVE");
 
-        String sql = "SELECT * FROM REFERENCE_DATA WHERE ...";
-        when(mockSqlQueriesManager.getSQLQueryFromConfig("reference.data.find"))
+        String sql = "SELECT * FROM GLOBAL_CONFIGURATION_SETTINGS WHERE ...";
+        when(mockSqlQueriesManager.getSQLQueryFromConfig("global.configuration.settings.find"))
             .thenReturn(sql);
         when(mockJdbcTemplate.query(eq(sql), any(MapSqlParameterSource.class), eq(mockRowMapper)))
             .thenReturn(Arrays.asList(data1, data2));
@@ -201,9 +201,9 @@ class JdbcReferenceDataRepositoryTest {
 
     @Test
     void findAsMap_returnsImmutableMap() throws Exception {
-        ReferenceData data = new ReferenceData(1L, "COUNTRY", "ISO", "US", "ACTIVE");
-        String sql = "SELECT * FROM REFERENCE_DATA WHERE ...";
-        when(mockSqlQueriesManager.getSQLQueryFromConfig("reference.data.find"))
+        GlobalConfigurationSettings data = new GlobalConfigurationSettings(1L, "COUNTRY", "ISO", "US", "ACTIVE");
+        String sql = "SELECT * FROM GLOBAL_CONFIGURATION_SETTINGS WHERE ...";
+        when(mockSqlQueriesManager.getSQLQueryFromConfig("global.configuration.settings.find"))
             .thenReturn(sql);
         when(mockJdbcTemplate.query(eq(sql), any(MapSqlParameterSource.class), eq(mockRowMapper)))
             .thenReturn(List.of(data));
@@ -215,9 +215,9 @@ class JdbcReferenceDataRepositoryTest {
 
     @Test
     void findAsMap_withUniqueIdentifier_containsAtMostOneEntry() throws Exception {
-        ReferenceData data = new ReferenceData(1L, "COUNTRY", "ISO", "US", "ACTIVE");
-        String sql = "SELECT * FROM REFERENCE_DATA WHERE ...";
-        when(mockSqlQueriesManager.getSQLQueryFromConfig("reference.data.find"))
+        GlobalConfigurationSettings data = new GlobalConfigurationSettings(1L, "COUNTRY", "ISO", "US", "ACTIVE");
+        String sql = "SELECT * FROM GLOBAL_CONFIGURATION_SETTINGS WHERE ...";
+        when(mockSqlQueriesManager.getSQLQueryFromConfig("global.configuration.settings.find"))
             .thenReturn(sql);
         when(mockJdbcTemplate.query(eq(sql), any(MapSqlParameterSource.class), eq(mockRowMapper)))
             .thenReturn(List.of(data));
@@ -228,8 +228,8 @@ class JdbcReferenceDataRepositoryTest {
 
     @Test
     void updateIdentifierText_withStatus_usesCorrectQueryKey() throws Exception {
-        String sql = "UPDATE REFERENCE_DATA SET ...";
-        when(mockSqlQueriesManager.getSQLQueryFromConfig("reference.data.update"))
+        String sql = "UPDATE GLOBAL_CONFIGURATION_SETTINGS SET ...";
+        when(mockSqlQueriesManager.getSQLQueryFromConfig("global.configuration.settings.update"))
             .thenReturn(sql);
         when(mockJdbcTemplate.update(eq(sql), any(MapSqlParameterSource.class)))
             .thenReturn(1);
@@ -240,8 +240,8 @@ class JdbcReferenceDataRepositoryTest {
 
     @Test
     void updateIdentifierText_withoutStatus_usesCorrectQueryKey() throws Exception {
-        String sql = "UPDATE REFERENCE_DATA SET ...";
-        when(mockSqlQueriesManager.getSQLQueryFromConfig("reference.data.update.without.status"))
+        String sql = "UPDATE GLOBAL_CONFIGURATION_SETTINGS SET ...";
+        when(mockSqlQueriesManager.getSQLQueryFromConfig("global.configuration.settings.update.without.status"))
             .thenReturn(sql);
         when(mockJdbcTemplate.update(eq(sql), any(MapSqlParameterSource.class)))
             .thenReturn(1);
@@ -252,8 +252,8 @@ class JdbcReferenceDataRepositoryTest {
 
     @Test
     void updateIdentifierText_zeroRowsAffected_returnsZero() throws Exception {
-        String sql = "UPDATE REFERENCE_DATA SET ...";
-        when(mockSqlQueriesManager.getSQLQueryFromConfig("reference.data.update"))
+        String sql = "UPDATE GLOBAL_CONFIGURATION_SETTINGS SET ...";
+        when(mockSqlQueriesManager.getSQLQueryFromConfig("global.configuration.settings.update"))
             .thenReturn(sql);
         when(mockJdbcTemplate.update(eq(sql), any(MapSqlParameterSource.class)))
             .thenReturn(0);
@@ -264,10 +264,10 @@ class JdbcReferenceDataRepositoryTest {
 
     @Test
     void find_withDataAccessException_logsAndRethrows() throws Exception {
-        String sql = "SELECT * FROM REFERENCE_DATA WHERE ...";
+        String sql = "SELECT * FROM GLOBAL_CONFIGURATION_SETTINGS WHERE ...";
         DataAccessException testException = new EmptyResultDataAccessException(1);
 
-        when(mockSqlQueriesManager.getSQLQueryFromConfig("reference.data.find"))
+        when(mockSqlQueriesManager.getSQLQueryFromConfig("global.configuration.settings.find"))
             .thenReturn(sql);
         when(mockJdbcTemplate.query(eq(sql), any(MapSqlParameterSource.class), eq(mockRowMapper)))
             .thenThrow(testException);
@@ -296,25 +296,25 @@ class JdbcReferenceDataRepositoryTest {
 
     @Test
     void find_returnsImmutableList() throws Exception {
-        ReferenceData data = new ReferenceData(1L, "COUNTRY", "ISO", "US", "ACTIVE");
-        String sql = "SELECT * FROM REFERENCE_DATA WHERE ...";
+        GlobalConfigurationSettings data = new GlobalConfigurationSettings(1L, "COUNTRY", "ISO", "US", "ACTIVE");
+        String sql = "SELECT * FROM GLOBAL_CONFIGURATION_SETTINGS WHERE ...";
 
-        when(mockSqlQueriesManager.getSQLQueryFromConfig("reference.data.find"))
+        when(mockSqlQueriesManager.getSQLQueryFromConfig("global.configuration.settings.find"))
             .thenReturn(sql);
         when(mockJdbcTemplate.query(eq(sql), any(MapSqlParameterSource.class), eq(mockRowMapper)))
             .thenReturn(List.of(data));
 
-        List<ReferenceData> result = repository.find("COUNTRY");
-        assertThatThrownBy(() -> result.add(new ReferenceData(2L, "CITY", "ISO", "NYC", "ACTIVE")))
+        List<GlobalConfigurationSettings> result = repository.find("COUNTRY");
+        assertThatThrownBy(() -> result.add(new GlobalConfigurationSettings(2L, "CITY", "ISO", "NYC", "ACTIVE")))
             .isInstanceOf(UnsupportedOperationException.class);
     }
 
     @Test
     void findIdentifierTexts_returnsImmutableList() throws Exception {
-        String sql = "SELECT IDENTIFIER_TEXT FROM REFERENCE_DATA WHERE ...";
+        String sql = "SELECT IDENTIFIER_TEXT FROM GLOBAL_CONFIGURATION_SETTINGS WHERE ...";
         List<String> texts = List.of("US", "GB");
 
-        when(mockSqlQueriesManager.getSQLQueryFromConfig("reference.data.find.identifier.texts"))
+        when(mockSqlQueriesManager.getSQLQueryFromConfig("global.configuration.settings.find.identifier.texts"))
             .thenReturn(sql);
         when(mockJdbcTemplate.queryForList(eq(sql), any(MapSqlParameterSource.class), eq(String.class)))
             .thenReturn(texts);
@@ -326,10 +326,10 @@ class JdbcReferenceDataRepositoryTest {
 
     @Test
     void findAsMap_valueListIsImmutable() throws Exception {
-        ReferenceData data = new ReferenceData(1L, "COUNTRY", "ISO", "US", "ACTIVE");
-        String sql = "SELECT * FROM REFERENCE_DATA WHERE ...";
+        GlobalConfigurationSettings data = new GlobalConfigurationSettings(1L, "COUNTRY", "ISO", "US", "ACTIVE");
+        String sql = "SELECT * FROM GLOBAL_CONFIGURATION_SETTINGS WHERE ...";
 
-        when(mockSqlQueriesManager.getSQLQueryFromConfig("reference.data.find"))
+        when(mockSqlQueriesManager.getSQLQueryFromConfig("global.configuration.settings.find"))
             .thenReturn(sql);
         when(mockJdbcTemplate.query(eq(sql), any(MapSqlParameterSource.class), eq(mockRowMapper)))
             .thenReturn(List.of(data));
@@ -343,10 +343,10 @@ class JdbcReferenceDataRepositoryTest {
 
     @Test
     void find_bindsAllParametersCorrectly() throws Exception {
-        String sql = "SELECT * FROM REFERENCE_DATA WHERE ...";
+        String sql = "SELECT * FROM GLOBAL_CONFIGURATION_SETTINGS WHERE ...";
         ArgumentCaptor<MapSqlParameterSource> captor = ArgumentCaptor.forClass(MapSqlParameterSource.class);
 
-        when(mockSqlQueriesManager.getSQLQueryFromConfig("reference.data.find.with.type.and.status"))
+        when(mockSqlQueriesManager.getSQLQueryFromConfig("global.configuration.settings.find.with.type.and.status"))
             .thenReturn(sql);
         when(mockJdbcTemplate.query(eq(sql), captor.capture(), eq(mockRowMapper)))
             .thenReturn(List.of());
@@ -362,10 +362,10 @@ class JdbcReferenceDataRepositoryTest {
 
     @Test
     void find_doesNotBindNullParameters() throws Exception {
-        String sql = "SELECT * FROM REFERENCE_DATA WHERE ...";
+        String sql = "SELECT * FROM GLOBAL_CONFIGURATION_SETTINGS WHERE ...";
         ArgumentCaptor<MapSqlParameterSource> captor = ArgumentCaptor.forClass(MapSqlParameterSource.class);
 
-        when(mockSqlQueriesManager.getSQLQueryFromConfig("reference.data.find.with.status"))
+        when(mockSqlQueriesManager.getSQLQueryFromConfig("global.configuration.settings.find.with.status"))
             .thenReturn(sql);
         when(mockJdbcTemplate.query(eq(sql), captor.capture(), eq(mockRowMapper)))
             .thenReturn(List.of());

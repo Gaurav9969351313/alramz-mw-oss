@@ -8,8 +8,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
 
-import com.alramz.referencedata.model.ReferenceData;
-import com.alramz.referencedata.repository.ReferenceDataRepository;
+import com.alramz.globalconfigurationsettings.model.GlobalConfigurationSettings;
+import com.alramz.globalconfigurationsettings.repository.GlobalConfigurationSettingsRepository;
 import com.alramz.scheduler.EnableScheduler;
 import com.alramz.service.impl.NinTradingNumberValidationService;
 
@@ -56,37 +56,37 @@ public class DataValidationServiceApplication {
 	}
 
 	@Bean
-	ApplicationRunner referenceDataDemoRunner(ReferenceDataRepository refDataRepository) {
+	ApplicationRunner globalConfigurationSettingsDemoRunner(GlobalConfigurationSettingsRepository refDataRepository) {
 		return args -> {
 			log.info("");
 			log.info("╔════════════════════════════════════════════════════════════════════════════════╗");
-			log.info("║                Reference Data Framework - LIVE DEMO                            ║");
+			log.info("║                Global Configuration Settings Framework - LIVE DEMO                            ║");
 			log.info("╚════════════════════════════════════════════════════════════════════════════════╝");
 			log.info("");
 
 			try {
 				// Query 1: Fetch all countries
 				log.info("📍 DEMO 1: Querying Countries (COUNTRY_* identifiers)");
-				List<ReferenceData> countryUS = refDataRepository.find("COUNTRY_US", null, null);
+				List<GlobalConfigurationSettings> countryUS = refDataRepository.find("COUNTRY_US", null, null);
 				countryUS.forEach(d -> log.info("   ✓ {} → Type: {} | Value: {} | Status: {}",
 					d.getIdentifier(), d.getIdentifierType(), d.getIdentifierText(), d.getStatus()));
 
-				List<ReferenceData> countryGB = refDataRepository.find("COUNTRY_GB", null, null);
+				List<GlobalConfigurationSettings> countryGB = refDataRepository.find("COUNTRY_GB", null, null);
 				countryGB.forEach(d -> log.info("   ✓ {} → Type: {} | Value: {} | Status: {}",
 					d.getIdentifier(), d.getIdentifierType(), d.getIdentifierText(), d.getStatus()));
 
-				List<ReferenceData> countryAE = refDataRepository.find("COUNTRY_AE", null, null);
+				List<GlobalConfigurationSettings> countryAE = refDataRepository.find("COUNTRY_AE", null, null);
 				countryAE.forEach(d -> log.info("   ✓ {} → Type: {} | Value: {} | Status: {}",
 					d.getIdentifier(), d.getIdentifierType(), d.getIdentifierText(), d.getStatus()));
 				log.info("");
 
 				// Query 2: Fetch currencies
 				log.info("💱 DEMO 2: Querying Currencies (CURRENCY_* identifiers)");
-				List<ReferenceData> currencyUSD = refDataRepository.find("CURRENCY_USD", null, null);
+				List<GlobalConfigurationSettings> currencyUSD = refDataRepository.find("CURRENCY_USD", null, null);
 				currencyUSD.forEach(d -> log.info("   ✓ {} → Type: {} | Value: {} | Status: {}",
 					d.getIdentifier(), d.getIdentifierType(), d.getIdentifierText(), d.getStatus()));
 
-				List<ReferenceData> currencyAED = refDataRepository.find("CURRENCY_AED", null, null);
+				List<GlobalConfigurationSettings> currencyAED = refDataRepository.find("CURRENCY_AED", null, null);
 				currencyAED.forEach(d -> log.info("   ✓ {} → Type: {} | Value: {} | Status: {}",
 					d.getIdentifier(), d.getIdentifierType(), d.getIdentifierText(), d.getStatus()));
 				log.info("");
@@ -98,8 +98,8 @@ public class DataValidationServiceApplication {
 				log.info("");
 
 				log.info("═══════════════════════════════════════════════════════════════════════════════════");
-				log.info("✅ Reference Data Framework Successfully Demonstrated!");
-				log.info("   - ReferenceData table created automatically via JPA");
+				log.info("✅ Global Configuration Settings Framework Successfully Demonstrated!");
+				log.info("   - GlobalConfigurationSettings table created automatically via JPA");
 				log.info("   - Sample data inserted via Liquibase migration");
 				log.info("   - All queries executed successfully from middleware database");
 				log.info("═══════════════════════════════════════════════════════════════════════════════════");

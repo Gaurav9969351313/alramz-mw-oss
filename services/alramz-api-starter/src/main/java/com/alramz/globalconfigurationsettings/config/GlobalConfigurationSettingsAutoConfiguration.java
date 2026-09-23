@@ -1,9 +1,9 @@
-package com.alramz.referencedata.config;
+package com.alramz.globalconfigurationsettings.config;
 
-import com.alramz.referencedata.mapper.ReferenceDataRowMapper;
-import com.alramz.referencedata.repository.JdbcReferenceDataRepository;
-import com.alramz.referencedata.repository.ReferenceDataRepository;
-import com.alramz.referencedata.service.ReferenceDataService;
+import com.alramz.globalconfigurationsettings.mapper.GlobalConfigurationSettingsRowMapper;
+import com.alramz.globalconfigurationsettings.repository.JdbcGlobalConfigurationSettingsRepository;
+import com.alramz.globalconfigurationsettings.repository.GlobalConfigurationSettingsRepository;
+import com.alramz.globalconfigurationsettings.service.GlobalConfigurationSettingsService;
 import com.alramz.utils.SqlQueriesManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +16,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 /**
- * Auto-configuration for the reference data framework.
+ * Auto-configuration for the global configuration settings framework.
  * Enabled only when the middleware datasource is enabled.
  */
 @AutoConfiguration
@@ -29,25 +29,25 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 @ConditionalOnBean(name = "middlewareNamedParameterJdbcTemplate")
 @Import({
     SqlQueriesManager.class,
-    ReferenceDataRowMapper.class
+    GlobalConfigurationSettingsRowMapper.class
 })
-public class ReferenceDataAutoConfiguration {
+public class GlobalConfigurationSettingsAutoConfiguration {
 
-    private static final Logger logger = LoggerFactory.getLogger(ReferenceDataAutoConfiguration.class);
+    private static final Logger logger = LoggerFactory.getLogger(GlobalConfigurationSettingsAutoConfiguration.class);
 
     @Bean
-    public ReferenceDataRepository referenceDataRepository(
+    public GlobalConfigurationSettingsRepository referenceDataRepository(
             @Qualifier("middlewareNamedParameterJdbcTemplate") NamedParameterJdbcTemplate middlewareNamedParameterJdbcTemplate,
-            ReferenceDataRowMapper rowMapper,
+            GlobalConfigurationSettingsRowMapper rowMapper,
             SqlQueriesManager sqlQueriesManager
     ) {
         logger.info("[Bean: referenceDataRepository] - Successfully Created");
-        return new JdbcReferenceDataRepository(middlewareNamedParameterJdbcTemplate, rowMapper, sqlQueriesManager);
+        return new JdbcGlobalConfigurationSettingsRepository(middlewareNamedParameterJdbcTemplate, rowMapper, sqlQueriesManager);
     }
 
     @Bean
-    public ReferenceDataService referenceDataService(ReferenceDataRepository repository) {
+    public GlobalConfigurationSettingsService referenceDataService(GlobalConfigurationSettingsRepository repository) {
         logger.info("[Bean: referenceDataService] - Successfully Created");
-        return new ReferenceDataService(repository);
+        return new GlobalConfigurationSettingsService(repository);
     }
 }

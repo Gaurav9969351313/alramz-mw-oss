@@ -1,45 +1,45 @@
-package com.alramz.referencedata.repository;
+package com.alramz.globalconfigurationsettings.repository;
 
-import com.alramz.referencedata.model.ReferenceData;
+import com.alramz.globalconfigurationsettings.model.GlobalConfigurationSettings;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Repository interface for reference data access.
+ * Repository interface for global configuration settings access.
  * All returned collections are immutable.
  */
-public interface ReferenceDataRepository {
+public interface GlobalConfigurationSettingsRepository {
 
     /**
-     * Find reference data by identifier, identifier type, and status.
+     * Find global configuration settings by identifier, identifier type, and status.
      *
      * @param identifier the identifier (required)
      * @param identifierType the identifier type (optional, null to ignore)
      * @param status the status (optional, null to ignore)
-     * @return an immutable list of reference data records
+     * @return an immutable list of global configuration settings records
      */
-    List<ReferenceData> find(String identifier, String identifierType, String status);
+    List<GlobalConfigurationSettings> find(String identifier, String identifierType, String status);
 
     /**
-     * Find reference data by identifier only.
+     * Find global configuration settings by identifier only.
      * Delegates to {@link #find(String, String, String)} with nulls.
      *
      * @param identifier the identifier (required)
-     * @return an immutable list of reference data records
+     * @return an immutable list of global configuration settings records
      */
-    default List<ReferenceData> find(String identifier) {
+    default List<GlobalConfigurationSettings> find(String identifier) {
         return find(identifier, null, null);
     }
 
     /**
-     * Find reference data by identifier and identifier type.
+     * Find global configuration settings by identifier and identifier type.
      * Delegates to {@link #find(String, String, String)} with null status.
      *
      * @param identifier the identifier (required)
      * @param identifierType the identifier type (required)
-     * @return an immutable list of reference data records
+     * @return an immutable list of global configuration settings records
      */
-    default List<ReferenceData> find(String identifier, String identifierType) {
+    default List<GlobalConfigurationSettings> find(String identifier, String identifierType) {
         return find(identifier, identifierType, null);
     }
 
@@ -54,7 +54,7 @@ public interface ReferenceDataRepository {
     List<String> findIdentifierTexts(String identifier, String identifierType, String status);
 
     /**
-     * Find reference data as a map where the key is the identifier.
+     * Find global configuration settings as a map where the key is the identifier.
      * Since IDENTIFIER is unique, the map contains at most one entry.
      * The values are immutable lists of identifier texts.
      *

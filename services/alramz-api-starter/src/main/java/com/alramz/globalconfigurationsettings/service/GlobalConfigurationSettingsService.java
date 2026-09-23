@@ -1,35 +1,35 @@
-package com.alramz.referencedata.service;
+package com.alramz.globalconfigurationsettings.service;
 
-import com.alramz.referencedata.model.ReferenceData;
-import com.alramz.referencedata.repository.ReferenceDataRepository;
+import com.alramz.globalconfigurationsettings.model.GlobalConfigurationSettings;
+import com.alramz.globalconfigurationsettings.repository.GlobalConfigurationSettingsRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
 
-public class ReferenceDataService {
+public class GlobalConfigurationSettingsService {
 
-    private static final Logger logger = LoggerFactory.getLogger(ReferenceDataService.class);
+    private static final Logger logger = LoggerFactory.getLogger(GlobalConfigurationSettingsService.class);
 
-    private final ReferenceDataRepository repository;
+    private final GlobalConfigurationSettingsRepository repository;
 
-    public ReferenceDataService(ReferenceDataRepository repository) {
+    public GlobalConfigurationSettingsService(GlobalConfigurationSettingsRepository repository) {
         this.repository = repository;
-        logger.info("[Bean: ReferenceDataService] - Successfully Created");
+        logger.info("[Bean: GlobalConfigurationSettingsService] - Successfully Created");
     }
 
-    public List<ReferenceData> find(String identifier, String identifierType, String status) {
+    public List<GlobalConfigurationSettings> find(String identifier, String identifierType, String status) {
         validateIdentifier(identifier);
         return repository.find(identifier, identifierType, status);
     }
 
-    public List<ReferenceData> find(String identifier) {
+    public List<GlobalConfigurationSettings> find(String identifier) {
         validateIdentifier(identifier);
         return repository.find(identifier);
     }
 
-    public List<ReferenceData> find(String identifier, String identifierType) {
+    public List<GlobalConfigurationSettings> find(String identifier, String identifierType) {
         validateIdentifier(identifier);
         return repository.find(identifier, identifierType);
     }

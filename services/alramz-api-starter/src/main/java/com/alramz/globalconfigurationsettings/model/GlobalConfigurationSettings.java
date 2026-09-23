@@ -1,14 +1,14 @@
-package com.alramz.referencedata.model;
+package com.alramz.globalconfigurationsettings.model;
 
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "REFERENCE_DATA", indexes = {
+@Table(name = "GLOBAL_CONFIGURATION_SETTINGS", indexes = {
     @Index(name = "idx_identifier", columnList = "IDENTIFIER"),
     @Index(name = "idx_identifier_type", columnList = "IDENTIFIER_TYPE"),
     @Index(name = "idx_status", columnList = "STATUS")
 })
-public class ReferenceData {
+public class GlobalConfigurationSettings {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -26,10 +26,10 @@ public class ReferenceData {
     @Column(name = "STATUS")
     private String status;
 
-    public ReferenceData() {
+    public GlobalConfigurationSettings() {
     }
 
-    public ReferenceData(Long id, String identifier, String identifierType, String identifierText, String status) {
+    public GlobalConfigurationSettings(Long id, String identifier, String identifierType, String identifierText, String status) {
         this.id = id;
         this.identifier = identifier;
         this.identifierType = identifierType;
@@ -82,8 +82,8 @@ public class ReferenceData {
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;
-        if (!(obj instanceof ReferenceData)) return false;
-        ReferenceData other = (ReferenceData) obj;
+        if (!(obj instanceof GlobalConfigurationSettings)) return false;
+        GlobalConfigurationSettings other = (GlobalConfigurationSettings) obj;
         return java.util.Objects.equals(id, other.id) &&
                java.util.Objects.equals(identifier, other.identifier) &&
                java.util.Objects.equals(identifierType, other.identifierType) &&
@@ -98,7 +98,7 @@ public class ReferenceData {
 
     @Override
     public String toString() {
-        return "ReferenceData{" +
+        return "GlobalConfigurationSettings{" +
                 "id=" + id +
                 ", identifier='" + identifier + '\'' +
                 ", identifierType='" + identifierType + '\'' +

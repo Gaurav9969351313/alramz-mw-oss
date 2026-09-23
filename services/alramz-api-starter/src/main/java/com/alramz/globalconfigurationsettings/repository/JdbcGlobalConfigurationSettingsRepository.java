@@ -1,7 +1,7 @@
-package com.alramz.referencedata.repository;
+package com.alramz.globalconfigurationsettings.repository;
 
-import com.alramz.referencedata.mapper.ReferenceDataRowMapper;
-import com.alramz.referencedata.model.ReferenceData;
+import com.alramz.globalconfigurationsettings.mapper.GlobalConfigurationSettingsRowMapper;
+import com.alramz.globalconfigurationsettings.model.GlobalConfigurationSettings;
 import com.alramz.utils.SqlQueriesManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,27 +15,27 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class JdbcReferenceDataRepository implements ReferenceDataRepository {
+public class JdbcGlobalConfigurationSettingsRepository implements GlobalConfigurationSettingsRepository {
 
-    private static final Logger logger = LoggerFactory.getLogger(JdbcReferenceDataRepository.class);
+    private static final Logger logger = LoggerFactory.getLogger(JdbcGlobalConfigurationSettingsRepository.class);
 
     private final NamedParameterJdbcTemplate middlewareNamedParameterJdbcTemplate;
-    private final ReferenceDataRowMapper rowMapper;
+    private final GlobalConfigurationSettingsRowMapper rowMapper;
     private final SqlQueriesManager sqlQueriesManager;
 
-    public JdbcReferenceDataRepository(
+    public JdbcGlobalConfigurationSettingsRepository(
             @Qualifier("middlewareNamedParameterJdbcTemplate") NamedParameterJdbcTemplate middlewareNamedParameterJdbcTemplate,
-            ReferenceDataRowMapper rowMapper,
+            GlobalConfigurationSettingsRowMapper rowMapper,
             SqlQueriesManager sqlQueriesManager
     ) {
         this.middlewareNamedParameterJdbcTemplate = middlewareNamedParameterJdbcTemplate;
         this.rowMapper = rowMapper;
         this.sqlQueriesManager = sqlQueriesManager;
-        logger.info("[Bean: JdbcReferenceDataRepository] - Successfully Created");
+        logger.info("[Bean: JdbcGlobalConfigurationSettingsRepository] - Successfully Created");
     }
 
     @Override
-    public List<ReferenceData> find(String identifier, String identifierType, String status) {
+    public List<GlobalConfigurationSettings> find(String identifier, String identifierType, String status) {
         if (identifier == null || identifier.isBlank()) {
             throw new IllegalArgumentException("identifier cannot be null or blank");
         }
@@ -45,14 +45,14 @@ public class JdbcReferenceDataRepository implements ReferenceDataRepository {
             String sql = sqlQueriesManager.getSQLQueryFromConfig(queryKey);
             MapSqlParameterSource params = buildParameters(identifier, identifierType, status);
 
-            List<ReferenceData> result = middlewareNamedParameterJdbcTemplate.query(sql, params, rowMapper);
+            List<GlobalConfigurationSettings> result = middlewareNamedParameterJdbcTemplate.query(sql, params, rowMapper);
             return List.copyOf(result);
         } catch (DataAccessException e) {
-            logger.error("Failed to find reference data for identifier: {}", identifier, e);
+            logger.error("Failed to find global configuration settings for identifier: {}", identifier, e);
             throw e;
         } catch (Exception e) {
             logger.error("Error loading SQL query for find operation with identifier: {}", identifier, e);
-            throw new RuntimeException("Failed to find reference data", e);
+            throw new RuntimeException("Failed to find global configuration settings", e);
         }
     }
 
@@ -84,13 +84,13 @@ public class JdbcReferenceDataRepository implements ReferenceDataRepository {
             throw new IllegalArgumentException("identifier cannot be null or blank");
         }
 
-        List<ReferenceData> dataList = find(identifier);
+        List<GlobalConfigurationSettings> dataList = find(identifier);
         if (dataList.isEmpty()) {
             return Collections.emptyMap();
         }
 
         List<String> texts = dataList.stream()
-            .map(ReferenceData::getIdentifierText)
+            .map(GlobalConfigurationSettings::getIdentifierText)
             .collect(Collectors.toUnmodifiableList());
 
         return Collections.unmodifiableMap(
@@ -106,8 +106,8 @@ public class JdbcReferenceDataRepository implements ReferenceDataRepository {
 
         try {
             String queryKey = status != null && !status.isBlank()
-                ? "reference.data.update"
-                : "reference.data.update.without.status";
+                ? "global.configuration.settings.update"
+                : "global.configuration.settings.update.without.status";
 
             String sql = sqlQueriesManager.getSQLQueryFromConfig(queryKey);
             MapSqlParameterSource params = new MapSqlParameterSource();
@@ -133,13 +133,13 @@ public class JdbcReferenceDataRepository implements ReferenceDataRepository {
         boolean hasStatus = status != null && !status.isBlank();
 
         if (hasType && hasStatus) {
-            return "reference.data.find.with.type.and.status";
+            return "global.configuration.settings.find.with.type.and.status";
         } else if (hasType) {
-            return "reference.data.find.with.type";
+            return "global.configuration.settings.find.with.type";
         } else if (hasStatus) {
-            return "reference.data.find.with.status";
+            return "global.configuration.settings.find.with.status";
         } else {
-            return "reference.data.find";
+            return "global.configuration.settings.find";
         }
     }
 
@@ -148,13 +148,13 @@ public class JdbcReferenceDataRepository implements ReferenceDataRepository {
         boolean hasStatus = status != null && !status.isBlank();
 
         if (hasType && hasStatus) {
-            return "reference.data.find.identifier.texts.with.type.and.status";
+            return "global.configuration.settings.find.identifier.texts.with.type.and.status";
         } else if (hasType) {
-            return "reference.data.find.identifier.texts.with.type";
+            return "global.configuration.settings.find.identifier.texts.with.type";
         } else if (hasStatus) {
-            return "reference.data.find.identifier.texts.with.status";
+            return "global.configuration.settings.find.identifier.texts.with.status";
         } else {
-            return "reference.data.find.identifier.texts";
+            return "global.configuration.settings.find.identifier.texts";
         }
     }
 

@@ -13,4 +13,4 @@ server:
   host: localhost
 
 sql:
-  file: classpath:sql/reference-data-queries.xml,classpath:sql/sql-queries.xml
+  file: classpath:sql/global-configuration-settings-queries.xml,classpath:sql/sql-queries.xml

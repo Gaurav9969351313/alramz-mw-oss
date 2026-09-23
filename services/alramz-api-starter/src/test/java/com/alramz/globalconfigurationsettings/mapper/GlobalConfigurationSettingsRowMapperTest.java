@@ -1,6 +1,6 @@
-package com.alramz.referencedata.mapper;
+package com.alramz.globalconfigurationsettings.mapper;
 
-import com.alramz.referencedata.model.ReferenceData;
+import com.alramz.globalconfigurationsettings.model.GlobalConfigurationSettings;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,16 +15,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class ReferenceDataRowMapperTest {
+class GlobalConfigurationSettingsRowMapperTest {
 
-    private ReferenceDataRowMapper mapper;
+    private GlobalConfigurationSettingsRowMapper mapper;
 
     @Mock
     private ResultSet resultSet;
 
     @BeforeEach
     void setUp() {
-        mapper = new ReferenceDataRowMapper();
+        mapper = new GlobalConfigurationSettingsRowMapper();
     }
 
     @Test
@@ -37,7 +37,7 @@ class ReferenceDataRowMapperTest {
         when(resultSet.getString("STATUS")).thenReturn("ACTIVE");
 
         // When
-        ReferenceData result = mapper.mapRow(resultSet, 0);
+        GlobalConfigurationSettings result = mapper.mapRow(resultSet, 0);
 
         // Then
         assertThat(result).isNotNull();
@@ -58,7 +58,7 @@ class ReferenceDataRowMapperTest {
         when(resultSet.getString("STATUS")).thenReturn(null);
 
         // When
-        ReferenceData result = mapper.mapRow(resultSet, 0);
+        GlobalConfigurationSettings result = mapper.mapRow(resultSet, 0);
 
         // Then
         assertThat(result).isNotNull();
@@ -79,7 +79,7 @@ class ReferenceDataRowMapperTest {
         when(resultSet.getString("STATUS")).thenReturn("ACTIVE");
 
         // When - Map first row
-        ReferenceData result1 = mapper.mapRow(resultSet, 0);
+        GlobalConfigurationSettings result1 = mapper.mapRow(resultSet, 0);
 
         // Given - Second row
         when(resultSet.getLong("ID")).thenReturn(4L);
@@ -89,7 +89,7 @@ class ReferenceDataRowMapperTest {
         when(resultSet.getString("STATUS")).thenReturn("ACTIVE");
 
         // When - Map second row
-        ReferenceData result2 = mapper.mapRow(resultSet, 1);
+        GlobalConfigurationSettings result2 = mapper.mapRow(resultSet, 1);
 
         // Then
         assertThat(result1.getId()).isEqualTo(3L);
@@ -109,7 +109,7 @@ class ReferenceDataRowMapperTest {
         when(resultSet.getString("STATUS")).thenReturn("INACTIVE");
 
         // When
-        ReferenceData result = mapper.mapRow(resultSet, 0);
+        GlobalConfigurationSettings result = mapper.mapRow(resultSet, 0);
 
         // Then
         assertThat(result.getId()).isEqualTo(largeId);
@@ -125,7 +125,7 @@ class ReferenceDataRowMapperTest {
         when(resultSet.getString("STATUS")).thenReturn("");
 
         // When
-        ReferenceData result = mapper.mapRow(resultSet, 0);
+        GlobalConfigurationSettings result = mapper.mapRow(resultSet, 0);
 
         // Then
         assertThat(result.getIdentifier()).isEmpty();
@@ -155,7 +155,7 @@ class ReferenceDataRowMapperTest {
         when(resultSet.getString("STATUS")).thenReturn("ACTIVE");
 
         // When
-        ReferenceData record = mapper.mapRow(resultSet, 0);
+        GlobalConfigurationSettings record = mapper.mapRow(resultSet, 0);
 
         // Then - Entity should be properly mapped
         assertThat(record).isNotNull();
@@ -174,10 +174,10 @@ class ReferenceDataRowMapperTest {
         when(resultSet.getString("IDENTIFIER_TEXT")).thenReturn("VALUE1");
         when(resultSet.getString("STATUS")).thenReturn("ACTIVE");
 
-        ReferenceData record1 = mapper.mapRow(resultSet, 0);
+        GlobalConfigurationSettings record1 = mapper.mapRow(resultSet, 0);
 
         // When - Create identical record
-        ReferenceData record2 = new ReferenceData(7L, "EQUALS_TEST", "TEST_TYPE", "VALUE1", "ACTIVE");
+        GlobalConfigurationSettings record2 = new GlobalConfigurationSettings(7L, "EQUALS_TEST", "TEST_TYPE", "VALUE1", "ACTIVE");
 
         // Then - Records with same values should be equal
         assertThat(record1).isEqualTo(record2);
@@ -192,8 +192,8 @@ class ReferenceDataRowMapperTest {
         when(resultSet.getString("IDENTIFIER_TEXT")).thenReturn("VALUE2");
         when(resultSet.getString("STATUS")).thenReturn("INACTIVE");
 
-        ReferenceData record1 = mapper.mapRow(resultSet, 0);
-        ReferenceData record2 = new ReferenceData(8L, "HASH_TEST", "TEST_TYPE", "VALUE2", "INACTIVE");
+        GlobalConfigurationSettings record1 = mapper.mapRow(resultSet, 0);
+        GlobalConfigurationSettings record2 = new GlobalConfigurationSettings(8L, "HASH_TEST", "TEST_TYPE", "VALUE2", "INACTIVE");
 
         // Then - Records with same values should have same hash code
         assertThat(record1.hashCode()).isEqualTo(record2.hashCode());
@@ -208,7 +208,7 @@ class ReferenceDataRowMapperTest {
         when(resultSet.getString("IDENTIFIER_TEXT")).thenReturn("VALUE3");
         when(resultSet.getString("STATUS")).thenReturn("ACTIVE");
 
-        ReferenceData record = mapper.mapRow(resultSet, 0);
+        GlobalConfigurationSettings record = mapper.mapRow(resultSet, 0);
 
         // Then - toString should contain record component values
         String toStringResult = record.toString();

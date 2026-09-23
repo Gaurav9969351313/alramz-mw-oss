@@ -1,4 +1,4 @@
-package com.alramz.referencedata.repository;
+package com.alramz.globalconfigurationsettings.repository;
 
 import com.alramz.utils.SqlQueriesManager;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -14,10 +14,10 @@ import javax.sql.DataSource;
 
 @TestConfiguration
 @Import({
-    com.alramz.referencedata.config.ReferenceDataAutoConfiguration.class,
+    com.alramz.globalconfigurationsettings.config.GlobalConfigurationSettingsAutoConfiguration.class,
     SqlQueriesManager.class
 })
-public class ReferenceDataTestConfiguration {
+public class GlobalConfigurationSettingsTestConfiguration {
 
     @Primary
     @Bean(name = "dataSource")
