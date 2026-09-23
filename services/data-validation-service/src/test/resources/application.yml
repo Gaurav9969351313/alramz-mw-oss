@@ -1,6 +1,8 @@
 spring:
   application:
     name: data-validation-service
+  liquibase:
+    change-log: classpath:db/changelog/test/db.changelog-master.yaml
 
 company:
   datasource:

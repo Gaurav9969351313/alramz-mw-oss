@@ -1,3 +1,7 @@
+spring:
+  liquibase:
+    change-log: classpath:db/changelog/dev/db.changelog-master.yaml
+
 server:
   address: 0.0.0.0
   port: 8080
@@ -120,7 +124,7 @@ company:
   datasource:
     middleware:
       enabled: true
-      url: ${COMPANY_DATASOURCE_MIDDLEWARE_URL:jdbc:postgresql://localhost:5432/alramzmwdb}
+      url: ${COMPANY_DATASOURCE_MIDDLEWARE_URL:jdbc:postgresql://localhost:5432/alramz-mw-dev-db}
       username: ${COMPANY_DATASOURCE_MIDDLEWARE_USERNAME:alramzmw}
       plainPassword: ${COMPANY_DATASOURCE_MIDDLEWARE_PLAINPASSWORD:alramz!321*}
       driverClassName: ${COMPANY_DATASOURCE_MIDDLEWARE_DRIVERCLASSNAME:org.postgresql.Driver}

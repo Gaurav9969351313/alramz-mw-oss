@@ -40,7 +40,7 @@ jobs:
       keyvault-tenant-id: ${{ steps.env-config.outputs.keyvault-tenant-id }}
       acr-server: ${{ steps.env-config.outputs.acr-server }}
       domain: ${{ steps.env-config.outputs.domain }}
-      spring-profile: ${{ steps.env-config.outputs.environment }}
+      spring-profile: ${{ github.ref_name == 'qa' && 'test' || github.ref_name }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -183,7 +183,7 @@ jobs:
           url: $DB_URL
           username: $DB_USERNAME
           password: $DB_PASS
-          changeLogFile: src/main/resources/db/changelog/db.changelog-master.yaml
+          changeLogFile: src/main/resources/db/changelog/${{ needs.resolve-env.outputs.spring-profile }}/db.changelog-master.yaml
           contexts: ${{ needs.resolve-env.outputs.spring-profile }}
           EOF
           mvn -B -ntp -s $HOME/.m2/settings.xml liquibase:update

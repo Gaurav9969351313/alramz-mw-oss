@@ -1,4 +1,6 @@
 spring:
+  liquibase:
+    change-log: classpath:db/changelog/prod/db.changelog-master.yaml
 
 server:
   address: 0.0.0.0

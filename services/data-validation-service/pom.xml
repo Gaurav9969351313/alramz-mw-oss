@@ -202,7 +202,7 @@
                 <artifactId>liquibase-maven-plugin</artifactId>
                 <version>4.27.0</version>
                 <configuration>
-                    <changeLogFile>src/main/resources/db/changelog/db.changelog-master.yaml</changeLogFile>
+                    <changeLogFile>src/main/resources/db/changelog/dev/db.changelog-master.yaml</changeLogFile>
                     <driver>org.h2.Driver</driver>
                     <classpath>src/main/resources</classpath>
                     <url>jdbc:h2:mem:test;DB_CLOSE_DELAY=-1;MODE=PostgreSQL</url>

@@ -67,6 +67,8 @@ adapter:
           MobileNo: mobileNumber
 
 spring:
+  liquibase:
+    change-log: classpath:db/changelog/test/db.changelog-master.yaml
 
 company:
   scheduler:
