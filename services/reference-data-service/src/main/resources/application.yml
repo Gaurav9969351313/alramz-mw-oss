@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: reference-data-service
+  profiles:
+    active: dev
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+server:
+  host: localhost
+
+sql:
+  file: classpath:sql/global-configuration-settings-queries.xml,classpath:sql/sql-queries.xml

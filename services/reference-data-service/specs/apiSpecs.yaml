@@ -1,0 +1,55 @@
+openapi: 3.0.3
+
+info:
+  title: Reference Data API
+  version: 1.0.0
+  description: API for managing and retrieving reference data.
+
+servers:
+  - url: http://localhost:8080
+    description: Local Development
+  - url: https://api-dev.alramz.com/reference-data
+    description: Development Environment
+  - url: https://api-test.alramz.com/reference-data
+    description: Test Environment
+  - url: https://api-preprod.alramz.com/reference-data
+    description: Pre-Production Environment
+  - url: https://api.alramz.com/reference-data
+    description: Production Environment
+
+security:
+  - BearerAuth: []
+
+paths:
+  /api/v1/info:
+    get:
+      tags:
+        - Info
+      summary: Service info
+      description: Returns basic service information.
+      operationId: getInfo
+      responses:
+        '200':
+          description: Info retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+              example:
+                responseCode: "200"
+                responseMessage: "OK"
+                response:
+                  service: reference-data-service
+                  version: 1.0.0
+
+components:
+  schemas:
+    GenericResponse:
+      type: object
+      properties:
+        responseCode:
+          type: string
+        responseMessage:
+          type: string
+        response:
+          type: object

@@ -1,0 +1,31 @@
+@baseUrl=http://localhost:8081
+
+@authToken=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJyZWZlcmVuY2VfZGFfYXBwIiwiaWF0IjoxNzkwMDYwNzM3LCJleHAiOjE3OTAwNjE2MzcsInJvbGVzIjpbIlJFU19SRUZFUkVOQ0VfREFfQVBJX1JFV09SRSJdLCJhcHBsaWNhdGlvbiI6InJlZmVyZW5jZS1kYS1zZXJ2aWNlIiwiZW52aXJvbm1lbnQiOiJsb2NhbCJ9.7dWoUvnINaHmnRejFOPTPQIFtLRTxD1qPL_mJqvbpaw
+
+###
+GET {{baseUrl}}/api/v1/info
+
+###
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+    "authType": "JWT",
+    "consumer": "reference_data_app",
+    "email": "reference.data@alramz.ae",
+    "consumerPassword": "password123",
+    "roles": ["APP_REFERENCE_DATA"],
+    "application": "reference-data-service",
+    "environment": "local"
+}
+
+###
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+    "consumer": "reference_data_app",
+    "consumerPassword": "password123"
+}
+
+###
