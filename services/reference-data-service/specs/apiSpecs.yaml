@@ -21,7 +21,7 @@ security:
   - BearerAuth: []
 
 paths:
-  /api/v1/info:
+  /info:
     get:
       tags:
         - Info
@@ -42,14 +42,277 @@ paths:
                   service: reference-data-service
                   version: 1.0.0
 
+  /health/deep:
+    get:
+      tags:
+        - Health
+      summary: Deep health check
+      description: Returns database and Redis reachability status.
+      operationId: checkDeepHealth
+      responses:
+        '200':
+          description: Health check completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+              example:
+                responseCode: "200"
+                responseMessage: "OK"
+                response:
+                  databaseReachable: true
+                  redisReachable: true
+                  overallStatus: "UP"
+                  timestamp: "2024-01-01T00:00:00Z"
+
+
+
+  /cache/entries/{cacheKey}/flush:
+    delete:
+      tags:
+        - RedisCache
+      summary: Flush cache for a specific mapping
+      description: Deletes the mapped Redis cache key for the specified cache mapping.
+      operationId: flushCache
+      parameters:
+        - name: cacheKey
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The cache mapping name (e.g., global-config)
+      responses:
+        '200':
+          description: Cache flushed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+              example:
+                responseCode: "200"
+                responseMessage: "Cache flushed successfully"
+
+  /cache/entries/{cacheKey}/reload:
+    post:
+      tags:
+        - RedisCache
+      summary: Reload cache for a specific mapping
+      description: Reloads cached settings from database into Redis cache using atomic replacement.
+      operationId: reloadCache
+      parameters:
+        - name: cacheKey
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The cache mapping name (e.g., global-config)
+      responses:
+        '200':
+          description: Cache reloaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+              example:
+                responseCode: "200"
+                responseMessage: "Cache reloaded successfully"
+                response:
+                  - id: 1
+                    identifier: "CONFIG_1"
+                    identifierType: "SYSTEM"
+                    identifierText: "Sample text"
+                    status: "ACTIVE"
+
+  /cache/entries/{cacheKey}/status:
+    get:
+      tags:
+        - RedisCache
+      summary: Get cache status for a specific mapping
+      description: Returns metadata about the cache including existence, entry count, and Redis availability.
+      operationId: getCacheStatus
+      parameters:
+        - name: cacheKey
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The cache mapping name (e.g., global-config)
+      responses:
+        '200':
+          description: Cache status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+              example:
+                responseCode: "200"
+                responseMessage: "OK"
+                response:
+                  cacheKey: "alramz:reference-data:v1:global-config"
+                  exists: true
+                  entryCount: 10
+                  sourceTable: "global_configuration_settings"
+                  redisAvailable: true
+                  ttl: 3600
+
+
+
+  /cache/entries/{cacheKey}:
+    get:
+      tags:
+        - RedisCache
+      summary: Get cached entries for a specific mapping
+      description: Returns all cached entries for the specified cache mapping. Falls back to database on cache miss.
+      operationId: getCacheEntriesByKey
+      parameters:
+        - name: cacheKey
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The cache mapping name (e.g., global-config)
+      responses:
+        '200':
+          description: Cache entries retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+              example:
+                responseCode: "200"
+                responseMessage: "OK"
+                response:
+                  - id: 1
+                    identifier: "CONFIG_1"
+                    identifierType: "SYSTEM"
+                    identifierText: "Sample text"
+                    status: "ACTIVE"
+
 components:
   schemas:
     GenericResponse:
       type: object
+      required:
+        - responseCode
+        - responseMessage
+        - response
       properties:
         responseCode:
           type: string
+          example: "200"
+
         responseMessage:
           type: string
+          example: OK
+
         response:
           type: object
+
+        correlationId:
+          type: string
+          format: uuid
+          description: Correlation ID for request tracing
+          example: "550e8400-e29b-41d4-a716-446655440000"
+
+    GlobalConfigurationSetting:
+      type: object
+      required:
+        - id
+        - identifier
+        - identifierType
+        - identifierText
+        - status
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+
+        identifier:
+          type: string
+          example: "CONFIG_1"
+
+        identifierType:
+          type: string
+          example: "SYSTEM"
+
+        identifierText:
+          type: string
+          example: "Sample text"
+
+        status:
+          type: string
+          example: "ACTIVE"
+
+    CacheStatus:
+      type: object
+      required:
+        - cacheKey
+        - exists
+        - entryCount
+        - sourceTable
+        - redisAvailable
+        - ttl
+      properties:
+        cacheKey:
+          type: string
+          example: "alramz:reference-data:v1:global-config"
+
+        exists:
+          type: boolean
+          example: true
+
+        entryCount:
+          type: integer
+          format: int64
+          example: 10
+
+        sourceTable:
+          type: string
+          example: "global_configuration_settings"
+
+        redisAvailable:
+          type: boolean
+          example: true
+
+        ttl:
+          type: integer
+          format: int64
+          example: 3600
+
+        cacheSizeBytes:
+          type: integer
+          format: int64
+          description: Optional cache size in bytes
+          example: 1024
+          nullable: true
+
+    DeepHealthResponse:
+      type: object
+      required:
+        - databaseReachable
+        - redisReachable
+        - overallStatus
+        - timestamp
+      properties:
+        databaseReachable:
+          type: boolean
+          example: true
+
+        redisReachable:
+          type: boolean
+          example: true
+
+        overallStatus:
+          type: string
+          example: "UP"
+
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+
+        details:
+          type: object
+          description: Optional additional health details
+          nullable: true

@@ -16,8 +16,25 @@ management:
 cipher:
   password: UseMostSecretKey
 
-
 company:
+  redis:
+    deployment:
+      mode: local
+    connection:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      ssl:
+        enabled: ${REDIS_SSL_ENABLED:false}
+      timeout: ${REDIS_TIMEOUT:2s}
+    cache:
+      mappings:
+        global-config:
+          table: global_configuration_settings
+          cache-key: alramz:reference-data:v1:global-config
+          reload-strategy: explicit
+          ttl: ${CACHE_TTL:120s}
+          enabled: true
   scheduler:
     pool-size: 5
     thread-group-name: reference-data-scheduled-tasks-
@@ -63,7 +80,6 @@ company:
     validate-url: /api/auth/validate
     permit-all-urls:
       - /api/v1/info
-      
   datasource:
     middleware:
       enabled: true
@@ -78,4 +94,3 @@ company:
         minimum-idle: ${COMPANY_DATASOURCE_MIDDLEWARE_POOL_MINIMUM_IDLE:2}
       sql-logging:
         enabled: false
-    

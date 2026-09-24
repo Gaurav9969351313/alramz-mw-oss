@@ -7,7 +7,6 @@ import com.alramz.jwt.repository.RefreshTokenRepositoryOps;
 import com.alramz.jwt.repository.UserRepositoryOps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -39,21 +38,21 @@ public class AuthService {
                     if (logger.isWarnEnabled()) {
                         logger.warn("Login failed: user '{}' not found", consumer);
                     }
-                    return new BadCredentialsException("Invalid username or password");
+                    return new IllegalArgumentException("Consumer or Consumer Password is wrong");
                 });
 
         if (!passwordEncoder.matches(consumerPassword, user.password())) {
             if (logger.isWarnEnabled()) {
                 logger.warn("Login failed: invalid password for user '{}'", consumer);
             }
-            throw new BadCredentialsException("Invalid username or password");
+            throw new IllegalArgumentException("Consumer or Consumer Password is wrong");
         }
 
         if (!user.enabled()) {
             if (logger.isWarnEnabled()) {
                 logger.warn("Login failed: account disabled for user '{}'", consumer);
             }
-            throw new BadCredentialsException("Account is disabled");
+            throw new IllegalArgumentException("Consumer or Consumer Password is wrong");
         }
 
         if (logger.isInfoEnabled()) {

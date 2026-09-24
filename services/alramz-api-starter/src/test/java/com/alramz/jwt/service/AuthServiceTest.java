@@ -6,7 +6,6 @@ import com.alramz.jwt.model.User;
 import com.alramz.jwt.repository.RefreshTokenRepositoryOps;
 import com.alramz.jwt.repository.UserRepositoryOps;
 import org.junit.jupiter.api.Test;
-import org.springframework.security.authentication.BadCredentialsException;
 
 import java.time.Instant;
 import java.util.List;
@@ -69,7 +68,7 @@ class AuthServiceTest {
         };
 
         AuthService service = new AuthService(userRepo, encoder, tokenProvider, refreshRepo);
-        assertThrows(BadCredentialsException.class, () -> service.login("testuser", "wrong"));
+        assertThrows(IllegalArgumentException.class, () -> service.login("testuser", "wrong"));
     }
 
     @Test
@@ -95,6 +94,6 @@ class AuthServiceTest {
         };
 
         AuthService service = new AuthService(userRepo, encoder, tokenProvider, refreshRepo);
-        assertThrows(BadCredentialsException.class, () -> service.login("testuser", "password"));
+        assertThrows(IllegalArgumentException.class, () -> service.login("testuser", "password"));
     }
 }

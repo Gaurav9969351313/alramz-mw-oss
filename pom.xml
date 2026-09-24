@@ -16,6 +16,7 @@
         <module>services/alramz-api-starter</module>
         <module>services/data-validation-service</module>
         <module>services/alramz-notification-service</module>
+        <module>services/reference-data-service</module>
     </modules>
 
     <build>

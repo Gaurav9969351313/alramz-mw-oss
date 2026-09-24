@@ -1,6 +1,6 @@
 @baseUrl=http://localhost:8081
 
-@authToken=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJyZWZlcmVuY2VfZGFfYXBwIiwiaWF0IjoxNzkwMDYwNzM3LCJleHAiOjE3OTAwNjE2MzcsInJvbGVzIjpbIlJFU19SRUZFUkVOQ0VfREFfQVBJX1JFV09SRSJdLCJhcHBsaWNhdGlvbiI6InJlZmVyZW5jZS1kYS1zZXJ2aWNlIiwiZW52aXJvbm1lbnQiOiJsb2NhbCJ9.7dWoUvnINaHmnRejFOPTPQIFtLRTxD1qPL_mJqvbpaw
+@authToken=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJyZWZlcmVuY2VfZGF0YV9hcHAiLCJpYXQiOjE3OTAyNDI3NTcsImV4cCI6MTc5MDI0MzY1Nywicm9sZXMiOlsiQVBQX1JFRkVSRU5DRV9EQVRBIl0sImFwcGxpY2F0aW9uIjoicmVmZXJlbmNlLWRhdGEtc2VydmljZSIsImVudmlyb25tZW50IjoibG9jYWwifQ.H8iToWIdwPuhKGX7TLd-Mei3c1zH7-2_f3aTwYLBs5A
 
 ###
 GET {{baseUrl}}/api/v1/info
@@ -28,4 +28,27 @@ Content-Type: application/json
     "consumerPassword": "password123"
 }
 
-###
+### Deep Health - Done
+GET {{baseUrl}}/api/v1/health/deep
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### Get Data From Cache by Key: Done
+GET {{baseUrl}}/api/v1/cache/entries/global-config
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### Get Cache Status 
+GET {{baseUrl}}/api/v1/cache/entries/global-config/status
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### Flush Cache: Done
+DELETE {{baseUrl}}/api/v1/cache/entries/global-config/flush
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### Reaload Cache: Done
+POST {{baseUrl}}/api/v1/cache/entries/global-config/reload
+Content-Type: application/json
+Authorization: Bearer {{authToken}}

@@ -14,6 +14,24 @@ management:
         include: "*"
 
 company:
+  redis:
+    deployment:
+      mode: local
+    connection:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      ssl:
+        enabled: ${REDIS_SSL_ENABLED:false}
+      timeout: ${REDIS_TIMEOUT:2s}
+    cache:
+      mappings:
+        global-config:
+          table: global_configuration_settings
+          cache-key: alramz:reference-data:v1:global-config
+          reload-strategy: explicit
+          ttl: ${CACHE_TTL:3600s}
+          enabled: true
   logging:
     json:
       enabled: false

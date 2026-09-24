@@ -17,6 +17,24 @@ cipher:
   password: UseMostSecretKey
 
 company:
+  redis:
+    deployment:
+      mode: local
+    connection:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      ssl:
+        enabled: ${REDIS_SSL_ENABLED:false}
+      timeout: ${REDIS_TIMEOUT:2s}
+    cache:
+      mappings:
+        global-config:
+          table: global_configuration_settings
+          cache-key: alramz:reference-data:v1:global-config
+          reload-strategy: explicit
+          ttl: ${CACHE_TTL:3600s}
+          enabled: true
   scheduler:
     pool-size: 5
     thread-group-name: reference-data-scheduled-tasks-
@@ -75,20 +93,3 @@ company:
         minimum-idle: ${COMPANY_DATASOURCE_MIDDLEWARE_POOL_MINIMUM_IDLE:2}
       sql-logging:
         enabled: false
-    brok:
-      enabled: true
-      url: jdbc:oracle:thin:@//172.25.1.218:1521/BROKDEV
-      username: insight
-      plainPassword: RAMZ
-      driverClassName: oracle.jdbc.OracleDriver
-      startup-validation:
-        enabled: false
-      pool:
-        maximum-pool-size: 10
-        minimum-idle: 2
-      sql-logging:
-        enabled: false
-      oracle:
-        connectTimeout: 10000
-        readTimeout: 60000
-        defaultRowPrefetch: 100

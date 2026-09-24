@@ -51,7 +51,7 @@ public class LoggingExceptionHandler {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("timestamp", Instant.now().toString());
         body.put("status", 400);
-        body.put("error", "Bad Request: " + ex.getMessage());
+        body.put("error", ex.getMessage());
         body.put("message", ex.getMessage());
         body.put(LoggingConstants.CORRELATION_ID, correlationId);
         return ResponseEntity.status(400).contentType(MediaType.APPLICATION_JSON).body(body);
