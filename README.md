@@ -335,3 +335,13 @@ AI
 
 
 =====================================================================================
+
+
+1) impact analysis
+2) spec given by alaa "do impact analysis by checking existing code base" 
+3) grill me get me the open questions before we can create a csv file which has all questions 
+4) after this get me the plan 
+5) review the plan (2 reviews - scoring) (decide by rules) (give score by tasks)
+6) code implementation 
+7) test
+8) skill update by feedback 

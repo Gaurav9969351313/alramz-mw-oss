@@ -7,9 +7,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
-import com.alramz.scheduler.repository.ScheduleJobRepository;
 import com.alramz.scheduler.service.ISchedulerService;
 import com.alramz.scheduler.service.impl.JobScheduleManager;
 
@@ -34,19 +34,10 @@ public class SchedulerConfiguration {
     public ISchedulerService schedulerService(final ThreadPoolTaskScheduler threadPoolTaskScheduler,
                                               final BeanFactory beanFactory,
                                               final SchedulerProperties properties,
-                                              final org.springframework.core.env.Environment environment) {
+                                              final org.springframework.core.env.Environment environment,
+                                              final NamedParameterJdbcTemplate middlewareNamedParameterJdbcTemplate) {
 
-        ScheduleJobRepository scheduleJobRepository = null;
-        try {
-            if (environment.getProperty("spring.datasource.url") != null
-                    || environment.getProperty("spring.datasource.driver-class-name") != null) {
-                scheduleJobRepository = beanFactory.getBean(ScheduleJobRepository.class);
-            }
-        } catch (Exception e) { // NOPMD AvoidCatchingGenericException
-            logger.debug("ScheduleJobRepository not available, falling back to YAML properties for scheduler jobs");
-        }
-
-        return new JobScheduleManager(threadPoolTaskScheduler, beanFactory, properties, scheduleJobRepository);
+        return new JobScheduleManager(threadPoolTaskScheduler, beanFactory, properties, middlewareNamedParameterJdbcTemplate);
     }
 
     @Bean

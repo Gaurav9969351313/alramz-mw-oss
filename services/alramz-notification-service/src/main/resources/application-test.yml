@@ -30,6 +30,9 @@ company:
     permit-all-urls:
       - /api/v1/info
       - /api/v1/email/send
+  scheduler:
+    management-endpoints:
+      enabled: true
   logging:
     seq:
       enabled: true

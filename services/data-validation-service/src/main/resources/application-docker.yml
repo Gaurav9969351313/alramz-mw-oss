@@ -78,6 +78,8 @@ company:
         defaultRowPrefetch: ${COMPANY_DATASOURCE_BROK_ORACLE_DEFAULT_ROW_PREFETCH:100}
 
   scheduler:
+    management-endpoints:
+      enabled: true
     pool-size: 5
     thread-group-name: DataValidation-Scheduled-Tasks
     thread-name-prefix: DataValidation-TaskScheduler-Worker-

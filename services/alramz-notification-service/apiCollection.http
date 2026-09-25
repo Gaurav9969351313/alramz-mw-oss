@@ -36,3 +36,44 @@ Content-Type: application/json
 }
 
 ###
+
+### Scheduler Management APIs (requires company.scheduler.management-endpoints.enabled=true)
+
+### Get Scheduler Status
+GET {{baseUrl}}/api/secured/scheduler/stat
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### Stop Scheduler
+POST {{baseUrl}}/api/secured/scheduler/stop
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### Restart Scheduler
+POST {{baseUrl}}/api/secured/scheduler/restart
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "jobGroupName": "notification"
+}
+
+### Restart Scheduler for Specific Jobs
+POST {{baseUrl}}/api/secured/scheduler/refresh/jobs
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "jobGroupName": "notification",
+    "jobIds": []
+}
+
+### Unregister Jobs
+POST {{baseUrl}}/api/secured/scheduler/unregister/jobs
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### Hard Stop Scheduler
+POST {{baseUrl}}/api/secured/scheduler/hardstop
+Content-Type: application/json
+Authorization: Bearer {{authToken}}

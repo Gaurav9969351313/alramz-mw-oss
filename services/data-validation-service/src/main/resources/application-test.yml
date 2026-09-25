@@ -72,6 +72,8 @@ spring:
 
 company:
   scheduler:
+    management-endpoints:
+      enabled: true
     pool-size: 5
     thread-group-name: DataValidation-Scheduled-Tasks
     thread-name-prefix: DataValidation-TaskScheduler-Worker-

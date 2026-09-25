@@ -8,10 +8,12 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
 
-import java.util.Arrays;
+import com.alramz.scheduler.EnableScheduler;
+
 
 @SpringBootApplication
-public class  ReferenceDataServiceApplication {
+@EnableScheduler(jobGroupName = "referenceData")
+public class ReferenceDataServiceApplication {
 
 	private static final Logger log = LoggerFactory.getLogger(ReferenceDataServiceApplication.class);
 

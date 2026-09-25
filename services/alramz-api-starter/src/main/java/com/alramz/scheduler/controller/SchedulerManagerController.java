@@ -23,6 +23,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.alramz.scheduler.service.ISchedulerService;
 import com.alramz.scheduler.model.ScheduleInfoBean;
 import com.alramz.scheduler.model.SchedStatus;
+import com.alramz.scheduler.model.RestartSchedulerRequest;
+import com.alramz.scheduler.model.RefreshJobsRequest;
 
 @ConditionalOnProperty(name = "company.scheduler.management-endpoints.enabled", havingValue = "true")
 @ConditionalOnWebApplication
@@ -59,8 +61,10 @@ public class SchedulerManagerController {
     }
 
     @PostMapping(value = "/api/secured/scheduler/restart", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Map<String, Set<ScheduleInfoBean>>> restartScheduler(@RequestBody String jobGroupName)
+    public ResponseEntity<Map<String, Set<ScheduleInfoBean>>> restartScheduler(@RequestBody RestartSchedulerRequest request)
             throws Exception {
+
+        String jobGroupName = request.getJobGroupName();
 
         if (log.isInfoEnabled()) {
             log.info("Request received to restart the scheduler with jobGroupName=" + jobGroupName
@@ -85,8 +89,11 @@ public class SchedulerManagerController {
     }
 
     @PostMapping(value = "/api/secured/scheduler/refresh/jobs", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Map<String, Set<ScheduleInfoBean>>> restartScheduledForJobs(@RequestBody String jobGroupName,
-            @RequestBody List<String> jobIds) throws Exception {
+    public ResponseEntity<Map<String, Set<ScheduleInfoBean>>> restartScheduledForJobs(@RequestBody RefreshJobsRequest request)
+            throws Exception {
+
+        String jobGroupName = request.getJobGroupName();
+        List<String> jobIds = request.getJobIds();
 
         if (log.isInfoEnabled()) {
             log.info("Request received to restart the scheduler with jobGroupName=" + jobGroupName + " and JobIds=["

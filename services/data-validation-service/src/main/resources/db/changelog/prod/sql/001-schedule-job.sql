@@ -1,7 +1,7 @@
 --liquibase formatted sql
 --changeset gaurav:001-create-schedule-job-table
 
-CREATE TABLE schedule_job (
+CREATE TABLE IF NOT EXISTS schedule_job (
     id BIGSERIAL PRIMARY KEY,
     job_group_name VARCHAR(100) NOT NULL,
     schedule_id VARCHAR(100) NOT NULL,
@@ -17,7 +17,10 @@ CREATE TABLE schedule_job (
     updated_at TIMESTAMP
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_schedule_job_group_schedule ON schedule_job(job_group_name, schedule_id);
+
 --changeset gaurav:002-seed-schedule-job-data
 
 INSERT INTO schedule_job (job_group_name, schedule_id, worker_bean_name, job_bean_names, job_parameter, schedule_mode, cron_expr, delay, interval_seconds, enable, created_at, updated_at)
-VALUES ('dataValidation', 'dataValidationHealthCheck', 'dataValidationJobRunner', 'dataValidationJobRunner', '', 'CRON_EXP', '0 */5 * * * *', NULL, NULL, 'Y', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+VALUES ('dataValidation', 'dataValidationHealthCheck', 'dataValidationJobRunner', 'dataValidationJobRunner', '', 'CRON_EXP', '0 */5 * * * *', NULL, NULL, 'Y', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON CONFLICT (job_group_name, schedule_id) DO NOTHING;

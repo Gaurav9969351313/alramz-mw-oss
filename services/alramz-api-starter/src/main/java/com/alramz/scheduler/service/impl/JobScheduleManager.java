@@ -16,6 +16,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.core.task.TaskRejectedException;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.scheduling.support.CronTrigger;
 
@@ -24,10 +27,8 @@ import jakarta.annotation.PreDestroy;
 
 import com.alramz.scheduler.constants.SchedulerConstants;
 import com.alramz.scheduler.config.SchedulerProperties;
-import com.alramz.scheduler.entity.ScheduleJobEntity;
 import com.alramz.scheduler.model.ScheduleInfoBean;
 import com.alramz.scheduler.model.SchedStatus;
-import com.alramz.scheduler.repository.ScheduleJobRepository;
 import com.alramz.scheduler.service.ISchedulerService;
 import com.alramz.scheduler.service.Schedulable;
 
@@ -37,14 +38,14 @@ public class JobScheduleManager implements ISchedulerService {
     private final ThreadPoolTaskScheduler threadPoolTaskScheduler;
     private final BeanFactory beanFactory;
     private final SchedulerProperties properties;
-    private final ScheduleJobRepository scheduleJobRepository;
+    private final NamedParameterJdbcTemplate middlewareNamedParameterJdbcTemplate;
 
     public JobScheduleManager(ThreadPoolTaskScheduler threadPoolTaskScheduler, BeanFactory beanFactory, SchedulerProperties properties,
-                              ScheduleJobRepository scheduleJobRepository) {
+                              NamedParameterJdbcTemplate middlewareNamedParameterJdbcTemplate) {
         this.threadPoolTaskScheduler = threadPoolTaskScheduler;
         this.beanFactory = beanFactory;
         this.properties = properties;
-        this.scheduleJobRepository = scheduleJobRepository;
+        this.middlewareNamedParameterJdbcTemplate = middlewareNamedParameterJdbcTemplate;
     }
 
     private Map<ScheduleInfoBean, ScheduledFuture<Schedulable>> scheduledTasks = new ConcurrentHashMap<>();
@@ -220,14 +221,44 @@ public class JobScheduleManager implements ISchedulerService {
         ScheduledFuture<Schedulable> future = null;
         List<ScheduleInfoBean> scheduledJobs = new ArrayList<>();
         try {
-            List<ScheduleJobEntity> dbJobs = new ArrayList<>();
-            if (scheduleJobRepository != null) {
-                dbJobs = scheduleJobRepository.findByJobGroupNameAndEnable(jobGroupName, "Y");
+            List<ScheduleInfoBean> dbJobs = new ArrayList<>();
+            boolean dbMode = middlewareNamedParameterJdbcTemplate != null;
+            if (log.isInfoEnabled()) {
+                log.info("Scheduler startup loading: jobGroupName={}, jobIds={}, dbMode={}", jobGroupName,
+                        jobIds != null && jobIds.length > 0 ? Arrays.toString(jobIds) : "ALL", dbMode);
+            }
+
+            if (dbMode) {
+                String sql = "SELECT job_group_name, schedule_id, worker_bean_name, job_bean_names, job_parameter, " +
+                        "schedule_mode, cron_expr, delay, interval_seconds, enable FROM schedule_job " +
+                        "WHERE job_group_name = :jobGroupName AND enable = 'Y'";
+                MapSqlParameterSource params = new MapSqlParameterSource();
+                params.addValue("jobGroupName", jobGroupName);
+                dbJobs = middlewareNamedParameterJdbcTemplate.query(sql, params, (rs, rowNum) -> {
+                    ScheduleInfoBean b = new ScheduleInfoBean();
+                    b.setWorkerBeanName(rs.getString("worker_bean_name"));
+                    b.setJobBeanNames(rs.getString("job_bean_names"));
+                    b.setJobParameter(rs.getString("job_parameter"));
+                    b.setScheduleMode(rs.getString("schedule_mode"));
+                    b.setCronExpr(rs.getString("cron_expr"));
+                    b.setDelay(rs.getLong("delay"));
+                    b.setInterval(rs.getLong("interval_seconds"));
+                    b.setEnable(rs.getString("enable"));
+                    b.setScheduleId(rs.getString("schedule_id"));
+                    return b;
+                });
                 if (log.isInfoEnabled()) {
-                    log.info("Loaded {} scheduled jobs from database for jobGroupName={}", dbJobs.size(), jobGroupName);
+                    log.info("Fetched {} scheduled jobs from schedule_job table for jobGroupName={}", dbJobs.size(), jobGroupName);
+                }
+            } else {
+                if (log.isInfoEnabled()) {
+                    log.info("middlewareNamedParameterJdbcTemplate is not available. Falling back to YAML properties for scheduler jobs");
                 }
             }
             if (dbJobs.isEmpty()) {
+                if (log.isInfoEnabled()) {
+                    log.info("No DB jobs found for jobGroupName={}. Loading from YAML properties...", jobGroupName);
+                }
                 for (SchedulerProperties.ScheduleJobProperties jobProps : properties.getJobs()) {
                     if (!"Y".equalsIgnoreCase(jobProps.getEnable())) {
                         continue;
@@ -252,30 +283,31 @@ public class JobScheduleManager implements ISchedulerService {
                     );
                     b.setScheduleId(jobProps.getScheduleId());
                     scheduledJobs.add(b);
+                    if (log.isInfoEnabled()) {
+                        log.info("YAML job loaded: scheduleId={}, workerBeanName={}, scheduleMode={}, cronExpr={}, interval={}",
+                                jobProps.getScheduleId(), jobProps.getWorkerBeanName(), jobProps.getScheduleMode(),
+                                jobProps.getCronExpr(), jobProps.getInterval());
+                    }
                 }
             } else {
-                for (ScheduleJobEntity entity : dbJobs) {
+                for (ScheduleInfoBean scheduleInfoBean : dbJobs) {
                     if (jobIds != null && jobIds.length > 0) {
-                        boolean matched = Arrays.stream(jobIds).anyMatch(id -> id.equalsIgnoreCase(entity.getScheduleId()));
+                        boolean matched = Arrays.stream(jobIds).anyMatch(id -> id.equalsIgnoreCase(scheduleInfoBean.getScheduleId()));
                         if (!matched) {
                             continue;
                         }
                     }
-                    java.sql.Timestamp startTime = null;
-                    ScheduleInfoBean b = new ScheduleInfoBean(
-                            entity.getWorkerBeanName(),
-                            entity.getJobBeanNames() != null ? entity.getJobBeanNames() : "",
-                            entity.getJobParameter() != null ? entity.getJobParameter() : "",
-                            entity.getScheduleMode(),
-                            startTime,
-                            entity.getCronExpr(),
-                            entity.getDelay(),
-                            entity.getIntervalSeconds(),
-                            entity.getEnable()
-                    );
-                    b.setScheduleId(entity.getScheduleId());
-                    scheduledJobs.add(b);
+                    scheduledJobs.add(scheduleInfoBean);
+                    if (log.isInfoEnabled()) {
+                        log.info("DB Sceduled job loaded: scheduleId={}, workerBeanName={}, scheduleMode={}, cronExpr={}, delay={}, intervalSeconds={}",
+                                scheduleInfoBean.getScheduleId(), scheduleInfoBean.getWorkerBeanName(), scheduleInfoBean.getScheduleMode(),
+                                scheduleInfoBean.getCronExpr(), scheduleInfoBean.getDelay(), scheduleInfoBean.getInterval());
+                    }
                 }
+            }
+
+            if (log.isInfoEnabled()) {
+                log.info("Total jobs to schedule for jobGroupName={}: {}", jobGroupName, scheduledJobs.size());
             }
 
             for (final ScheduleInfoBean scheduleInfoBean : scheduledJobs) {
@@ -360,6 +392,10 @@ public class JobScheduleManager implements ISchedulerService {
             }
 
             //TODO sendNotification(invalidSchedulingJobs, rejectedSchedulingJobs);
+        }
+        if (log.isInfoEnabled()) {
+            log.info("Scheduling result for jobGroupName={} => SUCCEED={}, INVALID={}, REJECTED={}",
+                    jobGroupName, succeedSchedulingJobs.size(), invalidSchedulingJobs.size(), rejectedSchedulingJobs.size());
         }
         @SuppressWarnings("serial")
         Map<String, Set<ScheduleInfoBean>> schedulingResult = new HashMap<String, Set<ScheduleInfoBean>>() {

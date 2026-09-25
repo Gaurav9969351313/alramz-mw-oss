@@ -1,8 +1,9 @@
 @baseUrl=http://localhost:8080
 # @baseUrl=https://gthomelab.online
 
-@authToken=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJkYXRhX3ZhbGlkYXRpb25fYXBwIiwiaWF0IjoxNzkwMDYwNzM3LCJleHAiOjE3OTAwNjE2MzcsInJvbGVzIjpbIkFQUF9EQVRBX1ZBTElEQVRJT04iXSwiYXBwbGljYXRpb24iOiJkYXRhLXZhbGlkYXRpb24tc2VydmljZSIsImVudmlyb25tZW50IjoibG9jYWwifQ.7dWoUvnINaHmnRejFOPTPQIFtLRTxD1qPL_mJqvbpaw
-###
+@authToken=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJkYXRhX3ZhbGlkYXRpb25fYXBwIiwiaWF0IjoxNzkwMzIzNjc5LCJleHAiOjE3OTAzMjQ1NzksInJvbGVzIjpbIkFQUF9EQVRBX1ZBTElEQVRJT04iXSwiYXBwbGljYXRpb24iOiJkYXRhLXZhbGlkYXRpb24tc2VydmljZSIsImVudmlyb25tZW50IjoibG9jYWwifQ.eqwoi1-jGegmLADfyC7Nw9bAu5c3S2A-_UR9dJaI-VA
+
+
 GET {{baseUrl}}/api/v1/info
 
 
@@ -266,3 +267,48 @@ Authorization: Bearer {{authToken}}
         "backgroundCheck": null
     }
 }
+
+###
+
+### Scheduler Management APIs (requires company.scheduler.management-endpoints.enabled=true)
+
+### Get Scheduler Status: Done
+GET {{baseUrl}}/api/secured/scheduler/stat
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### All Tasks Stop Scheduler: Done
+POST {{baseUrl}}/api/secured/scheduler/stop
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### Restart Scheduler: Done ( Make sure you first stop and then )
+POST {{baseUrl}}/api/secured/scheduler/restart
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "jobGroupName": "dataValidation"
+}
+
+### Restart Scheduler for Specific Jobs: Done
+POST {{baseUrl}}/api/secured/scheduler/refresh/jobs
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "jobGroupName": "dataValidation",
+    "jobIds": ["dataValidationHealthCheck"]
+}
+
+### Unregister Jobs: Done
+POST {{baseUrl}}/api/secured/scheduler/unregister/jobs
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+["dataValidationHealthCheck"]
+
+### Hard Stop Scheduler: Done
+POST {{baseUrl}}/api/secured/scheduler/hardstop
+Content-Type: application/json
+Authorization: Bearer {{authToken}}

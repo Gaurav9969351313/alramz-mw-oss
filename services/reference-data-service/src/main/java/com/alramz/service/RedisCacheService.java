@@ -83,7 +83,7 @@ public class RedisCacheService {
 
         cleanStaleLocks(mappingName);
 
-        if (!tryAcquireLock(mappingName, Duration.ofMinutes(5))) {
+        if (!tryAcquireLock(mappingName, Duration.ofMinutes(1))) {
             return "Reload already in progress for mapping: " + mappingName;
         }
 
@@ -226,12 +226,12 @@ public class RedisCacheService {
     }
 
     private boolean tryAcquireLock(String mappingName, Duration leaseDuration) {
-        String sql = "INSERT INTO cache_reload_lock (mapping_name, locked_by, status, expires_at) " +
+        String sql = "INSERT INTO application_workflow_locks (mapping_name, locked_by, status, expires_at) " +
                 "VALUES (:mappingName, :lockedBy, 'IN_PROGRESS', :expiresAt) " +
                 "ON CONFLICT (mapping_name) " +
                 "DO UPDATE SET locked_at = EXCLUDED.locked_at, locked_by = EXCLUDED.locked_by, " +
                 "status = EXCLUDED.status, completed_at = NULL, expires_at = EXCLUDED.expires_at " +
-                "WHERE cache_reload_lock.expires_at < NOW() AND cache_reload_lock.status = 'IN_PROGRESS'";
+                "WHERE application_workflow_locks.expires_at < NOW() AND application_workflow_locks.status = 'IN_PROGRESS'";
 
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("mappingName", mappingName);
@@ -248,7 +248,7 @@ public class RedisCacheService {
     }
 
     private void releaseLock(String mappingName, String status) {
-        String sql = "UPDATE cache_reload_lock SET status = :status, completed_at = NOW() " +
+        String sql = "UPDATE application_workflow_locks SET status = :status, completed_at = NOW() " +
                 "WHERE mapping_name = :mappingName AND locked_by = :lockedBy";
 
         MapSqlParameterSource params = new MapSqlParameterSource();
@@ -264,7 +264,7 @@ public class RedisCacheService {
     }
 
     private void cleanStaleLocks(String mappingName) {
-        String sql = "DELETE FROM cache_reload_lock WHERE mapping_name = :mappingName AND expires_at < NOW()";
+        String sql = "DELETE FROM application_workflow_locks WHERE mapping_name = :mappingName AND expires_at < NOW()";
 
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("mappingName", mappingName);

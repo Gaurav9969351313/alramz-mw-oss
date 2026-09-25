@@ -36,6 +36,8 @@ company:
           ttl: ${CACHE_TTL:3600s}
           enabled: true
   scheduler:
+    management-endpoints:
+      enabled: true
     pool-size: 5
     thread-group-name: reference-data-scheduled-tasks-
     thread-name-prefix: ReferenceData-TaskScheduler-Worker-
