@@ -1,0 +1,69 @@
+@baseUrl=https://gthomelab.online
+
+@authToken=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJkYXRhX3ZhbGlkYXRpb25fYXBwIiwiaWF0IjoxNzg2NzA3MjA1LCJleHAiOjE3ODY3MDgxMDUsInJvbGVzIjpbIkFQUF9EQVRBX1ZBTElEQVRJT04iXSwiYXBwbGljYXRpb24iOiJkYXRhLXZhbGlkYXRpb24tc2VydmljZSIsImVudmlyb25tZW50IjoibG9jYWwifQ.GJZCv31gLzbaBpEd-iPw7Z1xC9Q4DLP0OnJz6yelq8c
+
+### Info 
+GET {{baseUrl}}/api/v1/info
+
+### Login to get JWT token
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+    "username": "data_validation_app",
+    "password": "password123"
+}
+
+
+### Validate Existing Data - Email
+POST {{baseUrl}}/api/v1/existing-data/validation
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "validationType": "EMAIL_EXISTS",
+    "referenceNo": "1",
+    "email": "gtalele@alramz.ae",
+    "language": "EN",
+    "islamicMode": "Y"
+}
+
+### - Ve Test Case
+POST {{baseUrl}}/api/v1/existing-data/validation
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "validationType": "EMAIL_EXISTS",
+    "referenceNo": "1",
+    "email": "",
+    "language": "EN",
+    "islamicMode": "Y"
+}
+
+
+### Validate Existing Data - Passport
+POST {{baseUrl}}/api/v1/existing-data/validation
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "validationType": "PASSPORT_EXISTS",
+    "referenceNo": "100",
+    "passportNumber": "",
+    "language": "EN",
+    "islamicMode": "Y"
+}
+
+### Validate Existing Data - Username
+POST {{baseUrl}}/api/v1/existing-data/validation
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "validationType": "USERNAME_EXISTS",
+    "referenceNo": "300",
+    "username": "gaurav",
+    "language": "EN",
+    "islamicMode": "Y"
+}

@@ -283,23 +283,28 @@ Next Points to implement
 
 1) Create a POC on Database driven Sceduling. -- Done
 2) Implement this framework as a lib and check integrating it in one of the service. -- Done
-3) Add Configurations Data in Redis Cache. Flush Redis Cache. Cache Reload API Endpoint. 
+3) Add Configurations Data in Redis Cache. Flush Redis Cache. Cache Reload API Endpoint.  -- In Progress
 4) Draft ADR's and publish them for API Security, Consumer field in SeqLog, 
-   Logging, - 
-   configuration management etc. - 
+   Logging, - Done
+   configuration management etc. - In Progress 
+   ADR for Azure Services Integration - In Progress
 5) Software AG based Docs Login Screen Implementation. -- Done
 6) GitHub Workflow for the Software AG based Docs Publishing. -- Done
-7) Explore requirements and initial scope for the self-service-portal feature. (Optional) (Config Data + Reference Data)
+6.1) Refactoring of Data Management Service - seperate it in Utility and Onboarding Service - Not Started
+
+
+7) Explore requirements and initial scope for the self-service-portal feature. (Optional) (Config Data + Reference Data) (Discussion Needed)
 8) Claude Setup for Spring Boot Developement (Optional) -- Agent Building -- (2 weeks)
-   
-   /sdlc i have given dfm onboarding specs can convert this to spring boot based service implementation in onbaording-service.
-
+   /sdlc i have given dfm onboarding specs can convert this to spring boot based service implementation in onbaording-service. (Not Started Yet)
    spec --> plan --> impl --> build --> test --> junit --> integration --> fix pmd --> fix: spot bugs --> commit --> create PR
-
 9) reset appsubscriptions password (optional)
 10) AZURE keyvault implementation for a services using managed identity. (optional)
 
 10) https://github.com/floci-io/floci-ui.git
+
+
+11) Cost of security Layer + shared services costing as a platform costing + Final BOQ With Updated Architecture. We need a final call. 
+12) Distributed Logging 
 
 
 ADR - Security will be not considered till AZURE API gateway is not available. for dev lets not focus on auth mechnisms.

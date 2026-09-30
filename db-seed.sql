@@ -1,10 +1,6 @@
 CREATE DATABASE "alramz-mw-dev-db" OWNER alramzmw;
 
-
-
 GRANT ALL PRIVILEGES ON DATABASE "alramz-mw-dev-db" TO alramzmw;
-
-
 
 GRANT ALL ON SCHEMA public TO alramzmw;
 

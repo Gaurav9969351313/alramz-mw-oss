@@ -55,6 +55,7 @@
         <checkstyle.config.location>${project.basedir}/../../config/checkstyle.xml</checkstyle.config.location>
         <checkstyle.consoleOutput>true</checkstyle.consoleOutput>
         <checkstyle.failOnViolation>false</checkstyle.failOnViolation>
+        <pmd.skip>true</pmd.skip>
         <pmd.consoleOutput>true</pmd.consoleOutput>
         <pmd.failOnViolation>false</pmd.failOnViolation>
         <jacoco.version>0.8.12</jacoco.version>
@@ -63,6 +64,7 @@
         <jacoco.instruction.coverage>0.75</jacoco.instruction.coverage>
         <spotbugs.version>4.8.6.0</spotbugs.version>
         <spotbugs.core.version>4.8.6</spotbugs.core.version>
+        <spotbugs.skip>true</spotbugs.skip>
         <spotbugs.failOnError>false</spotbugs.failOnError>
         <spotbugs.effort>Default</spotbugs.effort>
         <spotbugs.threshold>Low</spotbugs.threshold>
@@ -243,7 +245,7 @@
             </dependency>
           </dependencies>
           <configuration>
-            <skip>true</skip>
+            <skip>${pmd.skip}</skip>
             <rulesets>${project.basedir}/../../config/pmd.xml</rulesets>
             <failOnViolation>${pmd.failOnViolation}</failOnViolation>
             <linkXRef>false</linkXRef>
@@ -335,7 +337,7 @@
             </dependency>
           </dependencies>
           <configuration>
-            <skip>true</skip>
+            <skip>${spotbugs.skip}</skip>
             <effort>${spotbugs.effort}</effort>
             <threshold>${spotbugs.threshold}</threshold>
             <failOnError>${spotbugs.failOnError}</failOnError>

@@ -117,6 +117,10 @@ skipped, because `alramz-api-starter`'s auto-configurations default to "off" or 
   BOTH `@PermitAll` on the controller method AND its path added to `company.jwt.permit-all-urls` in
   *every* profile file — `/api/v1/info` is already wired as the example. Never write ad hoc Spring
   Security config to open an endpoint instead.
+- **Startup banner**: `Application.java.template`'s `ApplicationRunner` bean logs application name,
+  active profile (environment), host, and port on every startup — a repo-wide convention (see
+  `reference-data-service/src/main/java/com/alramz/ReferenceDataServiceApplication.java`). Keep this
+  bean when writing the new service's `Application` class; don't drop it as unused boilerplate.
 - **Datasources**: only enable the ones this service actually uses (§1). Every
   `JdbcTemplate`/`NamedParameterJdbcTemplate`/`DataSource`/`TransactionManager` injection needs an
   explicit `@Qualifier("middlewareJdbcTemplate")` (or `brok…`/`integration…`) — the one documented
