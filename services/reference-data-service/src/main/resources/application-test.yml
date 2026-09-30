@@ -98,3 +98,14 @@ company:
         minimum-idle: ${COMPANY_DATASOURCE_MIDDLEWARE_POOL_MINIMUM_IDLE:2}
       sql-logging:
         enabled: false
+    brok:
+      enabled: false
+      url: jdbc:h2:mem:testdb
+      driverClassName: org.h2.Driver
+      username: sa
+      plainPassword: sa
+      startup-validation:
+        enabled: false
+      pool:
+        maximum-pool-size: 5
+        minimum-idle: 1

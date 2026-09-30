@@ -81,3 +81,21 @@ company:
     validate-url: /api/auth/validate
     permit-all-urls:
       - /api/v1/info
+  datasource:
+    brok:
+      enabled: true
+      url: jdbc:oracle:thin:@//172.25.1.218:1521/BROKDEV
+      username: insight
+      plainPassword: RAMZ
+      driverClassName: oracle.jdbc.OracleDriver
+      startup-validation:
+        enabled: false
+      pool:
+        maximum-pool-size: 10
+        minimum-idle: 2
+      sql-logging:
+        enabled: false
+      oracle:
+        connectTimeout: 10000
+        readTimeout: 60000
+        defaultRowPrefetch: 100
