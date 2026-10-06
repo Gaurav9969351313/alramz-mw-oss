@@ -1,5 +1,0 @@
-apis:
-  notification-service:
-    root: ./services/alramz-notification-service/specs/openapi.yaml
-  data-validation-service:
-    root: ./services/data-validation-service/specs/apiSpecs.yaml
