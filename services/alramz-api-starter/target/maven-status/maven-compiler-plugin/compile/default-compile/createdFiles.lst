@@ -54,6 +54,7 @@ com/alramz/logging/config/LoggingProperties.class
 com/alramz/jwt/annotation/PermitAll.class
 com/alramz/models/UserRequestDetails$UserRequestDetailsBuilder.class
 com/alramz/jwt/repository/RefreshTokenJpaRepository.class
+com/alramz/scheduler/model/RestartSchedulerRequest.class
 com/alramz/jwt/controller/ValidateController.class
 com/alramz/client/AbstractRestClient.class
 com/alramz/jwt/model/RefreshTokenRecord.class
@@ -71,6 +72,7 @@ com/alramz/logging/util/LoggingHelper.class
 com/alramz/logging/aspect/Loggable.class
 com/alramz/datasource/config/BrokDataSourceAutoConfiguration.class
 com/alramz/datasource/health/PoolHealthIndicator.class
+com/alramz/scheduler/model/RefreshJobsRequest.class
 com/alramz/jwt/service/TokenProvider.class
 com/alramz/logging/model/ResponseLog.class
 com/alramz/logging/filter/ResponseLoggingFilter.class

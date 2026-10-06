@@ -17,6 +17,7 @@
         <module>services/data-validation-service</module>
         <module>services/alramz-notification-service</module>
         <module>services/reference-data-service</module>
+        <module>services/utility-service</module>
     </modules>
 
     <build>

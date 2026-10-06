@@ -1,0 +1,32 @@
+@baseUrl=http://localhost:8083
+
+### Get a token first by registering + logging in below, then paste it here.
+@authToken=
+
+###
+GET {{baseUrl}}/api/v1/info
+
+###
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+    "authType": "JWT",
+    "consumer": "utility_serviceapp",
+    "email": "utility-service@alramz.ae",
+    "consumerPassword": "password123",
+    "roles": ["APPUTILITY_SERVICEUSER"],
+    "application": "utility-service",
+    "environment": "local"
+}
+
+###
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+    "consumer": "utility_serviceapp",
+    "consumerPassword": "password123"
+}
+
+###

@@ -83,6 +83,8 @@
 /Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/main/java/com/alramz/scheduler/constants/SchedulerConstants.java
 /Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/main/java/com/alramz/scheduler/controller/SchedulerManagerController.java
 /Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/main/java/com/alramz/scheduler/entity/ScheduleJobEntity.java
+/Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/main/java/com/alramz/scheduler/model/RefreshJobsRequest.java
+/Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/main/java/com/alramz/scheduler/model/RestartSchedulerRequest.java
 /Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/main/java/com/alramz/scheduler/model/SchedStatus.java
 /Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/main/java/com/alramz/scheduler/model/ScheduleInfoBean.java
 /Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/main/java/com/alramz/scheduler/repository/ScheduleJobRepository.java
