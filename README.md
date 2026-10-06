@@ -302,10 +302,17 @@ Next Points to implement
 
 10) https://github.com/floci-io/floci-ui.git
 
-
 11) Cost of security Layer + shared services costing as a platform costing + Final BOQ With Updated Architecture. We need a final call. 
 12) Distributed Logging 
 
+
+13) domain service --> Related endpoints 
+       we will Know that okay, these many services that we are going to build. 
+    Scaffold new service, like let's say document management service. Okay
+        We have four endpoints that we need to create. Okay,
+        /createFolder 
+        /uploadDocument 
+    Handhold the extract that you have given as a document, okay, and that workflow will take care of implementing the steps. So, I need to provide a master prompt that how that master prompt should be spinned inside cloud and then it will implement all that services.
 
 ADR - Security will be not considered till AZURE API gateway is not available. for dev lets not focus on auth mechnisms.
 ADR - Consumer field in seq log Dependent on security. So, since security is dependent on the previous ADR, we won't be able to add that inside SecLog.
@@ -350,3 +357,8 @@ AI
 6) code implementation 
 7) test
 8) skill update by feedback 
+
+
+Decision Made: 
+
+banks, cities, countries these tables uses as a master data it will come from CRM. So basically CRM will have the responsibility to share ADX code for all these three tables.

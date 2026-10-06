@@ -35,6 +35,18 @@ company:
           reload-strategy: explicit
           ttl: ${CACHE_TTL:120s}
           enabled: true
+        countries:
+          table: countries
+          cache-key: alramz:reference-data:v1:countries
+          reload-strategy: explicit
+          ttl: ${CACHE_TTL:120s}
+          enabled: true
+        banks:
+          table: banks
+          cache-key: alramz:reference-data:v1:banks
+          reload-strategy: explicit
+          ttl: ${CACHE_TTL:120s}
+          enabled: true
   scheduler:
     management-endpoints:
       enabled: true
