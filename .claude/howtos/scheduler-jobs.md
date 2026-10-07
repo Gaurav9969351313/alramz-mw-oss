@@ -10,7 +10,7 @@ Do **not** reach for plain `@Scheduled(cron = "...")` methods in this codebase �
 
 Two real, currently-shipping examples exist:
 - **`reference-data-service`** — `cacheReloadJobRunner`, reloads a Redis cache from Postgres on a cron trigger, with a DB-backed lock to avoid overlapping runs across pods. Added in commit `359e12a` ("Scheduled Jobs for Cache Upload").
-- **`data-validation-service`** — `dataValidationJobRunner`, a lighter example that just runs a SQL lookup on a cron trigger.
+- **`onboarding-service`** — `dataValidationJobRunner`, a lighter example that just runs a SQL lookup on a cron trigger.
 
 ## 2. Where it lives in this repo
 
@@ -36,8 +36,8 @@ Two real, currently-shipping examples exist:
 - `src/main/resources/db/changelog/dev/sql/001-schedule-job.sql`, `003-rename-to-application-workflow-locks.sql`, `004-scheduler-job.sql` — table + seed row (mirrored under `docker/`, `preprod/`, `prod/`, `test/`).
 - `src/main/resources/application-dev.yml:38-43` (and per-profile equivalents) — `company.scheduler.*` properties.
 
-**Real usage — data-validation-service** (simpler, no external cache, single query):
-- `DataValidationServiceApplication.java:19` — `@EnableScheduler(jobGroupName = "dataValidation")`.
+**Real usage — onboarding-service** (simpler, no external cache, single query):
+- `OnboardingServiceApplication.java:19` — `@EnableScheduler(jobGroupName = "dataValidation")`.
 - `scheduler/job/DataValidationScheduledJob.java` — `@Component("dataValidationJobRunner")`, `implements Schedulable`, calls `SqlQueriesManager` for its query.
 - `src/main/resources/db/changelog/dev/sql/001-schedule-job.sql` — table + seed row for `dataValidationHealthCheck`.
 
@@ -60,12 +60,12 @@ Two real, currently-shipping examples exist:
    - `ONE_TIME` + a `startTime` → one-shot `schedule(...)`
    Both current jobs use `CRON_EXP`.
 5. **Execution.** At trigger time, the manager looks up `beanFactory.getBean(workerBeanName)` — that's your `@Component("yourJobRunnerBeanName")` — casts it to `Schedulable`, and calls `run(scheduleInfoBean)`. The `scheduleInfoBean` carries `jobParameter`, which is how `CacheReloadScheduledJob` knows *which* cache mapping to reload (`scheduleInfoBean.getJobParameter()` → `mappingName`).
-6. **Distributed lock (reference-data-service only).** Because multiple pods run the same cron independently, `CacheReloadScheduledJob` first calls `SchedulerLockService.tryAcquireLock(lockKey, Duration.ofMinutes(5))`, which does an `INSERT ... ON CONFLICT ... DO UPDATE ... WHERE expires_at < NOW()` against `application_workflow_locks` (middleware datasource) — an atomic "acquire only if nobody else holds it or it expired" pattern. It releases the lock in a `finally` block. `data-validation-service`'s job has no cross-pod side effect, so it skips locking entirely — **only add the lock table/service if your job writes shared state that must not run concurrently.**
+6. **Distributed lock (reference-data-service only).** Because multiple pods run the same cron independently, `CacheReloadScheduledJob` first calls `SchedulerLockService.tryAcquireLock(lockKey, Duration.ofMinutes(5))`, which does an `INSERT ... ON CONFLICT ... DO UPDATE ... WHERE expires_at < NOW()` against `application_workflow_locks` (middleware datasource) — an atomic "acquire only if nobody else holds it or it expired" pattern. It releases the lock in a `finally` block. `onboarding-service`'s job has no cross-pod side effect, so it skips locking entirely — **only add the lock table/service if your job writes shared state that must not run concurrently.**
 7. **Management API.** With `company.scheduler.management-endpoints.enabled: true`, `SchedulerManagerController` exposes `/api/secured/scheduler/stop`, `/restart`, `/refresh/jobs`, `/unregister/jobs`, `/stat`, `/hardstop` — these sit behind the service's normal JWT security (they are **not** in `permit-all-urls` in either service), so calling them requires a valid token.
 
 ## 4. How to add a new scheduled job — step by step
 
-Model this directly on `data-validation-service`'s simpler example, or on `reference-data-service`'s locking example if your job touches shared/external state (cache, external API, file system).
+Model this directly on `onboarding-service`'s simpler example, or on `reference-data-service`'s locking example if your job touches shared/external state (cache, external API, file system).
 
 **Step 1 — enable the scheduler on your application class** (skip if already present):
 ```java
@@ -99,7 +99,7 @@ company:
     thread-name-prefix: YourService-TaskScheduler-Worker-
 ```
 
-**Step 4 — add a Liquibase changeset that creates the row** (in `data-validation-service`/`reference-data-service`, `db/changelog/sql/001-schedule-job.sql` creates the shared `schedule_job` table if it doesn't already exist — reuse that same DDL, then insert your job as a separate changeset, one file per profile under `db/changelog/{dev,test,preprod,prod,docker}/sql/`):
+**Step 4 — add a Liquibase changeset that creates the row** (in `onboarding-service`/`reference-data-service`, `db/changelog/sql/001-schedule-job.sql` creates the shared `schedule_job` table if it doesn't already exist — reuse that same DDL, then insert your job as a separate changeset, one file per profile under `db/changelog/{dev,test,preprod,prod,docker}/sql/`):
 ```sql
 --liquibase formatted sql
 --changeset <you>:001-create-schedule-job-table

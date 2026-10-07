@@ -121,7 +121,7 @@ Two separate, unrelated annotations, both from `com.alramz.jwt.annotation`:
 
 - **`@JwtSecured(roles = {...}, environment = {...})`** — a **custom** AOP guard (`JwtSecuredAspect`, `@Before("@annotation(jwtSecured)")`), *not* Spring's `@PreAuthorize`. It checks the current `Authentication` is authenticated, then (if `roles` given) that the caller has at least one matching `ROLE_<role>` authority, then (if `environment` given) that `JwtContext.getCurrentEnvironment()` matches one of them. Real usage:
   ```java
-  // services/data-validation-service/.../DataValidationController.java:45
+  // services/onboarding-service/.../DataValidationController.java:45
   @Override
   @JwtSecured(roles = "APP_DATA_VALIDATION")
   @Loggable
@@ -136,7 +136,7 @@ Two separate, unrelated annotations, both from `com.alramz.jwt.annotation`:
   ```
 - **`@PermitAll`** — a thin meta-annotation: `@PreAuthorize("permitAll()")`, activated by `@EnableMethodSecurity` on `JwtAutoConfiguration`. Real usage, identical in both services:
   ```java
-  // services/reference-data-service/.../ApplicationController.java (same in data-validation-service)
+  // services/reference-data-service/.../ApplicationController.java (same in onboarding-service)
   @GetMapping("/api/v1/info")
   @PermitAll
   @Loggable

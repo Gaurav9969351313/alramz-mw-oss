@@ -5,11 +5,11 @@ release:
   generated_by: ${GENERATED_BY}
 
 images:
-  data-validation-service:
-    repository: ${REGISTRY_URL}/alramz/data-validation-service
-    tag: ${DATA_VALIDATION_SERVICE_TAG}
-    digest: ${DATA_VALIDATION_SERVICE_DIGEST}
-    built_from: services/data-validation-service
+  onboarding-service:
+    repository: ${REGISTRY_URL}/alramz/onboarding-service
+    tag: ${ONBOARDING_SERVICE_TAG}
+    digest: ${ONBOARDING_SERVICE_DIGEST}
+    built_from: services/onboarding-service
 
   alramz-notification-service:
     repository: ${REGISTRY_URL}/alramz/alramz-notification-service

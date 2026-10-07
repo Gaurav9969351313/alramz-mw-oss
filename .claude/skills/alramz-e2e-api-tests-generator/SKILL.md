@@ -7,7 +7,7 @@ description: >
   shapes. Use whenever asked to write Postman requests or tests for a service endpoint, add
   e2e/API tests, build or extend a Postman collection under e2e/, or verify that an endpoint
   "is working fine" / "is passing" via Postman — whether for one endpoint, a named
-  operationId, or every endpoint in data-validation-service, alramz-notification-service, or
+  operationId, or every endpoint in onboarding-service, alramz-notification-service, or
   reference-data-service. Also use to add a negative-path (401/400) test alongside an
   existing happy-path Postman item.
 ---
@@ -29,7 +29,7 @@ specifically so the generated tests reflect what's real, not what's plausible.
 ## 1. Figure out the scope
 
 - **One endpoint / one operationId**: find it directly in the service's spec
-  (`services/<service>/specs/apiSpecs.yaml` for `data-validation-service` and
+  (`services/<service>/specs/apiSpecs.yaml` for `onboarding-service` and
   `reference-data-service`; `services/<service>/specs/openapi.yaml` for
   `alramz-notification-service`).
 - **"All endpoints in `<service>`"**: run
@@ -48,7 +48,7 @@ This repo's three services disagree on whether the spec's path already includes 
 
 | Service | Spec path example | Real request path | Why |
 |---|---|---|---|
-| `data-validation-service` | `/iban/validate` | `/api/v1/iban/validate` | Controller has class-level `@RequestMapping("/api/v1")` |
+| `onboarding-service` | `/iban/validate` | `/api/v1/iban/validate` | Controller has class-level `@RequestMapping("/api/v1")` |
 | `reference-data-service` | `/info` | `/api/v1/info` | Same — class-level `@RequestMapping("/api/v1")` |
 | `alramz-notification-service` | `/api/v1/email/send` | `/api/v1/email/send` | Mapping annotations hardcode the full path; no class-level prefix |
 
@@ -148,7 +148,7 @@ scratch each time.
   `{"values": [{"key": "...", "value": "...", "type": "default", "enabled": true}]}`, merged
   via the same script (it also matches `values`/`variable` entries, by `key`).
 - Keep `baseurl` pointed at the service's **dev** port (see CLAUDE.md §1's port table —
-  `data-validation-service` 5001, `alramz-notification-service` 8082, `reference-data-service`
+  `onboarding-service` 5001, `alramz-notification-service` 8082, `reference-data-service`
   8081) in `e2e/local.postman_environment.json`; it's one shared environment file for local
   runs against whichever service you're hitting, not one file per service.
 

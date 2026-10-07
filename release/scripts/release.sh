@@ -112,7 +112,7 @@ Options:
 Environment Variables:
   REGISTRY_URL            Docker registry URL
   RELEASE_VERSION         Semantic version (e.g., 1.0.0)
-  DATA_VALIDATION_SERVICE_TAG   Image tag for data-validation-service
+  ONBOARDING_SERVICE_TAG   Image tag for onboarding-service
   NOTIFICATION_SERVICE_TAG      Image tag for alramz-notification-service
   POSTGRES_IMAGE          PostgreSQL image (e.g., postgres:15-alpine)
   REDIS_IMAGE             Redis image (e.g., redis:7-alpine)
@@ -139,8 +139,8 @@ cmd_validate_prerequisites() {
     check "docker" "docker --version"
     check "docker compose" "docker compose version || docker-compose version"
     check "maven" "mvn --version"
-    check "service directories" "test -d ${PROJECT_DIR}/services/data-validation-service && test -d ${PROJECT_DIR}/services/alramz-notification-service"
-    check "dockerfiles" "test -f ${PROJECT_DIR}/services/data-validation-service/Dockerfile && test -f ${PROJECT_DIR}/services/alramz-notification-service/Dockerfile"
+    check "service directories" "test -d ${PROJECT_DIR}/services/onboarding-service && test -d ${PROJECT_DIR}/services/alramz-notification-service"
+    check "dockerfiles" "test -f ${PROJECT_DIR}/services/onboarding-service/Dockerfile && test -f ${PROJECT_DIR}/services/alramz-notification-service/Dockerfile"
 
     if [ -z "$REGISTRY_URL" ]; then
         log_warn "REGISTRY_URL is not set"
@@ -159,7 +159,7 @@ cmd_validate_prerequisites() {
 cmd_build_all() {
     log_info "[STEP 2/14] Build All Services"
     build_all_services_locally
-    build_service "data-validation-service"
+    build_service "onboarding-service"
     build_service "alramz-notification-service"
     log_info "All services built"
 }
@@ -167,11 +167,11 @@ cmd_build_all() {
 cmd_build_selected() {
     log_info "[STEP 3/14] Build Selected Service"
     echo "Select service:"
-    echo " 1) data-validation-service"
+    echo " 1) onboarding-service"
     echo " 2) alramz-notification-service"
     read -rp "Enter choice [1-2]: " svc_choice
     case "$svc_choice" in
-        1) build_all_services_locally; build_service "data-validation-service" ;;
+        1) build_all_services_locally; build_service "onboarding-service" ;;
         2) build_all_services_locally; build_service "alramz-notification-service" ;;
         *) log_error "Invalid selection"; return 1 ;;
     esac
@@ -239,7 +239,7 @@ cmd_login_registry() {
 
 cmd_tag_images() {
     log_info "[STEP 5/14] Tag Images"
-    for service in data-validation-service alramz-notification-service; do
+    for service in onboarding-service alramz-notification-service; do
         local tag_var="$(to_upper "$service")_TAG"
         local tag="${!tag_var:-${RELEASE_VERSION:-latest}}"
         local local_tag="${REGISTRY_NAMESPACE}/${service}:${tag}"
@@ -256,7 +256,7 @@ cmd_tag_images() {
 
 cmd_push_all() {
     log_info "[STEP 6/14] Push All Images"
-    for service in data-validation-service alramz-notification-service; do
+    for service in onboarding-service alramz-notification-service; do
         cmd_push_selected "$service"
     done
 }
@@ -265,11 +265,11 @@ cmd_push_selected() {
     local service="${1:-}"
     if [ -z "$service" ]; then
         echo "Select service:"
-        echo " 1) data-validation-service"
+        echo " 1) onboarding-service"
         echo " 2) alramz-notification-service"
         read -rp "Enter choice [1-2]: " svc_choice
         case "$svc_choice" in
-            1) service="data-validation-service" ;;
+            1) service="onboarding-service" ;;
             2) service="alramz-notification-service" ;;
             *) log_error "Invalid selection"; return 1 ;;
         esac
@@ -313,7 +313,7 @@ cmd_generate_manifest() {
         local svc="${line%%=*}"
         local dgst="${line#*=}"
         case "$svc" in
-            data-validation-service) dvs_digest="$dgst" ;;
+            onboarding-service) dvs_digest="$dgst" ;;
             alramz-notification-service) notif_digest="$dgst" ;;
         esac
     done < "$MANIFEST_DIGESTS_FILE"
@@ -323,9 +323,9 @@ cmd_generate_manifest() {
         -e "s|\${GENERATED_AT}|${GENERATED_AT}|g" \
         -e "s|\${GENERATED_BY}|${GENERATED_BY}|g" \
         -e "s|\${REGISTRY_URL}|${REGISTRY_URL}|g" \
-        -e "s|\${DATA_VALIDATION_SERVICE_TAG}|${DATA_VALIDATION_SERVICE_TAG}|g" \
+        -e "s|\${ONBOARDING_SERVICE_TAG}|${ONBOARDING_SERVICE_TAG}|g" \
         -e "s|\${NOTIFICATION_SERVICE_TAG}|${NOTIFICATION_SERVICE_TAG}|g" \
-        -e "s|\${DATA_VALIDATION_SERVICE_DIGEST}|${dvs_digest}|g" \
+        -e "s|\${ONBOARDING_SERVICE_DIGEST}|${dvs_digest}|g" \
         -e "s|\${NOTIFICATION_SERVICE_DIGEST}|${notif_digest}|g" \
         -e "s|\${POSTGRES_IMAGE}|${POSTGRES_IMAGE}|g" \
         -e "s|\${REDIS_IMAGE}|${REDIS_IMAGE}|g" \
@@ -338,7 +338,7 @@ cmd_generate_manifest() {
 
 cmd_verify_registry() {
     log_info "[STEP 9/14] Verify Registry Images"
-    for service in data-validation-service alramz-notification-service; do
+    for service in onboarding-service alramz-notification-service; do
         local tag_var="$(to_upper "$service")_TAG"
         local tag="${!tag_var:-${RELEASE_VERSION:-latest}}"
         local image="${REGISTRY_URL}/${REGISTRY_NAMESPACE}/${service}:${tag}"
@@ -426,7 +426,7 @@ cmd_show_info() {
     log_info "[STEP 13/14] Show Release Information"
     log_info "Release Version: ${RELEASE_VERSION:-not set}"
     log_info "Registry URL: ${REGISTRY_URL:-not set}"
-    log_info "Data Validation Service Tag: ${DATA_VALIDATION_SERVICE_TAG:-not set}"
+    log_info "Onboarding Service Tag: ${ONBOARDING_SERVICE_TAG:-not set}"
     log_info "Notification Service Tag: ${NOTIFICATION_SERVICE_TAG:-not set}"
     log_info "Postgres Image: ${POSTGRES_IMAGE:-not set}"
     log_info "Redis Image: ${REDIS_IMAGE:-not set}"
@@ -449,7 +449,7 @@ cmd_show_info() {
 run_ci_pipeline() {
     log_info "Running CI/CD pipeline"
 
-    if [ -z "$REGISTRY_URL" ] || [ -z "$RELEASE_VERSION" ] || [ -z "$DATA_VALIDATION_SERVICE_TAG" ] || [ -z "$NOTIFICATION_SERVICE_TAG" ]; then
+    if [ -z "$REGISTRY_URL" ] || [ -z "$RELEASE_VERSION" ] || [ -z "$ONBOARDING_SERVICE_TAG" ] || [ -z "$NOTIFICATION_SERVICE_TAG" ]; then
         log_fatal "Required environment variables are not set"
         exit 1
     fi
@@ -481,9 +481,9 @@ main() {
         if [ -z "$RELEASE_VERSION" ]; then
             read -rp "Release Version: " RELEASE_VERSION
         fi
-        if [ -z "$DATA_VALIDATION_SERVICE_TAG" ]; then
-            read -rp "Data Validation Service Tag [${RELEASE_VERSION}]: " DATA_VALIDATION_SERVICE_TAG
-            DATA_VALIDATION_SERVICE_TAG="${DATA_VALIDATION_SERVICE_TAG:-$RELEASE_VERSION}"
+        if [ -z "$ONBOARDING_SERVICE_TAG" ]; then
+            read -rp "Onboarding Service Tag [${RELEASE_VERSION}]: " ONBOARDING_SERVICE_TAG
+            ONBOARDING_SERVICE_TAG="${ONBOARDING_SERVICE_TAG:-$RELEASE_VERSION}"
         fi
         if [ -z "$NOTIFICATION_SERVICE_TAG" ]; then
             read -rp "Notification Service Tag [${RELEASE_VERSION}]: " NOTIFICATION_SERVICE_TAG
@@ -571,7 +571,7 @@ log_info "Script started with args: $*"
 REGISTRY_URL="${REGISTRY_URL:-}"
 REGISTRY_NAMESPACE="${REGISTRY_NAMESPACE:-alramz}"
 RELEASE_VERSION="${RELEASE_VERSION:-}"
-DATA_VALIDATION_SERVICE_TAG="${DATA_VALIDATION_SERVICE_TAG:-}"
+ONBOARDING_SERVICE_TAG="${ONBOARDING_SERVICE_TAG:-}"
 NOTIFICATION_SERVICE_TAG="${NOTIFICATION_SERVICE_TAG:-}"
 POSTGRES_IMAGE="${POSTGRES_IMAGE:-}"
 REDIS_IMAGE="${REDIS_IMAGE:-}"

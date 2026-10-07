@@ -1,6 +1,6 @@
 # OpenAPI Contract-First Controllers
 
-Reference services: `services/reference-data-service`, `services/data-validation-service`.
+Reference services: `services/reference-data-service`, `services/onboarding-service`.
 
 ## 1. What this pattern is / when to use it
 
@@ -25,9 +25,9 @@ controller or one more operation on an existing one.
 | Codegen plugin config | `services/<service>/pom.xml` — `openapi-generator-maven-plugin` block |
 | Generated interfaces | `services/<service>/target/generated-sources/openapi/src/main/java/com/alramz/api/*.java` (build output, gitignored, regenerated every build) |
 | Generated models | `services/<service>/target/generated-sources/openapi/src/main/java/com/alramz/model/*.java` (build output, gitignored) |
-| Real controllers implementing them | `services/data-validation-service/src/main/java/com/alramz/controllers/DataValidationController.java`, `services/reference-data-service/src/main/java/com/alramz/controllers/RedisCacheController.java` |
+| Real controllers implementing them | `services/onboarding-service/src/main/java/com/alramz/controllers/DataValidationController.java`, `services/reference-data-service/src/main/java/com/alramz/controllers/RedisCacheController.java` |
 
-Both services' plugin config is byte-for-byte identical (`data-validation-service/pom.xml:166-199`,
+Both services' plugin config is byte-for-byte identical (`onboarding-service/pom.xml:166-199`,
 `reference-data-service/pom.xml:179-212`) — this is the canonical config to copy for a new service:
 
 ```xml
@@ -83,7 +83,7 @@ Key options and what they mean for you:
 ## 3. How it works end to end
 
 1. **Spec** (`specs/apiSpecs.yaml`) defines a path + `operationId` + request/response schemas, e.g.
-   `data-validation-service/specs/apiSpecs.yaml:24-30`:
+   `onboarding-service/specs/apiSpecs.yaml:24-30`:
    ```yaml
    /iban/validate:
      post:
@@ -122,7 +122,7 @@ Key options and what they mean for you:
    camelCase; this is normal generator behavior, not a bug to fix).
 
 3. **Your controller implements the interface** and does the real work
-   (`data-validation-service/.../DataValidationController.java:35-49`):
+   (`onboarding-service/.../DataValidationController.java:35-49`):
    ```java
    @RestController
    @RequestMapping("/api/v1")
@@ -155,7 +155,7 @@ Key options and what they mean for you:
    different response shapes/status codes at runtime that the spec models as multiple `responses`
    entries (400/503/etc.), the controller catches typed exceptions and builds the
    alternate `ResponseEntity` manually rather than the framework doing it for you — see
-   `DataValidationController.validateExistingData` (`data-validation-service/.../DataValidationController.java:61-82`)
+   `DataValidationController.validateExistingData` (`onboarding-service/.../DataValidationController.java:61-82`)
    catching `ApplicationException`/`ExternalSystemException` and returning 400/503 `GenericResponse`
    bodies. Keep the exceptions typed (see the exception-handling howto) even though this method
    catches them locally instead of relying on `GlobalExceptionHandler` — do this only when the
@@ -171,7 +171,7 @@ Key options and what they mean for you:
    - `operationId` in `camelCase`, becomes the interface method name exactly.
    - Reuse `GenericResponse` as the response envelope (`responseCode`/`responseMessage`/`response`/
      `correlationId`) unless the endpoint has a genuinely different response contract (like
-     `OnboardingResponse` in data-validation-service).
+     `OnboardingResponse` in onboarding-service).
    - Add `'401'`/`'400'`/`'500'` response entries with descriptions if the endpoint is JWT-secured
      (matches `security: - BearerAuth: []` declared at the top of the spec).
    - Add new request/response schemas under `components.schemas`.

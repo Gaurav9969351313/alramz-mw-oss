@@ -1,0 +1,232 @@
+{
+  "info": {
+    "_postman_id": "0838ca66-2fba-423f-8657-e3227c13889d",
+    "name": "alramz-onbaording-apis",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "58438826",
+    "_collection_link": "https://go.postman.co/collection/58438826-0838ca66-2fba-423f-8657-e3227c13889d?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "jwt-auth",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"accessToken is present and not null/empty\", function () {",
+              "    const response = pm.response.json();",
+              "",
+              "    pm.expect(response).to.have.property(\"accessToken\");",
+              "    pm.expect(response.accessToken).to.not.be.null;",
+              "    pm.expect(response.accessToken).to.not.be.undefined;",
+              "    pm.expect(response.accessToken).to.not.equal(\"\");",
+              "});",
+              "",
+              "pm.test(\"refreshToken is present and not null/empty\", function () {",
+              "    const response = pm.response.json();",
+              "",
+              "    pm.expect(response).to.have.property(\"refreshToken\");",
+              "    pm.expect(response.refreshToken).to.not.be.null;",
+              "    pm.expect(response.refreshToken).to.not.be.undefined;",
+              "    pm.expect(response.refreshToken).to.not.equal(\"\");",
+              "});",
+              "",
+              "pm.collectionVariables.set(\"v_access_token\", pm.response.json().accessToken);"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"consumer\": \"{{v_consumer}}\",\n    \"consumerPassword\": \"{{v_consumerPassword}}\"\n}\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseurl}}/api/auth/login",
+          "host": [
+            "{{baseurl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "dfm-onboarding",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "pm.sendRequest({",
+              "    url: pm.environment.get(\"baseurl\") + \"/api/auth/login\",",
+              "    method: \"POST\",",
+              "    header: {",
+              "        \"Content-Type\": \"application/json\"",
+              "    },",
+              "    body: {",
+              "        mode: \"raw\",",
+              "        raw: JSON.stringify({",
+              "            consumer: pm.environment.get(\"v_consumer\"),",
+              "            consumerPassword: pm.environment.get(\"v_consumerPassword\")",
+              "        })",
+              "    }",
+              "}, function (err, response) {",
+              "    if (err) {",
+              "        console.log(\"jwt-auth error:\", err);",
+              "    } else {",
+              "        const jsonData = response.json();",
+              "        pm.collectionVariables.set(\"v_access_token\", jsonData.accessToken);",
+              "        console.log(\"Access token set:\", jsonData.accessToken);",
+              "    }",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const jsonData = pm.response.json();",
+              "",
+              "pm.test(\"HTTP status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"response_code is '200'\", function () {",
+              "    pm.expect(jsonData).to.have.property(\"response_code\");",
+              "    pm.expect(jsonData.response_code).to.eql(\"200\");",
+              "});",
+              "",
+              "pm.test(\"member_reference_number is present and is a valid UUID\", function () {",
+              "    pm.expect(jsonData).to.have.property(\"member_reference_number\");",
+              "    pm.expect(jsonData.member_reference_number).to.be.a(\"string\");",
+              "    pm.expect(jsonData.member_reference_number).to.match(",
+              "        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i",
+              "    );",
+              "});",
+              "",
+              "pm.test(\"member_client_id is present and is a valid UUID\", function () {",
+              "    pm.expect(jsonData).to.have.property(\"member_client_id\");",
+              "    pm.expect(jsonData.member_client_id).to.be.a(\"string\");",
+              "    pm.expect(jsonData.member_client_id).to.match(",
+              "        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i",
+              "    );",
+              "});",
+              "",
+              "pm.test(\"member_reference_number matches member_client_id\", function () {",
+              "    pm.expect(jsonData.member_reference_number).to.eql(jsonData.member_client_id);",
+              "});",
+              "",
+              "pm.test(\"internal_error_code is null\", function () {",
+              "    pm.expect(jsonData).to.have.property(\"internal_error_code\");",
+              "    pm.expect(jsonData.internal_error_code).to.be.null;",
+              "});",
+              "",
+              "pm.test(\"response_message is null\", function () {",
+              "    pm.expect(jsonData).to.have.property(\"response_message\");",
+              "    pm.expect(jsonData.response_message).to.be.null;",
+              "});",
+              "",
+              "pm.test(\"Response body has all required fields\", function () {",
+              "    pm.expect(jsonData).to.have.all.keys(",
+              "        \"response_code\",",
+              "        \"member_reference_number\",",
+              "        \"internal_error_code\",",
+              "        \"member_client_id\",",
+              "        \"response_message\"",
+              "    );",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{v_access_token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "\n{\n    \"request_id\": \"f20b9d03-856e-4eca-9ee8-fb37fe7384g556\",\n    \"portfolio_options\": \"Cash\",\n    \"securitykey\": \"0981650c-de45-4f16-8f4a-1698c0dd0195\",\n    \"cust_mobile\": \"009715034235\",\n    \"cust_email\": \"gaurav12@alramz.ae\",\n    \"cust_nin\": \"SYA6269323\",\n    \"eid_dob\": \"1993-09-06\",\n    \"eid_expirydate\": \"2031-06-07\",\n    \"eid_fullname\": \"IBRAHIM AMMAR DANNOUeA\",\n    \"eid_no\": \"784-1993-6269323-4\",\n    \"eid_issuedate\": \"1900-01-01\",\n    \"eid_primaryid\": \"DANNOURA\",\n    \"eid_secondaryid\": \"IBRAHIM AMMAR\",\n    \"eid_sex\": \"M\",\n    \"eid_residencyexpirydate\": \"1900-01-01\",\n    \"eid_residencynumber\": \"\",\n    \"eid_familyid\": \"\",\n    \"eid_nationality\": \"SYR\",\n    \"eid_arabicfullname\": \"ابراهيم عمار دنوره\",\n    \"eid_attachment_front\": \"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\",\n    \"eid_attachment_back\": \"/9j/4AAQSkZJRgABAQAASABIAAD/4QBYRXhpZgAATU0AKgAAAAgAAgESAAMAAAABAAEAAIdpAAQAAAABAAAAJgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAACTqADAAQAAAABAAABawAAAAD/wAARCAFrAk4DAREAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9sAQwACAgICAgIDAgIDBAMDAwQGBAQEBAYHBgYGBgYHCAcHBwcHBwgICAgICAgICgoKCgoKDAwMDAwNDQ0NDQ0NDQ0N/9sAQwECAgIDAwMGAwMGDgkICQ4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4O/90ABABK/9oADAMBAAIRAxEAPwDc+AvwctfDel23ivxNCtxrN3EGgRwMW0bcgD/bPGT26V5M6znoNux9QxREcNk+lKNO5lzakxjHpzW3Kw9oSRxqB90fWmok3bZKFQHIXBp3DsTKoHOKGnYakO2j+6KnluUp2AKo6c1Si7D5rjgn+zT5bhz3FAHof6UuXzHzsULj+lVbTUfMmO3LjqBWUtC4y5tx+07flHNKMrbicrj8HOcCquCdx2M/8A66Oa5VgxSAPbmj3R2Y8g/lRzEu/UeMevFP5juxw/Hj61SE2PDHOB171pz26iuyRG7kUXvuO7Q7cP8AIquZdUNXWw8e9Z83cvmHA+tO7FYfn61V2Tddhc+1MLdRwNS7sQ7NWmNXHAn61PMhc2oL9Pxp86HcXI6Hp70c1w5hwZeh5qudA3ccJBjnn8Kr2kScyHFx/eH51pGSZalclD59q39p5hqO+an56pTTJuKJh7VtGomWnccJAeK6YzubRlc//2Q==\",\n    \"eid_attachment_type\": \"jpg\",\n    \"pp_dob\": \"1900-01-01\",\n    \"pp_expirydate\": \"1900-01-01\",\n    \"pp_fullname\": \"\",\n    \"pp_no\": \"\",\n    \"pp_nationality\": \"\",\n    \"pp_primaryid\": \"\",\n    \"pp_secondaryid\": \"\",\n    \"pp_sex\": \"\",\n    \"pp_attachment_type\": \"\",\n    \"pinf_address\": \"Dubai\",\n    \"pinf_city\": \"Dubai\",\n    \"pinf_mothername\": \"\",\n    \"pinf_pobox\": \"0\",\n    \"pinf_phone\": \"\",\n    \"pinf_country\": \"ARE\",\n    \"pinf_signatureimage_type\": \"jpg\",\n    \"pinf_signatureimage\": \"/9j/4AAQSkZJRgABAQAASABIAAD/4QCARXhpZgAATU0AKgAAAAgABQESAAMAAAABAAEAAAEaAAUAAAABAAAASgEbAAUAAAABAAAAUgEoAAMAAAABAAIAAIdpAAQAAAABAAAAWgAAAAAAAABIAAAAAQAAAEgAAAABAAKgAgAEAAAAAQAAATugAwAEAAAAAQAAAMsAAAAA/+0AOFBob3Rvc2hvcCAzLjAAOEJJTQQEAAAAAAAAOEJJTQQlAAAAAAAQ1B2M2Y8AsgTpgAmY7PhCfv/AABEIAMsBOwMBIgACEQEDEQH/xAAfAAABBQEBAQEBAQAAAAAAAAAAAQIDBAUGBwgJCgv/xAC1EAACAQMDAgQDBQUEBAAAAX0BAgMABBEFEiExQQYTUWEHInEUMoGRoQgjQrHBFVLR8CQzYnKCCQoWFxgZGiUmJygpKjQ1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4eLj5OXm5+jp6vHy8/T19vf4+fr/xAAfAQADAQEBAQEBAQEBAAAAAAAAAQIDBAUGBwgJCgv/xAC1EQACAQIEBAMEBwUEBAABAncAAQIDEQQFITEGEkFRB2FxEyIygQgUQpGhscEJIzNS8BVictEKFiQ04SXxFxgZGiYnKCkqNTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqCg4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2dri4+Tl5ufo6ery8/T19vf4+fr/2wBDABYWFhYWFiYWFiY2JiYmNkk2NjY2SVxJSUlJSVxvXFxcXFxcb29vb29vb2+GhoaGhoacnJycnK+vr6+vr6+vr6//2wBDARsdHS0pLUwpKUy3fGZ8t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7f/3QAEABT/2gAMAwEAAhEDEQA/AOuooooAKKKKACiiigAooooAKKKKACiiigAoopkyPJH5aNs3cZ9B3NAE1FQwW8dvH5aZOepPU/WpqACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigD//0uuooooAKKKKACiiigAooooAKKKKACiiigAooooAKydTT7OY79P+WbYf6MOP0OK06R1DqUYAgjBFAFkEEZByDWVY/6LfXFn/D/AKxfow5/rUWnyvbO2nTH5l5iJ7r6fUVdkj2skqffjOR7joaAJ6KKKACiiigAooooAKw9PO/V9QlP/TNf/Hf8a3K5/S/8Aj/wC0f897mU/8AoNAGzdXCW8RlfkDgD1PYVnWNu5dtRuh+9l+6v91Oy0+8/0vUY7foIh5r/AOB/KtSgAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigD/2Q==\",\n    \"pinf_signatureimage_type\": \"jpg\",\n    \"pay_method\": \"iVESTOR\",\n    \"pay_aed_iban\": \"AE710240060520225728601\",\n    \"pay_usd_iban\": \"\",\n    \"pay_frn_iban\": \"\",\n    \"pay_frn_swift\": \"\",\n    \"pay_cor_iban\": \"\",\n    \"pay_cor_swift\": \"\",\n    \"pay_routecode\": \"\",\n    \"emp_status\": \"1\",\n    \"emp_name\": \"Park dental\",\n    \"emp_position\": \"Others\",\n    \"emp_marketorissuer\": \"2\",\n    \"emp_marketorissuer_company\": \"\",\n    \"emp_relatedtomarketemployee\": \"2\",\n    \"emp_relateds\": {\n        \"emp_related\": [\n            {\n                \"emp_relatednames\": \"\",\n                \"emp_related_relations\": \"\",\n                \"emp_related_company\": \"\"\n            }\n        ]\n    },\n    \"inc_source\": \"2\",\n    \"inc_range\": \"2\",\n    \"inv_knowledge\": \"1\",\n    \"inv_strategy\": \"2\",\n    \"inv_instrument\": \"2\",\n    \"inv_risk\": \"1\",\n    \"inv_amount\": \"5000\",\n    \"inv_knowledge_trading\": \"3\",\n    \"inv_knowledge_source\": \"4\",\n    \"inv_education\": \"3\",\n    \"inv_trade_prev\": \"1\",\n    \"inv_trade_freq\": \"1\",\n    \"inv_risk_high\": \"2\",\n    \"inv_equity\": \"1\",\n    \"inv_sca\": \"1\",\n    \"inv_sca_authority\": \"\",\n    \"inv_sca_type\": \"\",\n    \"inv_qualified\": \"1\",\n    \"csr_resident\": \"2\",\n    \"csr\": {\n        \"csr_countries\": [\n            {\n                \"csr_country\": \"ARE\",\n                \"csr_havetin\": \"2\",\n                \"csr_tin\": \"\",\n                \"csr_notinreason\": \"C\",\n                \"csr_whynotinissued\": \"No TIN required\"\n            }\n        ]\n    },\n    \"fatca_uscitizen\": \"2\",\n    \"fatca_tin\": \"\",\n    \"kyc_match\": \"false\",\n    \"kyc_match_details\": {\n        \"backgroundCheck\": null\n    }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseurl}}/api/v1/dfm/onboarding",
+          "host": [
+            "{{baseurl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "dfm",
+            "onboarding"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "v_access_token",
+      "value": ""
+    }
+  ]
+}

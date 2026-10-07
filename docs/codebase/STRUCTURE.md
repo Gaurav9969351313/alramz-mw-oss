@@ -9,7 +9,7 @@
 | `services/` | Maven-reactor microservices + shared parent/starter | root `pom.xml` `<modules>` |
 | `services/alramz-common-bom/` | Parent POM: Java/Spring/plugin version management, Checkstyle/PMD/SpotBugs/JaCoCo/Enforcer config | `services/alramz-common-bom/pom.xml` |
 | `services/alramz-api-starter/` | Shared Spring Boot auto-config library (JWT, logging, multi-datasource, scheduler, audit, global config settings) — not a runnable app | `services/alramz-api-starter/src/main/java/com/alramz/App.java`; `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports` |
-| `services/data-validation-service/` | Payload/IBAN/phone/onboarding validation microservice | `services/data-validation-service/src/main/java/com/alramz/DataValidationServiceApplication.java` |
+| `services/onboarding-service/` | Payload/IBAN/phone/onboarding validation microservice | `services/onboarding-service/src/main/java/com/alramz/OnboardingServiceApplication.java` |
 | `services/alramz-notification-service/` | Email/notification microservice (MS Graph, Azure Service Bus/Blob) | `services/alramz-notification-service/src/main/java/com/alramz/AlramzNotificationServiceApplication.java` |
 | `services/reference-data-service/` | 5th Maven module: Redis-backed reference/global-config cache service with scheduled cache reloads — **not documented in CLAUDE.md's "Runnable services" table** (see divergence note) | `services/reference-data-service/pom.xml`; `src/main/java/com/alramz/ReferenceDataServiceApplication.java` |
 | `infra/` | Terraform IaC for Azure (modules + per-environment stacks) | `infra/modules/*`, `infra/stacks/*`, `infra/environments/*.tfvars` |
@@ -24,10 +24,10 @@
 
 ### 2) Entry Points
 
-- Runnable service entry points: `DataValidationServiceApplication.java` (`@SpringBootApplication`, port 8080 in every profile — see divergence note below), `AlramzNotificationServiceApplication.java` (port 8082), `ReferenceDataServiceApplication.java` (port 8081 in dev, 8080 elsewhere).
+- Runnable service entry points: `OnboardingServiceApplication.java` (`@SpringBootApplication`, port 8080 in every profile — see divergence note below), `AlramzNotificationServiceApplication.java` (port 8082), `ReferenceDataServiceApplication.java` (port 8081 in dev, 8080 elsewhere).
 - Starter's own harness (not a real app, used for local compilation sanity only): `services/alramz-api-starter/src/main/java/com/alramz/App.java`.
 - Secondary entry points: none — no standalone CLI/worker/batch `main()` beyond the three `@SpringBootApplication` classes; background execution happens through the starter's `@EnableScheduler`-driven scheduler (`com.alramz.scheduler.service.impl.JobScheduleManager`), not a separate process.
-- How entry is selected: `SPRING_PROFILES_ACTIVE` selects the environment profile (`dev`/`docker`/`test`/`preprod`/`prod`); each profile's `application-<profile>.yml` sets `server.port`. Evidence: `services/data-validation-service/src/main/resources/application-dev.yml:7` (`port: 8080`) vs. CLAUDE.md's documented port `5001` and README.md's documented `curl http://localhost:5001/...` — **neither matches the committed YAML**, which is 8080 across dev/docker/test/preprod/prod.
+- How entry is selected: `SPRING_PROFILES_ACTIVE` selects the environment profile (`dev`/`docker`/`test`/`preprod`/`prod`); each profile's `application-<profile>.yml` sets `server.port`. Evidence: `services/onboarding-service/src/main/resources/application-dev.yml:7` (`port: 8080`) vs. CLAUDE.md's documented port `5001` and README.md's documented `curl http://localhost:5001/...` — **neither matches the committed YAML**, which is 8080 across dev/docker/test/preprod/prod.
 
 ### 3) Module Boundaries
 
@@ -53,7 +53,7 @@
 - `docs/codebase/.codebase-scan.txt` (directory tree, monorepo signal, code metrics)
 - root `pom.xml`; `services/*/pom.xml`
 - `services/alramz-api-starter/src/main/java/com/alramz/` (full package listing obtained via `find`)
-- `k8s/apps/base/data-validation-service/*` (only 2 of the 3 runnable services have base K8s manifests — `reference-data-service` has none yet)
+- `k8s/apps/base/onboarding-service/*` (only 2 of the 3 runnable services have base K8s manifests — `reference-data-service` has none yet)
 
 ## Extended Sections (Optional)
 

@@ -9,7 +9,7 @@ Any time you introduce a new piece of externalized config — a new integration'
 Two flavors exist side by side in this repo:
 
 - **Starter-level** (`alramz-api-starter`): shared, cross-service features — JWT, multi-datasource, logging, scheduler, encryption. Every consuming service gets these for free once the starter is on the classpath, gated by `@ConditionalOnProperty` so they default to *safe/off* per CLAUDE.md §3.
-- **Service-level**: a single service's own integration or feature config (e.g. `data-validation-service`'s external IBAN/phone/eTrade adapters, `reference-data-service`'s Redis cache config).
+- **Service-level**: a single service's own integration or feature config (e.g. `onboarding-service`'s external IBAN/phone/eTrade adapters, `reference-data-service`'s Redis cache config).
 
 Both flavors use the same underlying Spring Boot mechanism (`@ConfigurationProperties` + `@EnableConfigurationProperties`), but you'll see two different concrete coding styles in this repo — see §5 for which one to follow.
 
@@ -33,9 +33,9 @@ Both flavors use the same underlying Spring Boot mechanism (`@ConfigurationPrope
 
 | Class | Prefix | File |
 |---|---|---|
-| `IbanServiceProperties` | `adapter.external-iban-service` | `data-validation-service/src/main/java/com/alramz/config/IbanServiceProperties.java` |
-| `PhoneServiceProperties` | (veriphone adapter) | `data-validation-service/src/main/java/com/alramz/config/PhoneServiceProperties.java` |
-| `ETradeProperties` | `adapter.etrade` | `data-validation-service/src/main/java/com/alramz/config/ETradeProperties.java` |
+| `IbanServiceProperties` | `adapter.external-iban-service` | `onboarding-service/src/main/java/com/alramz/config/IbanServiceProperties.java` |
+| `PhoneServiceProperties` | (veriphone adapter) | `onboarding-service/src/main/java/com/alramz/config/PhoneServiceProperties.java` |
+| `ETradeProperties` | `adapter.etrade` | `onboarding-service/src/main/java/com/alramz/config/ETradeProperties.java` |
 | `CompanyRedisProperties` | `company.redis` | `reference-data-service/src/main/java/com/alramz/config/CompanyRedisProperties.java:10` |
 | `CacheMappingProperties` | (nested under `company.redis.cache`) | `reference-data-service/src/main/java/com/alramz/config/CacheMappingProperties.java` |
 | `MiddlewareDataSourceProperties` | — | `reference-data-service/src/main/java/com/alramz/config/MiddlewareDataSourceProperties.java` |
@@ -197,7 +197,7 @@ company:
 - **Not defaulting a new gated feature to off/safe.** Follow the `database-logging`/`aspect` pattern (no `matchIfMissing`, i.e. absent = disabled) for anything with side effects; follow the `request`/`response` pattern (`matchIfMissing = true`) only for genuinely low-risk, already-battle-tested behavior.
 - **Inconsistent style you'll find in this repo — pick the starter convention, not these:**
   - `SchedulerProperties` (starter) hand-writes getters/setters instead of using Lombok `@Getter/@Setter` — an outlier vs. every other starter properties class. Don't copy this for new code; use Lombok as CLAUDE.md §4 mandates ("Lombok everywhere").
-  - `data-validation-service`'s own properties (`IbanServiceProperties`, `PhoneServiceProperties`, `ETradeProperties`) are Java `record`s with no `PREFIX` constant (prefix is an inline string literal). Records work fine with `@ConfigurationProperties` via constructor binding, but they diverge from the documented `PREFIX` constant + Lombok convention — prefer the constant + Lombok class shape for new service-level properties so IDEs/greps can find "the prefix for X" consistently.
+  - `onboarding-service`'s own properties (`IbanServiceProperties`, `PhoneServiceProperties`, `ETradeProperties`) are Java `record`s with no `PREFIX` constant (prefix is an inline string literal). Records work fine with `@ConfigurationProperties` via constructor binding, but they diverge from the documented `PREFIX` constant + Lombok convention — prefer the constant + Lombok class shape for new service-level properties so IDEs/greps can find "the prefix for X" consistently.
   - `reference-data-service`'s `CompanyRedisProperties` uses `@Component` + hand-written getters/setters with no `PREFIX` constant either. Again, functional, but not the pattern to imitate — use `@EnableConfigurationProperties` (not `@Component` on the properties class itself) plus a `PREFIX` constant.
 - **`company.jwt.enabled` looks like a kill switch but isn't fully wired as one.** `JwtProperties.enabled` exists and defaults `true`, but `JwtAutoConfiguration` itself carries no `@ConditionalOnProperty` gate on it (unlike the datasource and logging auto-configs) — so setting `company.jwt.enabled: false` does not currently disable JWT wiring. Don't assume flipping that flag off is sufficient; verify actual behavior in code before relying on it, and treat this as a known gap rather than a documented feature.
 

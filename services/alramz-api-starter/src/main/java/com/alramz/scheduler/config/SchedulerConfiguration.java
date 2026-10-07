@@ -5,6 +5,7 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -35,7 +36,7 @@ public class SchedulerConfiguration {
                                               final BeanFactory beanFactory,
                                               final SchedulerProperties properties,
                                               final org.springframework.core.env.Environment environment,
-                                              final NamedParameterJdbcTemplate middlewareNamedParameterJdbcTemplate) {
+                                              @Qualifier("middlewareNamedParameterJdbcTemplate") final NamedParameterJdbcTemplate middlewareNamedParameterJdbcTemplate) {
 
         return new JobScheduleManager(threadPoolTaskScheduler, beanFactory, properties, middlewareNamedParameterJdbcTemplate);
     }

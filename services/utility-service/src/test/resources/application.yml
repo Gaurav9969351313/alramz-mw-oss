@@ -17,3 +17,37 @@ spring:
 
 cipher:
   password: 1234567890123456
+
+# UtilityServiceApplicationTests uses a bare @SpringBootTest (no spring.profiles.active=test),
+# so application-test.yml (src/main/resources) is never loaded by it — this file is the one
+# actually active during `mvn test`. company.datasource.middleware must be enabled here (H2,
+# matching onboarding-service's and reference-data-service's own src/test/resources/
+# application.yml precedent) so DatasourceConfiguration's @Primary re-export has a
+# middlewareDataSource/middlewareTransactionManager bean to wrap, and so Liquibase applies
+# 001-api-audit-log.sql against H2 on context load.
+company:
+  datasource:
+    middleware:
+      enabled: true
+      url: jdbc:h2:mem:testdb
+      driverClassName: org.h2.Driver
+      username: sa
+      password:
+      plainPassword: sa
+      startup-validation:
+        enabled: false
+      pool:
+        maximum-pool-size: 5
+        minimum-idle: 1
+
+# Same reasoning as above: FinouxProperties.baseUrl is bean-validated non-blank at startup
+# (fail-fast), so this placeholder must live in the file this test suite actually loads.
+adapter:
+  finoux:
+    base-url: https://finoux-test.example.invalid
+    api-key: ""
+    request-timeout-seconds: 5
+    post:
+      posted-user-flag: ADMIN
+      publish-flag: A
+      post-type-id: "2"

@@ -1,6 +1,6 @@
 # Multi-Datasource Access (`company.datasource.*`)
 
-Reference implementations: `services/data-validation-service` (uses `middleware` + `brok`), `services/reference-data-service` (uses `middleware` only). Shared plumbing lives in `services/alramz-api-starter`.
+Reference implementations: `services/onboarding-service` (uses `middleware` + `brok`), `services/reference-data-service` (uses `middleware` only). Shared plumbing lives in `services/alramz-api-starter`.
 
 ## 1. What this pattern is / when to use it
 
@@ -28,7 +28,7 @@ All in `services/alramz-api-starter/src/main/java/com/alramz/datasource/config/`
 
 All four autoconfig classes are registered in `services/alramz-api-starter/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`.
 
-Each consuming service adds its own small `DatasourceConfiguration` (e.g. `services/data-validation-service/src/main/java/com/alramz/config/DatasourceConfiguration.java`, mirrored in `reference-data-service`) that re-exposes the `middleware` beans as Spring's `@Primary` `DataSource`/`PlatformTransactionManager`.
+Each consuming service adds its own small `DatasourceConfiguration` (e.g. `services/onboarding-service/src/main/java/com/alramz/config/DatasourceConfiguration.java`, mirrored in `reference-data-service`) that re-exposes the `middleware` beans as Spring's `@Primary` `DataSource`/`PlatformTransactionManager`.
 
 ## 3. How it works
 
@@ -161,7 +161,7 @@ public class FooRepositoryImpl implements FooRepository {
 }
 ```
 
-(See `services/data-validation-service/src/main/java/com/alramz/repository/DfmOnboardingRepositoryImpl.java` for a full real example, including SQL loaded via `SqlQueriesManager` from an XML query file rather than inline strings.)
+(See `services/onboarding-service/src/main/java/com/alramz/repository/DfmOnboardingRepositoryImpl.java` for a full real example, including SQL loaded via `SqlQueriesManager` from an XML query file rather than inline strings.)
 
 ### Step 3b — consuming `brok`/`integration` (non-primary, always qualify)
 
@@ -184,7 +184,7 @@ public interface FooRepository extends JpaRepository<FooEntity, Long> {
 }
 ```
 
-No `@Qualifier` needed — it resolves against the `@Primary` middleware `DataSource`/`TransactionManager` from Step 2. Combine with Liquibase changesets (see the Liquibase howto) for schema management — `data-validation-service` is the only current service doing this, though via native SQL migrations rather than JPA entities.
+No `@Qualifier` needed — it resolves against the `@Primary` middleware `DataSource`/`TransactionManager` from Step 2. Combine with Liquibase changesets (see the Liquibase howto) for schema management — `onboarding-service` is the only current service doing this, though via native SQL migrations rather than JPA entities.
 
 ## 5. Common pitfalls / anti-patterns
 

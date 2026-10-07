@@ -79,7 +79,7 @@ stating the feature directory path captured in Step 1 (e.g. "Feature directory:
 
 Don't just dump the raw JSON — present a digest the user can actually approve or reject on:
 
-- **Target services** (`target_services`) — which of `data-validation-service` /
+- **Target services** (`target_services`) — which of `onboarding-service` /
   `alramz-notification-service` / `reference-data-service` / `alramz-api-starter` /
   `alramz-common-bom` this touches. CI is path-filtered per service, so this is what will actually
   build/deploy once committed. **Call out explicitly** if `alramz-api-starter` or

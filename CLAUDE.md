@@ -41,7 +41,7 @@ mvn -pl services/<service> -am test -Dtest=ClassName#method      # single test
 services/
 ├── alramz-common-bom/           # Parent POM + BOM + shared plugin config
 ├── alramz-api-starter/          # Shared Spring Boot auto-config starter (library, not an app)
-├── data-validation-service/     # Payload/IBAN/phone validation — only module using Liquibase
+├── onboarding-service/     # Payload/IBAN/phone validation — only module using Liquibase
 ├── alramz-notification-service/ # Email/notification via MS Graph
 └── reference-data-service/      # Reference/global-config data service
 infra/      # Terraform: modules/, stacks/<env>/, environments/<env>.tfvars

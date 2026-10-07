@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: data-validation-service
+  name: onboarding-service
   namespace: alramz-platform
 spec:
   replicas: 2

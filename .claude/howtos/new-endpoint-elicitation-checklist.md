@@ -34,7 +34,7 @@ wrong on — a public API shape, once a controller is generated against it, isn'
 
 | Fact | Where it shows up in `apiSpecs.yaml` | Standard default (apply automatically per §1, unless the request/precedent overrides it) | Real example |
 |---|---|---|---|
-| **HTTP verb + path** | `paths.<path>.<verb>` | No generic default — must come from the request or precedent | `POST /iban/validate` (`data-validation-service`) |
+| **HTTP verb + path** | `paths.<path>.<verb>` | No generic default — must come from the request or precedent | `POST /iban/validate` (`onboarding-service`) |
 | **Tag / feature grouping** | `tags: [...]` | No generic default — pick the feature's own name, matching the file's existing tag style | `tags: [IBAN]` |
 | **`operationId`** (becomes the Java method name verbatim) | `operationId` | No generic default — `camelCase` verb+noun matching the file's existing naming | `validateIBAN` |
 | **Security** — public or JWT-secured, and if secured, which role | not in the YAML operation itself — decided via `company.jwt.permit-all-urls` (public) vs `@JwtSecured(roles = "...")` on the controller method (secured) | **Secured**, role `APP_<SERVICE_CONCERN>` matching the service's existing role name if one exists — apply this unless the request explicitly asks for a public endpoint | `/api/v1/info` is public (explicit exception); `validateIBAN` is secured with `APP_DATA_VALIDATION` (the default applied) |

@@ -79,3 +79,13 @@ company:
 
 cipher:
   password: ${CIPHER_PASSWORD:UseMostSecretKey}
+
+adapter:
+  finoux:
+    base-url: ${FINOUX_BASE_URL:}
+    api-key: ${FINOUX_API_KEY:}
+    request-timeout-seconds: 5
+    post:
+      posted-user-flag: ADMIN
+      publish-flag: A
+      post-type-id: "2"

@@ -22,7 +22,7 @@ import java.util.List;
  * manager reference data and commission reporting. Queries are externalized in
  * {@code sql-queries.xml} and loaded via {@link SqlQueriesManager}, per this repo's
  * {@code NamedParameterJdbcTemplate} + {@code SqlQueriesManager} convention
- * ({@code DfmOnboardingRepositoryImpl} in data-validation-service).
+ * ({@code DfmOnboardingRepositoryImpl} in onboarding-service).
  */
 @Repository
 @Slf4j

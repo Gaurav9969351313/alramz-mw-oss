@@ -8,7 +8,7 @@ This folder contains the full Kubernetes deployment manifests for the Al Ramz Mi
 k8s/
 ├── apps/
 │   ├── base/                    # Reusable base manifests for each microservice
-│   │   ├── data-validation-service/
+│   │   ├── onboarding-service/
 │   │   │   ├── configmap.yaml
 │   │   │   ├── deployment.yaml
 │   │   │   ├── pdb.yaml
@@ -78,7 +78,7 @@ k8s/
 
 | Service                       | Namespace    | Service Port | Container Port |
 |-------------------------------|--------------|--------------|----------------|
-| data-validation-service       | `<env>`      | 8080         | 8080           |
+| onboarding-service       | `<env>`      | 8080         | 8080           |
 | alramz-notification-service    | `<env>`      | 8082         | 8082           |
 
 > Replace `<env>` with the target environment namespace: `alramz-dev`, `alramz-test`, `alramz-preprod`, or `alramz-prod`.
@@ -111,7 +111,7 @@ kubectl apply -f k8s/infra/headlamp/
 Deploy a specific app base:
 
 ```bash
-kubectl apply -k k8s/apps/base/data-validation-service/
+kubectl apply -k k8s/apps/base/onboarding-service/
 kubectl apply -k k8s/apps/base/alramz-notification-service/
 ```
 
@@ -199,8 +199,8 @@ redis-cli -h localhost -p 6379
 ### Microservices
 
 ```bash
-# data-validation-service
-kubectl port-forward svc/data-validation-service -n alramz-dev 8080:8080
+# onboarding-service
+kubectl port-forward svc/onboarding-service -n alramz-dev 8080:8080
 
 # alramz-notification-service
 kubectl port-forward svc/alramz-notification-service -n alramz-dev 8082:8082
@@ -213,10 +213,10 @@ kubectl port-forward svc/alramz-notification-service -n alramz-dev 8082:8082
 kubectl get all -n alramz-dev
 
 # View logs
-kubectl logs -l app=data-validation-service -n alramz-dev -f
+kubectl logs -l app=onboarding-service -n alramz-dev -f
 
 # Describe a pod for debugging
-kubectl describe pod -l app=data-validation-service -n alramz-dev
+kubectl describe pod -l app=onboarding-service -n alramz-dev
 
 # Execute into a container
 kubectl exec -it <pod-name> -n alramz-dev -- /bin/sh

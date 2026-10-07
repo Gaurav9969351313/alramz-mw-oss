@@ -21,7 +21,7 @@ new `/api/secured/scheduler/...`-style endpoint would).
 
 | Service | File |
 |---|---|
-| `data-validation-service` | `services/data-validation-service/apiCollection.http` |
+| `onboarding-service` | `services/onboarding-service/apiCollection.http` |
 | `reference-data-service` | `services/reference-data-service/apiCollection.http` |
 | `alramz-notification-service` | `services/alramz-notification-service/apiCollection.http` |
 
@@ -33,7 +33,7 @@ them with the same "don't commit secrets" discipline as any other tracked file (
 **Shape, consistent across all three files:**
 1. `@baseUrl=http://localhost:<port>` — the service's own local port (`8080`/`8081`/`8082`).
 2. `@authToken=<...>` — a variable holding a bearer token, referenced later as
-   `Authorization: Bearer {{authToken}}`. Only defined in `data-validation-service` and
+   `Authorization: Bearer {{authToken}}`. Only defined in `onboarding-service` and
    `reference-data-service` today (see the `alramz-notification-service` gap in §5).
 3. `GET {{baseUrl}}/api/v1/info` first — the one endpoint every service has, always public.
 4. `POST {{baseUrl}}/api/auth/register` then `POST {{baseUrl}}/api/auth/login` — the one-time
@@ -77,19 +77,19 @@ client parses each `###`-delimited block as an independently runnable request.
    the existing convention (see the IBAN/phone/email blocks).
 6. If this service doesn't yet have `@authToken` defined but your new endpoint is secured, add the
    `@authToken` variable declaration near the top and the `register`/`login` blocks (copy from
-   `data-validation-service`'s or `reference-data-service`'s file, updating `consumer`/`roles`/
+   `onboarding-service`'s or `reference-data-service`'s file, updating `consumer`/`roles`/
    `application`/`environment` to this service's own values) — don't reference `{{authToken}}`
    without ever defining it (see §5, pitfall 3).
 
 ## 5. Common pitfalls / anti-patterns (real, found in this repo)
 
-1. **A real, signed JWT is hardcoded in `data-validation-service`'s and `reference-data-service`'s
+1. **A real, signed JWT is hardcoded in `onboarding-service`'s and `reference-data-service`'s
    files today**, tracked in git. Its `iat`/`exp` claims are ~15 minutes apart, so any specific
    committed token is stale within minutes of being generated — low practical risk, but still a
    bad precedent. Don't add a fresh long-lived or production-scoped token when you update this
    file; a short-lived local-only token (or leaving the placeholder for the developer to paste
    their own after running the login request) is the safer pattern going forward.
-2. **The `data-validation-service` file's DFM Onboarding example body contains extensive
+2. **The `onboarding-service` file's DFM Onboarding example body contains extensive
    realistic-looking PII-shaped test data** — a full name, an EID-number-pattern value, an email
    at the real `@alramz.ae` domain, and base64-encoded image blobs standing in for ID/signature
    attachments. Treat this as committed test-fixture data to be cautious around, not a template to

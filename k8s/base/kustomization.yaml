@@ -9,7 +9,7 @@ resources:
   - postgres.yaml
   - redis.yaml
   - seq.yaml
-  - data-validation-service.yaml
+  - onboarding-service.yaml
   - alramz-notification-service.yaml
   - ingress.yaml
 

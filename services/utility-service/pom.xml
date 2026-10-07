@@ -105,6 +105,13 @@
             <scope>runtime</scope>
             <optional>true</optional>
         </dependency>
+        <!-- No BOM-managed version exists for this (confirmed via repo-wide grep) — explicit
+             version required. Used to sanitise postDesc HTML before forwarding to Finoux (F-02). -->
+        <dependency>
+            <groupId>com.googlecode.owasp-java-html-sanitizer</groupId>
+            <artifactId>owasp-java-html-sanitizer</artifactId>
+            <version>20220608.1</version>
+        </dependency>
     </dependencies>
 
     <build>

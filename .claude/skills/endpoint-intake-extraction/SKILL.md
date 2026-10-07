@@ -2,7 +2,7 @@
 name: endpoint-intake-extraction
 description: >
   Extracts the exact facts needed to build a new REST endpoint in this repo's Spring Boot
-  services (data-validation-service, alramz-notification-service, reference-data-service) from a
+  services (onboarding-service, alramz-notification-service, reference-data-service) from a
   raw, un-vetted intake/migration document — legacy webMethods/SOAP/other-system API
   documentation, a BA handoff doc, or any free-form write-up of "what this endpoint used to do."
   Cross-references every extracted fact against this repo's own real conventions (howtos, the
@@ -37,7 +37,7 @@ code, not copied from the doc's stated intentions.
 
 Resolve these first — they're not optional defaults:
 
-- **Which service does this land in?** An existing one (`data-validation-service`,
+- **Which service does this land in?** An existing one (`onboarding-service`,
   `alramz-notification-service`, `reference-data-service`) or a brand-new one? If brand-new, stop
   here and hand off to the `alramz-service-scaffold` skill first — this skill assumes
   `services/<service>/specs/apiSpecs.yaml` already exists to amend.

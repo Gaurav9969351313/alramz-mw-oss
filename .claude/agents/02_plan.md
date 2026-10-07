@@ -242,7 +242,7 @@ recommended options so a human can answer out-of-band and re-run this stage.
   "feature_slug": "bulk-iban-validation-endpoint",
   "spec_path": ".claude/modules/features/<feature-slug>/spec.md",
   "howtos_consulted": [".claude/howtos/openapi-contract-first-controllers.md", ".claude/howtos/testing-patterns.md"],
-  "target_services": ["data-validation-service"],
+  "target_services": ["onboarding-service"],
   "target_files": [
     { "path": "services/<service>/src/main/java/com/alramz/<feature>/controller/<Name>Controller.java", "status": "new|modified", "change_summary": "..." }
   ],

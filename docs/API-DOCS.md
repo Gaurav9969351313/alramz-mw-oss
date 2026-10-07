@@ -18,7 +18,7 @@ services/
 ├── alramz-notification-service/
 │   └── specs/
 │       └── openapi.yaml
-├── data-validation-service/
+├── onboarding-service/
 │   └── specs/
 │       └── apiSpecs.yaml
 └── ... (other services)
@@ -27,7 +27,7 @@ GitHub Pages (Deployed)
 ├── index.html (Auth layer + API selector)
 ├── specs/ (All OpenAPI specifications)
 │   ├── alramz-notification-service/
-│   ├── data-validation-service/
+│   ├── onboarding-service/
 │   └── manifest.json
 ```
 

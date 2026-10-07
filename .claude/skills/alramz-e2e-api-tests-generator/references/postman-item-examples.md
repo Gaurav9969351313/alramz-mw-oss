@@ -8,7 +8,7 @@ and the legacy snake_case shape), and most new endpoints will match one of them.
 
 ## Example A — secured POST, GenericResponse shape, with a 401 sibling
 
-Source: `services/data-validation-service/specs/apiSpecs.yaml`, `/iban/validate`
+Source: `services/onboarding-service/specs/apiSpecs.yaml`, `/iban/validate`
 (`operationId: validateIBAN`). Real request path is `/api/v1/iban/validate` — the spec's
 `paths:` key omits the `/api/v1` prefix that `DataValidationController`'s class-level
 `@RequestMapping("/api/v1")` adds (see SKILL.md step 2 on why you must verify this per

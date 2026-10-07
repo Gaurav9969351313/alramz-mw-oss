@@ -9,7 +9,7 @@ patches:
   - path: patches.yaml
 
 images:
-  - name: docker.io/alramz/data-validation-service
+  - name: docker.io/alramz/onboarding-service
     newTag: 1.0.0
   - name: docker.io/alramz/alramz-notification-service
     newTag: 1.0.0

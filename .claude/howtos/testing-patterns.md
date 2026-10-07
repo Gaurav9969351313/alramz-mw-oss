@@ -1,6 +1,6 @@
 # Testing Patterns
 
-How this repo actually writes tests, grounded in the real test suites of `data-validation-service` (rich, mature suite) and `reference-data-service` (new scaffold, minimal suite so far). Use this to add tests consistently to any service in `services/`.
+How this repo actually writes tests, grounded in the real test suites of `onboarding-service` (rich, mature suite) and `reference-data-service` (new scaffold, minimal suite so far). Use this to add tests consistently to any service in `services/`.
 
 ## 1. What this pattern is / when to use it
 
@@ -8,7 +8,7 @@ This repo uses three test layers, but leans almost entirely on the first two tod
 
 | Layer | What it tests | How it's done here | When to use it |
 |---|---|---|---|
-| **Unit tests (service/helper layer)** | Business logic in isolation | JUnit 5 + Mockito (`@ExtendWith(MockitoExtension.class)`, `@Mock`, manual constructor wiring) — **no Spring context** | Default choice for any `service`/`service.impl`/helper class. This is the dominant pattern in `data-validation-service`. |
+| **Unit tests (service/helper layer)** | Business logic in isolation | JUnit 5 + Mockito (`@ExtendWith(MockitoExtension.class)`, `@Mock`, manual constructor wiring) — **no Spring context** | Default choice for any `service`/`service.impl`/helper class. This is the dominant pattern in `onboarding-service`. |
 | **Controller unit tests** | Request/response mapping and delegation to services | Same Mockito style — the controller is `new`'d directly with mocked service dependencies, **not** `@WebMvcTest`/`MockMvc` | Any REST controller. See §2. |
 | **Application context smoke test** | The Spring context wires up (beans, auto-config, profiles) | `@SpringBootTest` with `spring.profiles.active=test`, single `contextLoads()` test | One per service, already scaffolded — don't delete it. |
 
@@ -16,14 +16,14 @@ Notably **absent** in the current codebase: no `@WebMvcTest`, no `@DataJpaTest`,
 
 ## 2. Where it lives in this repo
 
-`data-validation-service` (`services/data-validation-service/src/test/java/com/alramz/`) is the reference suite:
+`onboarding-service` (`services/onboarding-service/src/test/java/com/alramz/`) is the reference suite:
 
 - **Controller test**: `controllers/DataValidationControllerTest.java` — constructs the controller directly with mocked service fields, stubs the mock, asserts on `ResponseEntity`.
 - **Service test**: `service/impl/ValidationServiceImplTest.java` — the richest example: constructor injection of mocks, a `@BeforeEach` building real config objects (`ETradeProperties`, `ValidationDefinitionRegistry`) rather than mocking them, exception-path assertions with AssertJ's `assertThatThrownBy(...).hasFieldOrPropertyWithValue(...)`, and retry-logic assertions with `verify(mock, times(n))`.
 - **Exception handler test**: `exception/GlobalExceptionHandlerTest.java` and `exception/OnboardingExceptionHandlerTest.java` — the handler is instantiated as a plain object (`new GlobalExceptionHandler()`), `HttpServletRequest` is a bare Mockito `mock(...)` (not `@Mock`, since the class has no `@ExtendWith(MockitoExtension.class)`), and assertions check the `GenericResponse`/`OnboardingResponse` body fields directly.
 - **Scheduler job test**: `scheduler/job/DataValidationScheduledJobTest.java` — mocks the one collaborator (`SqlQueriesManager`), runs the job synchronously, asserts on the mutated bean.
 - **Config/registry test**: `config/ValidationDefinitionRegistryTest.java` — tests a config-derived registry built from `@ConfigurationProperties` objects constructed by hand in the test.
-- **Application smoke test**: `DataValidationServiceApplicationTests.java`.
+- **Application smoke test**: `OnboardingServiceApplicationTests.java`.
 
 `reference-data-service` (`services/reference-data-service/src/test/java/com/alramz/reference_data_service/`) currently only has:
 - `ReferenceDataServiceApplicationTests.java` — the smoke test, and the canonical form to copy for a brand-new service:
@@ -47,12 +47,12 @@ Note the profile is activated via `@SpringBootTest(properties = "spring.profiles
 
 ## 3. How it works
 
-**Test profile & H2.** Every service's `src/test/resources/application.yml` runs Liquibase/JPA against an in-memory H2 database, e.g. (`data-validation-service`):
+**Test profile & H2.** Every service's `src/test/resources/application.yml` runs Liquibase/JPA against an in-memory H2 database, e.g. (`onboarding-service`):
 
 ```yaml
 spring:
   application:
-    name: data-validation-service
+    name: onboarding-service
   liquibase:
     change-log: classpath:db/changelog/test/db.changelog-master.yaml
 
@@ -95,7 +95,7 @@ databaseChangeLog:
       path: db/changelog/test/sql
 ```
 
-`data-validation-service`'s test SQL folder (`src/test/resources/db/changelog/test/sql/`) mirrors the same numbered-file Liquibase convention as production changesets (`001-schedule-job.sql`, `002-jwt-tables.sql`, ... `006-insert-global-configuration-settings.sql`) — same rules as the production changelog apply here: one file per change, `NNN-short-description.sql`, `--liquibase formatted sql` header, never edit an applied one (see the Liquibase howto).
+`onboarding-service`'s test SQL folder (`src/test/resources/db/changelog/test/sql/`) mirrors the same numbered-file Liquibase convention as production changesets (`001-schedule-job.sql`, `002-jwt-tables.sql`, ... `006-insert-global-configuration-settings.sql`) — same rules as the production changelog apply here: one file per change, `NNN-short-description.sql`, `--liquibase formatted sql` header, never edit an applied one (see the Liquibase howto).
 
 **Mocking convention.** Class-level `@ExtendWith(MockitoExtension.class)` + field-level `@Mock`, manual `new TargetClass(mock1, mock2, ...)` construction (constructor injection, no `@InjectMocks` in the examples read) either inline per test or in `@BeforeEach`. Assertions are AssertJ (`assertThat`, `assertThatThrownBy`), not Hamcrest or raw JUnit asserts.
 

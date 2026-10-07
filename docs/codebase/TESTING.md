@@ -19,13 +19,13 @@ mvn -pl services/<service> -am verify -Djacoco.skip=false
 
 - Test file placement pattern: co-located under `services/<module>/src/test/java/...`, mirroring the main package structure.
 - Naming convention: `*Test.java` for unit/slice tests, `*IT.java` for integration-style tests requiring a real context (e.g. `JdbcGlobalConfigurationSettingsRepositoryIT.java` vs. its sibling `JdbcGlobalConfigurationSettingsRepositoryTest.java`).
-- Setup files and where they run: `services/data-validation-service/src/test/resources/application.yml` and `services/reference-data-service/src/test/resources/application.yml` provide test-profile overrides; `@SpringBootTest(properties = "spring.profiles.active=test")` is used directly in `ReferenceDataServiceApplicationTests`.
+- Setup files and where they run: `services/onboarding-service/src/test/resources/application.yml` and `services/reference-data-service/src/test/resources/application.yml` provide test-profile overrides; `@SpringBootTest(properties = "spring.profiles.active=test")` is used directly in `ReferenceDataServiceApplicationTests`.
 
 ### 3) Test Scope Matrix
 
 | Scope | Covered? | Typical target | Notes |
 |-------|----------|-----------------|-------|
-| Unit | Yes, unevenly | `alramz-api-starter` (22 test files: JWT, datasource, logging, masking) and `data-validation-service` (16 test files: controllers, services, mappers, scheduler job, exception handlers) are well covered | `find services/*/src/test -name '*.java'` counts |
+| Unit | Yes, unevenly | `alramz-api-starter` (22 test files: JWT, datasource, logging, masking) and `onboarding-service` (16 test files: controllers, services, mappers, scheduler job, exception handlers) are well covered | `find services/*/src/test -name '*.java'` counts |
 | Integration | Partial | `alramz-api-starter`'s `Datasource*Test`/`DatasourceCombinationMatrixTest`/`DatasourceProxyIntegrationTest` and `JdbcGlobalConfigurationSettingsRepositoryIT` exercise real datasource wiring | `services/alramz-api-starter/src/test/java/com/alramz/datasource/*` |
 | E2E | Separate, outside Maven | `e2e/alramz-onbaording-apis-uie.postman_collection.json` + `e2e/local.postman_environment.json` — a Postman collection, not run by `mvn test` or CI as far as the scanned workflows show | `e2e/*` (new/untracked at scan time per git status) |
 | Service-level (`alramz-notification-service`) | **No** — only 1 test file, a placeholder `AppTest.shouldAnswerWithTrue()` (`assertTrue(true)`) despite declaring Mockito/AssertJ as test dependencies | `services/alramz-notification-service/src/test/java/com/alramz/AppTest.java` |
@@ -34,7 +34,7 @@ mvn -pl services/<service> -am verify -Djacoco.skip=false
 ### 4) Mocking and Isolation Strategy
 
 - Main mocking approach: Mockito for unit-level collaborator mocking (declared in `alramz-notification-service/pom.xml`, though not yet exercised by real test cases there); Spring Boot Test slices (`@WebMvcTest`-style via `*-webmvc-test` starter, `@DataJpaTest`-style via `*-data-jpa-test`) for layer-scoped tests elsewhere.
-- Isolation guarantees: H2 in-memory DB backs JPA/Liquibase-dependent tests (`test` scope in `data-validation-service`/`reference-data-service` `pom.xml`); each test class gets a fresh Spring context per the standard Spring Test caching rules — no custom test-container/reset framework observed.
+- Isolation guarantees: H2 in-memory DB backs JPA/Liquibase-dependent tests (`test` scope in `onboarding-service`/`reference-data-service` `pom.xml`); each test class gets a fresh Spring context per the standard Spring Test caching rules — no custom test-container/reset framework observed.
 - Common failure mode in tests: `[TODO]` — no flaky-test log or CI history was inspected as part of this pass.
 
 ### 5) Coverage and Quality Signals

@@ -9,7 +9,7 @@ Al Ramz Middleware & Infrastructure: a Maven-reactor monorepo of Java/Spring Boo
 - Reactor modules (`pom.xml` at repo root, `<modules>`):
   - `services/alramz-common-bom` — parent POM + BOM + shared plugin config (Checkstyle/PMD/SpotBugs/JaCoCo/Enforcer versions and defaults). No source code.
   - `services/alramz-api-starter` — reusable Spring Boot auto-config starter (JWT security, request/response + DB audit logging, multi-datasource, scheduler, global config settings). A library, not a runnable app.
-  - `services/data-validation-service` — payload/IBAN/phone validation service, port `8080` (`:5001` externally per k8s/ingress). The only module using Liquibase + JPA + H2/Postgres/Oracle.
+  - `services/onboarding-service` — payload/IBAN/phone validation service, port `8080` (`:5001` externally per k8s/ingress). The only module using Liquibase + JPA + H2/Postgres/Oracle.
   - `services/alramz-notification-service` — email/notification service via MS Graph + Azure Service Bus/Blob/Key Vault, port `8082`. No datasource (uses H2 as a runtime-only scratch dependency, not Liquibase-managed).
   - `services/reference-data-service` — reference/global-config data service with Redis caching, port `8081` (dev) / `8080` (docker/preprod/prod). Newest scaffold; note its base package is `com.alramz.reference_data_service` (underscore), unlike the plain `com.alramz` package used by the other two services — this is an existing inconsistency, not something to "fix" incidentally.
 - Base package: `com.alramz` (all services and the starter), except `reference-data-service`'s own `...Application`/test class, which lives under `com.alramz.reference_data_service`.
@@ -18,31 +18,31 @@ Al Ramz Middleware & Infrastructure: a Maven-reactor monorepo of Java/Spring Boo
 ## Setup
 
 - JDK 21 required (`maven.compiler.release=21` in `services/alramz-common-bom/pom.xml`, enforced by `maven-enforcer-plugin` — build fails under a different JDK or Maven < 3.9.0).
-- No root Maven wrapper. `data-validation-service` and `reference-data-service` each carry their own `./mvnw` (Maven 3.9.16, Apache-distributed, see their `.mvn/wrapper/maven-wrapper.properties`) for standalone use; `alramz-notification-service` has no wrapper — use the system `mvn`. **Prefer running Maven from the repo root** so the reactor resolves `alramz-common-bom`/`alramz-api-starter` without needing GitHub Packages auth (both are published to GitHub Packages, declared as a `<repository>` in every service `pom.xml`, but the reactor build resolves them locally without touching that repository).
+- No root Maven wrapper. `onboarding-service` and `reference-data-service` each carry their own `./mvnw` (Maven 3.9.16, Apache-distributed, see their `.mvn/wrapper/maven-wrapper.properties`) for standalone use; `alramz-notification-service` has no wrapper — use the system `mvn`. **Prefer running Maven from the repo root** so the reactor resolves `alramz-common-bom`/`alramz-api-starter` without needing GitHub Packages auth (both are published to GitHub Packages, declared as a `<repository>` in every service `pom.xml`, but the reactor build resolves them locally without touching that repository).
 - If you must build a service in isolation (not `-pl ... -am` from root), install the BOM/starter first:
   ```
   mvn -pl services/alramz-common-bom install -DskipTests
   mvn -pl services/alramz-api-starter -am install -DskipTests
   ```
-- Local infrastructure (Postgres + Redis, for `data-validation-service` / `reference-data-service` / `alramz-notification-service` against real Postgres instead of H2):
+- Local infrastructure (Postgres + Redis, for `onboarding-service` / `reference-data-service` / `alramz-notification-service` against real Postgres instead of H2):
   ```
   cd release && cp .env.example .env   # fill in values, never commit the filled .env
   docker compose --env-file .env up
   ```
-  Required `.env` keys (names only — see `release/.env.example`): `REGISTRY_URL`, `REGISTRY_NAMESPACE`, `REGISTRY_USERNAME`, `REGISTRY_PASSWORD`, `RELEASE_VERSION`, `DATA_VALIDATION_SERVICE_TAG`, `NOTIFICATION_SERVICE_TAG`, `POSTGRES_IMAGE`, `REDIS_IMAGE`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `REDIS_PASSWORD`, `IBAN_API_KEY`, `VERIPHONE_API_KEY`, `ETRADE_BASE_URL`, `ETRADE_CLIENT_ID`, `ETRADE_CLIENT_SECRET`, `JWT_SECRET`, `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `PGADMIN_DEFAULT_EMAIL`, `PGADMIN_DEFAULT_PASSWORD`, `CIPHER_PASSWORD`.
+  Required `.env` keys (names only — see `release/.env.example`): `REGISTRY_URL`, `REGISTRY_NAMESPACE`, `REGISTRY_USERNAME`, `REGISTRY_PASSWORD`, `RELEASE_VERSION`, `ONBOARDING_SERVICE_TAG`, `NOTIFICATION_SERVICE_TAG`, `POSTGRES_IMAGE`, `REDIS_IMAGE`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `REDIS_PASSWORD`, `IBAN_API_KEY`, `VERIPHONE_API_KEY`, `ETRADE_BASE_URL`, `ETRADE_CLIENT_ID`, `ETRADE_CLIENT_SECRET`, `JWT_SECRET`, `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `PGADMIN_DEFAULT_EMAIL`, `PGADMIN_DEFAULT_PASSWORD`, `CIPHER_PASSWORD`.
 - Optional local Seq log server: `docker run -d --name seq -e ACCEPT_EULA=Y -e SEQ_FIRSTRUN_ADMINPASSWORD=admin123 -p 5341:80 -p 5342:5341 datalust/seq:latest`.
 - Local databases for **tests** are H2 in-memory — no Docker required just to run `mvn test`.
 
 ## Development workflow
 
 - Run a service (dev profile, H2/in-memory unless local Postgres/Redis is up):
-  - `data-validation-service`: `cd services/data-validation-service && ./mvnw spring-boot:run`
+  - `onboarding-service`: `cd services/onboarding-service && ./mvnw spring-boot:run`
   - `alramz-notification-service`: `cd services/alramz-notification-service && mvn spring-boot:run` (no wrapper)
   - `reference-data-service`: `cd services/reference-data-service && ./mvnw spring-boot:run`
 - Ports (from `application-dev.yml` per service; `docker`/`preprod`/`prod` profiles standardize on `8080` behind the ingress/gateway):
   | Service | Dev port |
   |---|---|
-  | `data-validation-service` | `8080` |
+  | `onboarding-service` | `8080` |
   | `alramz-notification-service` | `8082` |
   | `reference-data-service` | `8081` |
 - Profile selection: `SPRING_PROFILES_ACTIVE={dev,docker,test,preprod,prod}` (default `dev` per each `application.yml`'s `spring.profiles.active`).
@@ -57,12 +57,12 @@ Al Ramz Middleware & Infrastructure: a Maven-reactor monorepo of Java/Spring Boo
   - `mvn -pl services/<service> test -Dtest=DataValidationControllerTest`
   - `mvn -pl services/<service> test -Dtest=DataValidationControllerTest#shouldValidateIban`
   If the BOM/starter haven't been installed locally yet, run the two `install -DskipTests` commands from Setup first, then use the `-pl` form above without `-am`.
-- No separate integration-test tier / Failsafe plugin is configured — all tests run under Surefire via the `test` phase. `AopLoggingIntegrationTest` in `data-validation-service` is a Spring context integration test but still runs via `mvn test`, not a `*IT.java` + `verify` split.
+- No separate integration-test tier / Failsafe plugin is configured — all tests run under Surefire via the `test` phase. `AopLoggingIntegrationTest` in `onboarding-service` is a Spring context integration test but still runs via `mvn test`, not a `*IT.java` + `verify` split.
 - Test frameworks actually in use: JUnit 5 (Spring Boot's default), Mockito (`alramz-notification-service` pulls it explicitly; other modules get it transitively via `spring-boot-starter-test`), AssertJ (`alramz-notification-service`). Tests mirror the main package layout under `src/test/java`.
-- `data-validation-service` has by far the deepest test suite (controllers, services, exception handlers, scheduler job, validation registries — see `services/data-validation-service/src/test/java/com/alramz/`). `reference-data-service` currently only has the generated `ReferenceDataServiceApplicationTests` smoke test. `alramz-notification-service` has a single `AppTest`. Treat thin test coverage as a known gap, not a pattern to imitate.
-- `data-validation-service` tests run against a Liquibase-migrated H2 schema — `src/test/resources/db/changelog/test/db.changelog-master.yaml` pulls in the shared `db/changelog/sql` plus `src/test/resources/db/changelog/test/sql/`. No Docker/Testcontainers needed.
+- `onboarding-service` has by far the deepest test suite (controllers, services, exception handlers, scheduler job, validation registries — see `services/onboarding-service/src/test/java/com/alramz/`). `reference-data-service` currently only has the generated `ReferenceDataServiceApplicationTests` smoke test. `alramz-notification-service` has a single `AppTest`. Treat thin test coverage as a known gap, not a pattern to imitate.
+- `onboarding-service` tests run against a Liquibase-migrated H2 schema — `src/test/resources/db/changelog/test/db.changelog-master.yaml` pulls in the shared `db/changelog/sql` plus `src/test/resources/db/changelog/test/sql/`. No Docker/Testcontainers needed.
 - **Known pre-existing failures on this branch (verified 2026-09-29, `feature/git-governance`)** — not introduced by an agent's own change, but don't assume a clean baseline:
-  - `data-validation-service` currently fails `test-compile`: `DataValidationScheduledJobTest` and `NinTradingNumberValidationServiceTest` reference `com.alramz.utils`, `com.alramz.scheduler.model`, and a `SqlQueriesManager` class that don't currently exist in `src/main/java`. Confirm this is fixed (or was pre-existing before your change) before treating a red build as something you caused.
+  - `onboarding-service` currently fails `test-compile`: `DataValidationScheduledJobTest` and `NinTradingNumberValidationServiceTest` reference `com.alramz.utils`, `com.alramz.scheduler.model`, and a `SqlQueriesManager` class that don't currently exist in `src/main/java`. Confirm this is fixed (or was pre-existing before your change) before treating a red build as something you caused.
   - `reference-data-service`'s only test, `ReferenceDataServiceApplicationTests`, currently fails to load the Spring context — Liquibase changelog validation fails during `contextLoads`. Compiles fine; only the actual test run fails.
 - Static analysis (Checkstyle/PMD/SpotBugs/JaCoCo) — mirrors CI's `maven-static-analysis` action:
   ```
@@ -70,20 +70,20 @@ Al Ramz Middleware & Infrastructure: a Maven-reactor monorepo of Java/Spring Boo
   ```
   **This does not gate a green build.** Checkstyle's `failOnViolation` is `false`; PMD/SpotBugs are `<skip>true</skip>` in the BOM's `pluginManagement` and only turned on (`skip=false`) per-service in each runnable service's own `pom.xml` (not in `alramz-api-starter`, which stays skipped); JaCoCo's enforced `check` minimums are all `0.00` even though `jacoco.line.coverage`/`branch.coverage`/`instruction.coverage` properties (0.80/0.70/0.75) exist in the BOM — those properties are currently unused by the actual `<rules>` block. Read the console output; `mvn verify` exiting 0 proves nothing about lint or coverage.
 - Config file locations: `config/checkstyle.xml`, `config/pmd.xml`, `config/spotbugs-exclude.xml` (all shared across modules via `${project.basedir}/../../config/...` in the BOM).
-- Liquibase validation (used by CI, `data-validation-service` and `reference-data-service` only): `mvn -pl services/<service> -am liquibase:validate`.
+- Liquibase validation (used by CI, `onboarding-service` and `reference-data-service` only): `mvn -pl services/<service> -am liquibase:validate`.
 
 ## Code style
 
 - **Package-by-feature**, not by layer, per service: `com.alramz.<feature>.{config,controller(s),service,repository,model|entity,exception}`.
 - **Config classes**: `@ConfigurationProperties(prefix = "...")` on Lombok `@Getter @Setter` classes, with a `public static final String PREFIX` constant and nested static classes for grouped settings (see `DatasourceProperties`, `JwtProperties`, `LoggingProperties` in `alramz-api-starter`).
 - **Auto-config classes** (in `alramz-api-starter`): `@AutoConfiguration` + `@ConditionalOnProperty`/`@ConditionalOnClass`/`@ConditionalOnBean`; default to safe/off so upgrading the starter never silently breaks a consuming service. A new `@AutoConfiguration` class is inert unless also added to `services/alramz-api-starter/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports` (currently: `LoggingAutoConfiguration`, `SchedulerAutoConfiguration`, `JwtAutoConfiguration`, `EncryptionAutoConfiguration`, `MiddlewareDataSourceAutoConfiguration`, `BrokDataSourceAutoConfiguration`, `IntegrationDataSourceAutoConfiguration`, `GlobalConfigurationSettingsAutoConfiguration`).
-- **Multi-datasource injection**: always use an explicit `@Qualifier` (e.g. `@Qualifier("middlewareNamedParameterJdbcTemplate")`) when injecting `JdbcTemplate`/`NamedParameterJdbcTemplate`/`DataSource`/`TransactionManager` — the starter registers up to three of each (`middleware`, `brok`, `integration`), unqualified injection is ambiguous or silently wrong. Exception: standard Spring Data JPA repositories don't need this in `data-validation-service`/`reference-data-service`, since `DatasourceConfiguration` marks the middleware datasource `@Primary`.
-- **Liquibase migrations** (`data-validation-service` and `reference-data-service` only — both under `src/main/resources/db/changelog/`): one file per change, named `NNN-short-description.sql`, using Liquibase "formatted SQL" (`--liquibase formatted sql` + `--changeset <author>:<unique-id>` header), pulled in via profile-specific masters under `db/changelog/{dev,test,preprod,prod,docker}/db.changelog-master.yaml`. Each profile master includes the shared `db/changelog/sql` plus a profile-specific `db/changelog/{profile}/sql/` folder for environment-only changes. Add `--rollback` statements where practical. **Never edit or renumber an already-applied changeset** — Liquibase tracks checksums; append a new one instead.
-- **Error handling**: each service defines typed exceptions in its own `exception` package plus a `GlobalExceptionHandler` (`data-validation-service` also has `OnboardingExceptionHandler`) — add new failure modes as typed exceptions, not generic `RuntimeException`.
+- **Multi-datasource injection**: always use an explicit `@Qualifier` (e.g. `@Qualifier("middlewareNamedParameterJdbcTemplate")`) when injecting `JdbcTemplate`/`NamedParameterJdbcTemplate`/`DataSource`/`TransactionManager` — the starter registers up to three of each (`middleware`, `brok`, `integration`), unqualified injection is ambiguous or silently wrong. Exception: standard Spring Data JPA repositories don't need this in `onboarding-service`/`reference-data-service`, since `DatasourceConfiguration` marks the middleware datasource `@Primary`.
+- **Liquibase migrations** (`onboarding-service` and `reference-data-service` only — both under `src/main/resources/db/changelog/`): one file per change, named `NNN-short-description.sql`, using Liquibase "formatted SQL" (`--liquibase formatted sql` + `--changeset <author>:<unique-id>` header), pulled in via profile-specific masters under `db/changelog/{dev,test,preprod,prod,docker}/db.changelog-master.yaml`. Each profile master includes the shared `db/changelog/sql` plus a profile-specific `db/changelog/{profile}/sql/` folder for environment-only changes. Add `--rollback` statements where practical. **Never edit or renumber an already-applied changeset** — Liquibase tracks checksums; append a new one instead.
+- **Error handling**: each service defines typed exceptions in its own `exception` package plus a `GlobalExceptionHandler` (`onboarding-service` also has `OnboardingExceptionHandler`) — add new failure modes as typed exceptions, not generic `RuntimeException`.
 - **Request-scoped context**: use `JwtContext`/`UserRequestContext` (from `alramz-api-starter`) for the authenticated caller rather than re-parsing tokens/headers in controllers.
 - **Lombok everywhere**: `@Getter`/`@Setter`/`@Slf4j`/builders — don't hand-write getters/setters/loggers.
 - **Profiles**: `application.yml` + `application-{dev,docker,test,preprod,prod}.yml` per service, selected via `SPRING_PROFILES_ACTIVE`.
-- **Contract-first controllers**: API contracts live in `services/<service>/specs/*.yaml` (`apiSpecs.yaml` for `data-validation-service`/`reference-data-service`, `openapi.yaml` for `alramz-notification-service`) and are compiled by `openapi-generator-maven-plugin` (`generate` goal, `generate-sources` phase) into `com.alramz.api` (interfaces only, `interfaceOnly=true`) and `com.alramz.model` under `target/generated-sources/` — **never hand-edit generated code**; edit the spec and re-run `mvn generate-sources` (or any build phase that includes it).
+- **Contract-first controllers**: API contracts live in `services/<service>/specs/*.yaml` (`apiSpecs.yaml` for `onboarding-service`/`reference-data-service`, `openapi.yaml` for `alramz-notification-service`) and are compiled by `openapi-generator-maven-plugin` (`generate` goal, `generate-sources` phase) into `com.alramz.api` (interfaces only, `interfaceOnly=true`) and `com.alramz.model` under `target/generated-sources/` — **never hand-edit generated code**; edit the spec and re-run `mvn generate-sources` (or any build phase that includes it).
 - Do **not** write ad hoc Spring Security config in a service to expose a new endpoint — add it to `company.jwt.permit-all-urls` instead.
 - Do **not** inject `JdbcTemplate`/`NamedParameterJdbcTemplate`/`DataSource` without an explicit `@Qualifier` in a multi-datasource module.
 - Do **not** hardcode datasource passwords in non-dev profiles — use `cipher.password` + encrypted `password`/`passwordVector`.
@@ -92,7 +92,7 @@ Al Ramz Middleware & Infrastructure: a Maven-reactor monorepo of Java/Spring Boo
 
 ## Database and migrations
 
-- Migrations live in `services/{data-validation-service,reference-data-service}/src/main/resources/db/changelog/`, one `NNN-short-description.sql` file per change, Liquibase "formatted SQL" style, wired through profile-specific `db.changelog-master.yaml` files (see Code style above).
+- Migrations live in `services/{onboarding-service,reference-data-service}/src/main/resources/db/changelog/`, one `NNN-short-description.sql` file per change, Liquibase "formatted SQL" style, wired through profile-specific `db.changelog-master.yaml` files (see Code style above).
 - Applied changesets are immutable — Liquibase tracks checksums; add a new numbered file rather than editing one already merged/deployed.
 - Local reset: tests use a fresh in-memory H2 per run (nothing to reset); for a local Postgres reset, bring the `release/docker-compose.yml` stack down and remove its `postgres_data` volume.
 

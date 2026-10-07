@@ -2,14 +2,14 @@ resources:
   - ../../../infra/postgres/
   - ../../../infra/redis/
   - ../../../infra/seq/
-  - ../../base/data-validation-service/
+  - ../../base/onboarding-service/
   - ../../base/alramz-notification-service/
 
 namespace: alramz-preprod
 
 images:
-  - name: data-validation-service
-    newName: ghcr.io/gauravtalele1994/alramz-mw-oss/data-validation-service
+  - name: onboarding-service
+    newName: ghcr.io/gauravtalele1994/alramz-mw-oss/onboarding-service
     newTag: sha-a91c72f
 
   - name: alramz-notification-service
@@ -17,5 +17,5 @@ images:
     newTag: sha-a91c72f
 
 patches:
-  - path: data-validation-service-patch.yaml
+  - path: onboarding-service-patch.yaml
   - path: alramz-notification-service-patch.yaml

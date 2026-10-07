@@ -7,13 +7,13 @@ the handful of these used on every task (build/test one service, single test, co
 | Task | Command |
 |---|---|
 | Build everything | `mvn clean package` |
-| Build/test one service (+ its reactor deps) | `mvn -pl services/data-validation-service -am clean test` |
+| Build/test one service (+ its reactor deps) | `mvn -pl services/onboarding-service -am clean test` |
 | Fast compile check | `mvn -pl services/<service> -am clean test-compile -Dmaven.compiler.useIncrementalCompilation=false` |
 | Run a single test class | `mvn -pl services/<service> -am test -Dtest=DataValidationControllerTest` |
 | Run a single test method | `mvn -pl services/<service> -am test -Dtest=DataValidationControllerTest#shouldValidateIban` |
 | Install BOM/starter locally (outside full reactor) | `mvn -pl services/alramz-common-bom install -DskipTests && mvn -pl services/alramz-api-starter -am install -DskipTests` |
 | Static analysis (console output) | `mvn -pl services/<service> -am verify -Dcheckstyle.consoleOutput=true -Dpmd.consoleOutput=true -Dspotbugs.consoleOutput=true -Djacoco.skip=false` |
-| Run `data-validation-service` locally | `cd services/data-validation-service && ./mvnw spring-boot:run` (has wrapper) |
+| Run `onboarding-service` locally | `cd services/onboarding-service && ./mvnw spring-boot:run` (has wrapper) |
 | Run `alramz-notification-service` locally | `cd services/alramz-notification-service && mvn spring-boot:run` (no wrapper — use system `mvn`) |
 | Build a Docker image | `mvn clean package -DskipTests -pl services/<service> -am && docker build -t <service>:latest services/<service>` |
 | Local Postgres/Redis stack | `cd release && cp .env.example .env` (fill in values) `&& docker compose --env-file .env up` |

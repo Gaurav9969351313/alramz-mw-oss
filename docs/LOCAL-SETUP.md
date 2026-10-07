@@ -231,7 +231,7 @@ api-docs-build/                    ← Run server from here
     ├── manifest.json              ← API metadata
     ├── alramz-notification-service/
     │   └── openapi.yaml           ← Email API spec
-    └── data-validation-service/
+    └── onboarding-service/
         └── apiSpecs.yaml          ← IBAN Validation spec
 ```
 

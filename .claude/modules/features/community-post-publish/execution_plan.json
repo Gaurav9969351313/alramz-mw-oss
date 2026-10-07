@@ -1,0 +1,269 @@
+{
+  "feature_slug": "community-post-publish",
+  "spec_path": ".claude/modules/features/community-post-publish/spec.md",
+  "howtos_consulted": [
+    ".claude/howtos/openapi-contract-first-controllers.md",
+    ".claude/howtos/new-endpoint-elicitation-checklist.md",
+    ".claude/howtos/api-collection-http-requests.md",
+    ".claude/howtos/configuration-properties.md",
+    ".claude/howtos/jwt-security-and-public-endpoints.md",
+    ".claude/howtos/exception-handling.md",
+    ".claude/howtos/liquibase-migrations.md",
+    ".claude/howtos/request-response-and-db-audit-logging.md",
+    ".claude/howtos/multi-datasource-and-jpa.md",
+    ".claude/howtos/testing-patterns.md"
+  ],
+  "target_services": ["utility-service"],
+  "target_files": [
+    {
+      "path": "services/utility-service/specs/apiSpecs.yaml",
+      "status": "modified",
+      "change_summary": "Add `POST /community/posts` (tag Community, operationId createCommunityPost) with 201/400/401/403/500/503 responses + realistic examples per spec.md §3.2; add CommunityPostRequest/CommunityPostResponse/CommunityPost schemas; extend existing components.schemas.GenericResponse with correlationId (string/uuid), errorCode (string, nullable), errorMsg (string, nullable) alongside the existing responseCode/responseMessage/response fields. Verified current file only has GET /api/v1/info and a 3-field GenericResponse, so this is a pure amendment, not a restructure."
+    },
+    {
+      "path": "services/utility-service/apiCollection.http",
+      "status": "modified",
+      "change_summary": "Add a '### Publish Community Post' block (POST {{baseUrl}}/api/v1/community/posts, Authorization: Bearer {{authToken}}, realistic-but-synthetic JSON body) plus a paired '-ve test case' block (e.g. blank postedBy) placed after the existing /api/v1/info block. Also fix the existing register block's `roles` value: it currently reads [\"APPUTILITY_SERVICEUSER\"] (a scaffold placeholder that doesn't match the APP_<SERVICE_CONCERN> convention and does not include the new APP_UTILITY role), so a token obtained via this file's existing register/login flow cannot call the new @JwtSecured(roles=\"APP_UTILITY\") endpoint. Change roles to [\"APP_UTILITY\"]. @authToken/@baseUrl and the register/login blocks already exist in this file — nothing to add there."
+    },
+    {
+      "path": "services/utility-service/pom.xml",
+      "status": "modified",
+      "change_summary": "Add `com.googlecode.owasp-java-html-sanitizer:owasp-java-html-sanitizer` with an explicit <version> (confirmed via repo-wide grep: not present anywhere else, no BOM-managed version to inherit, unlike every other dependency in this file). No other dependency changes — WebClient/resilience4j/JPA/Liquibase/validation are already present (confirmed by reading the file)."
+    },
+    {
+      "path": "services/utility-service/src/main/resources/application-dev.yml",
+      "status": "modified",
+      "change_summary": "Add adapter.finoux.* block (base-url, api-key, request-timeout-seconds: 5, post.posted-user-flag/publish-flag/post-type-id) per spec.md §5, using ${FINOUX_BASE_URL:}/${FINOUX_API_KEY:} placeholders. company.jwt.permit-all-urls unchanged (endpoint is secured). company.logging.database-logging and company.datasource.middleware are already enabled (confirmed by reading this file) — no change needed there."
+    },
+    {
+      "path": "services/utility-service/src/main/resources/application-docker.yml",
+      "status": "modified",
+      "change_summary": "Same adapter.finoux.* block as application-dev.yml."
+    },
+    {
+      "path": "services/utility-service/src/main/resources/application-preprod.yml",
+      "status": "modified",
+      "change_summary": "Same adapter.finoux.* block as application-dev.yml."
+    },
+    {
+      "path": "services/utility-service/src/main/resources/application-prod.yml",
+      "status": "modified",
+      "change_summary": "Same adapter.finoux.* block as application-dev.yml."
+    },
+    {
+      "path": "services/utility-service/src/main/resources/application-test.yml",
+      "status": "modified",
+      "change_summary": "NOT listed in spec.md §5 (which only names dev/docker/preprod/prod), but required: this is the Spring-profile-specific file loaded whenever `spring.profiles.active=test` (per testing-patterns.md), which is exactly how UtilityServiceApplicationTests boots via @SpringBootTest. Once FinouxProperties.baseUrl is bean-validated non-blank at startup (fail-fast, per spec.md §5), the full-context smoke test will fail to start unless this profile also sets a non-blank adapter.finoux.base-url placeholder (e.g. https://finoux-test.example.invalid) — mirrors how data-validation-service's own application-test.yml populates adapter.external-iban-service/etrade for the same reason. Logged under technical_gaps as a correction to spec.md's file list."
+    },
+    {
+      "path": "services/utility-service/src/main/java/com/alramz/config/FinouxProperties.java",
+      "status": "new",
+      "change_summary": "@Getter/@Setter + PREFIX constant (\"adapter.finoux\") per configuration-properties.md's recommended (not legacy-record) shape: baseUrl (@NotBlank, Jakarta Bean Validation, for startup fail-fast via @Validated), apiKey, requestTimeoutSeconds (default 5), nested Post{postedUserFlag, publishFlag, postTypeId}."
+    },
+    {
+      "path": "services/utility-service/src/main/java/com/alramz/config/ExternalFinouxServiceConfig.java",
+      "status": "new",
+      "change_summary": "@Configuration @EnableConfigurationProperties(FinouxProperties.class) @Validated, mirrors ExternalIbanServiceConfig.java: finouxService WebClient (baseUrl from properties), finouxCircuitBreaker (registry.circuitBreaker(id)), finouxTimeLimiter (timeout = requestTimeoutSeconds), and finouxRetry built via RetryConfig.custom().maxAttempts(1).build() + registry.retry(id, config) — deliberate divergence from ibanServiceRetry's implicit-default (3 attempts) per spec.md §5's no-auto-retry requirement."
+    },
+    {
+      "path": "services/utility-service/src/main/java/com/alramz/config/DatasourceConfiguration.java",
+      "status": "new",
+      "change_summary": "NOT mentioned in spec.md — a gap found during grounding (see technical_gaps): utility-service has company.datasource.middleware.enabled=true plus spring-boot-starter-data-jpa and spring-boot-starter-liquibase on the classpath in every non-test profile, but (unlike both reference services) has no @Primary DataSource/PlatformTransactionManager re-export and no spring.datasource.* property anywhere in its main profile YAMLs. Without this class, Liquibase's own auto-configured DataSource (and JPA's) has nothing to resolve to outside the test profile (where spring.datasource.url is set explicitly), so the new 001-api-audit-log.sql changeset this feature ships may never actually apply in dev/preprod/prod/docker. Copied verbatim from reference-data-service's config/DatasourceConfiguration.java per multi-datasource-and-jpa.md step 2."
+    },
+    {
+      "path": "services/utility-service/src/main/java/com/alramz/controllers/CommunityPostController.java",
+      "status": "new",
+      "change_summary": "implements CommunityApi (generated from the Community tag). createCommunityPost: @Override @JwtSecured(roles=\"APP_UTILITY\") @Loggable, delegates to CommunityPostService.publish(...), builds 201 GenericResponse with Location header, and — correcting a gap in spec.md §3.3's own code sketch (see technical_gaps) — also sets correlationId on the success-path response body (read from X-Correlation-Id header, falling back to a generated UUID), matching the §3.2 example body and keeping success/error paths consistent."
+    },
+    {
+      "path": "services/utility-service/src/main/java/com/alramz/service/CommunityPostService.java",
+      "status": "new",
+      "change_summary": "Interface: CommunityPost publish(CommunityPostRequest request)."
+    },
+    {
+      "path": "services/utility-service/src/main/java/com/alramz/service/impl/CommunityPostServiceImpl.java",
+      "status": "new",
+      "change_summary": "@Service extends AbstractRestClient implements CommunityPostService, mirrors IBANValidationServiceImpl's constructor shape (qualified WebClient/CircuitBreaker/Retry/TimeLimiter + FinouxProperties + Environment + ObjectMapper). publish(): OWASP-sanitise postDesc (Sanitizers.FORMATTING.and(LINKS).and(BLOCKS)), enforce 10000-char cap post-sanitisation (throw ApplicationException(\"postDesc\", msg, \"FNX004\") if empty/too long), build FinouxInsertPostDataRequest PARAM list, call Finoux via call(HttpMethod.POST, ..., FinouxInsertPostDataResponse.class, headers, null), map the HTTP/body outcome into a FinouxResult (Posted/Rejected/Unavailable), then map FinouxResult to CommunityPost or throw FinouxIntegrationException(FNX010/FNX011)/FinouxUnavailableException(FNX012). Structured so the sanitise/validate/FinouxResult-mapping logic lives in separately-callable (package-private) methods — see technical_gaps re: test coverage of the WebClient dispatch itself."
+    },
+    {
+      "path": "services/utility-service/src/main/java/com/alramz/service/impl/FinouxResult.java",
+      "status": "new",
+      "change_summary": "sealed interface FinouxResult permits Posted/Rejected/Unavailable, exactly as specified in spec.md §3.4 (adopted from the source doc)."
+    },
+    {
+      "path": "services/utility-service/src/main/java/com/alramz/model/FinouxParam.java",
+      "status": "new",
+      "change_summary": "record FinouxParam(@JsonProperty(\"Key\") String key, @JsonProperty(\"Value\") String value) — hand-written wire DTO coexisting with generated com.alramz.model classes, same precedent as data-validation-service's ETradeResponse.java."
+    },
+    {
+      "path": "services/utility-service/src/main/java/com/alramz/model/FinouxInsertPostDataRequest.java",
+      "status": "new",
+      "change_summary": "record with METHOD/Version/PARAM fields per spec.md §3.4."
+    },
+    {
+      "path": "services/utility-service/src/main/java/com/alramz/model/FinouxInsertPostDataResponse.java",
+      "status": "new",
+      "change_summary": "@JsonIgnoreProperties(ignoreUnknown=true) record isSuccess/message/data per spec.md §3.4."
+    },
+    {
+      "path": "services/utility-service/src/main/java/com/alramz/model/FinouxData.java",
+      "status": "new",
+      "change_summary": "@JsonIgnoreProperties(ignoreUnknown=true) record table (List<Map<String,Object>>) per spec.md §3.4."
+    },
+    {
+      "path": "services/utility-service/src/main/java/com/alramz/exception/ApplicationException.java",
+      "status": "new",
+      "change_summary": "Copied shape from data-validation-service/.../exception/ApplicationException.java (field + serviceErrorResponseCode + message constructors). utility-service has no exception package today — this is its first."
+    },
+    {
+      "path": "services/utility-service/src/main/java/com/alramz/exception/FinouxIntegrationException.java",
+      "status": "new",
+      "change_summary": "RuntimeException carrying httpStatus (fixed 500 for this feature), errorCode (FNX010 or FNX011, set by caller), message — covers edge cases #7/#8 in spec.md §6."
+    },
+    {
+      "path": "services/utility-service/src/main/java/com/alramz/exception/FinouxUnavailableException.java",
+      "status": "new",
+      "change_summary": "RuntimeException carrying errorCode (FNX012) + message, maps to 503 — covers edge case #9."
+    },
+    {
+      "path": "services/utility-service/src/main/java/com/alramz/exception/GlobalExceptionHandler.java",
+      "status": "new",
+      "change_summary": "@RestControllerAdvice(basePackages = \"com.alramz.controllers\") @Order(0), modeled on reference-data-service's GlobalExceptionHandler.java shape (single GenericResponse envelope family, no path-branching needed) but extended to populate the new errorCode/errorMsg fields on every error response and to carry per-field FNX00x codes: (1) ApplicationException -> 400 + its own code; (2) MethodArgumentNotValidException -> 400, mapped per offending field name to FNX001(postedUserId)/FNX002(username)/FNX003(postedBy)/FNX004(postDesc)/FNX005(tagSymbol) — this per-field mapping table does not exist in reference-data-service's handler (which only concatenates messages) and is new logic this feature adds; (3) HttpMessageNotReadableException -> 400 FNX090; (4) FinouxIntegrationException -> 500 (errorCode from the exception); (5) FinouxUnavailableException -> 503 FNX012; (6) generic Exception -> 500 FNX013, fixed message only (no ex.getMessage()/stack trace leaked, per F-07). Every handler populates correlationId via the same extractCorrelationId(request) helper reference-data-service already uses."
+    },
+    {
+      "path": "services/utility-service/src/main/resources/db/changelog/dev/sql/001-api-audit-log.sql",
+      "status": "new",
+      "change_summary": "api_audit_log table + 4 indexes + rollback, content equivalent to data-validation-service/.../004-api-audit-log.sql, EXCEPT the changeset id is written as `001-api-audit-log` (not the source file's literal `api-audit-log-table`) to keep filename-number/changeset-id aligned per liquibase-migrations.md pitfall #3 — see technical_gaps for why this deliberately isn't a byte-for-byte copy despite spec.md §4 saying \"copy ... verbatim\". service_name default left as the source DDL's literal default string updated to 'utility-service' (the code always writes the real spring.application.name regardless, per the howto)."
+    },
+    {
+      "path": "services/utility-service/src/main/resources/db/changelog/docker/sql/001-api-audit-log.sql",
+      "status": "new",
+      "change_summary": "Identical to the dev copy, per liquibase-migrations.md's profile-isolation rule (no shared folder)."
+    },
+    {
+      "path": "services/utility-service/src/main/resources/db/changelog/preprod/sql/001-api-audit-log.sql",
+      "status": "new",
+      "change_summary": "Identical to the dev copy."
+    },
+    {
+      "path": "services/utility-service/src/main/resources/db/changelog/prod/sql/001-api-audit-log.sql",
+      "status": "new",
+      "change_summary": "Identical to the dev copy."
+    }
+  ],
+  "test_files": [
+    {
+      "path": "services/utility-service/src/test/resources/db/changelog/test/sql/001-api-audit-log.sql",
+      "status": "new",
+      "covers": "F-06 acceptance criterion (table exists so test-profile context load + any repository-level check can succeed); identical content to the main-profile copies, wired through the already-existing src/test/resources/db/changelog/test/db.changelog-master.yaml (includeAll, errorIfMissingOrEmpty: false, confirmed by reading it)."
+    },
+    {
+      "path": "services/utility-service/src/test/java/com/alramz/controllers/CommunityPostControllerTest.java",
+      "status": "new",
+      "covers": "Mockito-direct-construction test (per testing-patterns.md, no MockMvc): createCommunityPost delegates to CommunityPostService.publish(...), returns 201 + correct Location header + GenericResponse.response.post.postId populated, and correlationId is set on the success body (the controller fix noted above)."
+    },
+    {
+      "path": "services/utility-service/src/test/java/com/alramz/service/impl/CommunityPostServiceImplTest.java",
+      "status": "new",
+      "covers": "Edge cases #5 (postDesc empty/too-long after sanitisation -> ApplicationException FNX004), the sanitiser stripping a <script> tag before it reaches the outbound PARAM list (acceptance criterion), and FinouxResult.Rejected/Unavailable/Posted -> FinouxIntegrationException(FNX010/FNX011)/FinouxUnavailableException(FNX012)/CommunityPost mapping (edge cases #7/#8/#9) via directly-callable mapping methods, not by mocking the WebClient fluent chain — see technical_gaps for why the raw outbound dispatch itself is not covered here (no existing repo precedent to follow)."
+    },
+    {
+      "path": "services/utility-service/src/test/java/com/alramz/exception/GlobalExceptionHandlerTest.java",
+      "status": "new",
+      "covers": "One test per @ExceptionHandler method: ApplicationException, each MethodArgumentNotValidException field->FNX00x mapping (postedUserId/username/postedBy/postDesc/tagSymbol), HttpMessageNotReadableException->FNX090, FinouxIntegrationException->500, FinouxUnavailableException->503, generic Exception->FNX013 with no leaked ex.getMessage(). Covers edge cases #1-#10 in spec.md §6 and the F-07 acceptance criterion."
+    }
+  ],
+  "liquibase_changeset": {
+    "applicable": true,
+    "next_changeset_file": "001-api-audit-log.sql",
+    "profile_folders": [
+      "services/utility-service/src/main/resources/db/changelog/dev/sql",
+      "services/utility-service/src/main/resources/db/changelog/docker/sql",
+      "services/utility-service/src/main/resources/db/changelog/preprod/sql",
+      "services/utility-service/src/main/resources/db/changelog/prod/sql",
+      "services/utility-service/src/test/resources/db/changelog/test/sql"
+    ]
+  },
+  "config_changes": {
+    "permit_all_urls": [],
+    "new_properties": [
+      "adapter.finoux.base-url (application-{dev,docker,preprod,prod,test}.yml)",
+      "adapter.finoux.api-key (application-{dev,docker,preprod,prod,test}.yml)",
+      "adapter.finoux.request-timeout-seconds (default 5)",
+      "adapter.finoux.post.posted-user-flag (default ADMIN)",
+      "adapter.finoux.post.publish-flag (default A)",
+      "adapter.finoux.post.post-type-id (default \"2\")"
+    ],
+    "masking_keys_to_add": []
+  },
+  "execution_steps": [
+    "Step 1: Amend services/utility-service/specs/apiSpecs.yaml per spec.md §3.2 (path, operationId, schemas, extended GenericResponse). Run `mvn -pl services/utility-service -am clean test-compile` to confirm CommunityApi + CommunityPostRequest/Response/CommunityPost/GenericResponse generate under target/generated-sources/openapi/.../com/alramz/{api,model}.",
+    "Step 2: Add owasp-java-html-sanitizer (explicit version) to services/utility-service/pom.xml.",
+    "Step 3: Create FinouxProperties.java (adapter.finoux prefix, @NotBlank baseUrl, @Validated) and ExternalFinouxServiceConfig.java (WebClient/circuitBreaker/timeLimiter/retry beans, retry maxAttempts=1) under com.alramz.config, mirroring ExternalIbanServiceConfig.java.",
+    "Step 4: Create com.alramz.config.DatasourceConfiguration (the @Primary middleware re-export gap found in step 3 of discovery) so Liquibase/JPA resolve a DataSource outside the test profile.",
+    "Step 5: Add the adapter.finoux.* block to application-{dev,docker,preprod,prod}.yml, and a non-blank placeholder to application-test.yml (main resources) so the existing UtilityServiceApplicationTests smoke test still boots once baseUrl fail-fast validation is wired in.",
+    "Step 6: Create the exception package: ApplicationException, FinouxIntegrationException, FinouxUnavailableException, GlobalExceptionHandler (with the new per-field FNX00x mapping for MethodArgumentNotValidException).",
+    "Step 7: Create com.alramz.model.{FinouxParam,FinouxInsertPostDataRequest,FinouxInsertPostDataResponse,FinouxData} hand-written wire DTOs, and com.alramz.service.impl.FinouxResult sealed interface.",
+    "Step 8: Create com.alramz.service.CommunityPostService + com.alramz.service.impl.CommunityPostServiceImpl (sanitise -> validate length -> build PARAM -> call -> map FinouxResult -> CommunityPost or throw).",
+    "Step 9: Create com.alramz.controllers.CommunityPostController implementing CommunityApi, with @JwtSecured(roles=\"APP_UTILITY\") + @Loggable, including the correlationId-on-success fix.",
+    "Step 10: Add the 001-api-audit-log.sql changeset (changeset id 001-api-audit-log, not the source file's literal id) to all four main profile sql/ folders plus the test profile's sql/ folder.",
+    "Step 11: Update services/utility-service/apiCollection.http: fix the register block's roles to [\"APP_UTILITY\"], add the Publish Community Post request + its -ve test-case block.",
+    "Step 12: Write CommunityPostControllerTest, CommunityPostServiceImplTest, GlobalExceptionHandlerTest per testing-patterns.md's Mockito-direct-construction convention.",
+    "Step 13: Run `mvn -pl services/utility-service -am clean test-compile`, then `mvn -pl services/utility-service -am clean test` (CLAUDE.md verification rule) — confirm Liquibase applies 001-api-audit-log.sql cleanly against H2 and the full UtilityServiceApplicationTests context loads with FinouxProperties bound.",
+    "Step 14: Manually verify the F-06 audit-row acceptance criterion via apiCollection.http against a real dev environment (no automated repo precedent exists for asserting an api_audit_log row from a test — see technical_gaps)."
+  ],
+  "technical_gaps": [
+    {
+      "area": "other",
+      "description": "utility-service has company.datasource.middleware.enabled=true plus JPA/Liquibase on the classpath in every non-test profile, but (unlike both reference services) has no com.alramz.config.DatasourceConfiguration @Primary re-export and no spring.datasource.* property anywhere in its main profile YAMLs. Without it, Liquibase's and JPA's own auto-configured DataSource has nothing to resolve to outside the test profile, so this feature's 001-api-audit-log.sql changeset may never actually apply in dev/preprod/prod/docker.",
+      "recommendation_or_open_question": "Resolved in this plan by adding DatasourceConfiguration.java (copied verbatim from reference-data-service's pattern) as a new target_files entry — not a blocking question, the fix is a direct, cited codebase precedent (multi-datasource-and-jpa.md step 2)."
+    },
+    {
+      "area": "test-coverage",
+      "description": "spec.md §5 only lists application-{dev,docker,preprod,prod}.yml for the new adapter.finoux.* block, omitting application-test.yml (main resources, profile \"test\"). Once FinouxProperties.baseUrl is bean-validated non-blank at startup (fail-fast, per spec.md §5), the existing UtilityServiceApplicationTests @SpringBootTest smoke test will fail to boot in that profile unless it also has a non-blank placeholder.",
+      "recommendation_or_open_question": "Resolved: added application-test.yml to target_files with a placeholder base-url, mirroring data-validation-service's identical precedent for adapter.external-iban-service/etrade in its own application-test.yml."
+    },
+    {
+      "area": "test-coverage",
+      "description": "No class in this repo that extends AbstractRestClient (e.g. IBANValidationServiceImpl) has any existing unit test — there is zero precedent for mocking the WebClient fluent-call chain in a Mockito-style test. CommunityPostServiceImpl's actual outbound dispatch (the `call(...)` invocation itself) therefore has no established testing pattern to follow.",
+      "recommendation_or_open_question": "Plan mitigates by structuring the sanitise/validate/FinouxResult-mapping logic as separately-callable methods so the 12 edge cases in spec.md §6 are substantially covered without needing to mock WebClient — but the raw dispatch call itself stays untested, consistent with (not worse than) the existing IBAN precedent. Not blocking: this mirrors a pre-existing, repo-wide gap, not something this feature regresses."
+    },
+    {
+      "area": "test-coverage",
+      "description": "The F-06 acceptance criterion (\"a real request to this endpoint produces a row in api_audit_log\") has no automated-test precedent anywhere in this repo today — data-validation-service, which has had working DB audit logging for longer, has no test asserting a written audit row either.",
+      "recommendation_or_open_question": "Recommend manual verification via the new apiCollection.http request against a real dev-profile deployment (query api_audit_log directly) rather than inventing a new test pattern unsupported elsewhere in the repo."
+    },
+    {
+      "area": "compatibility",
+      "description": "spec.md §3.3's own Java sketch for CommunityPostController.createCommunityPost never sets GenericResponse.correlationId on the success (201) path, even though the §3.2 example response body includes one.",
+      "recommendation_or_open_question": "Resolved in this plan: the controller also extracts/generates a correlationId on the success path (same X-Correlation-Id-header-or-generated-UUID approach GlobalExceptionHandler already uses), so success and error paths are consistent and the acceptance criteria's example bodies are actually satisfiable."
+    },
+    {
+      "area": "other",
+      "description": "spec.md §4 says to copy data-validation-service's 004-api-audit-log.sql \"verbatim,\" but that source file's own --changeset id (api-audit-log-table) doesn't match its filename's number — exactly the drift liquibase-migrations.md's pitfall #3 says not to copy into new files.",
+      "recommendation_or_open_question": "Plan uses changeset id `001-api-audit-log` (matching the new filename) instead of literally reusing the source file's id. Non-blocking, cosmetic, fully reversible before this changeset is ever applied to a real environment."
+    },
+    {
+      "area": "compatibility",
+      "description": "application-test.yml (main resources, profile \"test\") in utility-service, data-validation-service, and reference-data-service alike all set company.datasource.middleware.url to a real Postgres host (localhost:5432/...), not H2 — a pre-existing, repo-wide pattern this feature doesn't introduce or change.",
+      "recommendation_or_open_question": "Not actionable within this feature's scope (changing it would touch shared test-profile conventions across services). Flagged so 03_implement doesn't assume the middleware pool is guaranteed reachable during `mvn test` — ApiAuditLogService's own catch(Exception) means a connection failure there fails silently rather than failing the build, consistent with the documented silent no-op in request-response-and-db-audit-logging.md."
+    },
+    {
+      "area": "sizing",
+      "description": "service.yaml sizing (0.5 CPU / 1Gi / 1-5 replicas) was re-checked against this feature's footprint: single-record synchronous admin endpoint, no bulk/scheduled job.",
+      "recommendation_or_open_question": "No change needed — confirms spec.md §2's own determination, not a new finding."
+    }
+  ],
+  "plan_critique": {
+    "acceptance_criteria_coverage": "full — every bullet in spec.md §8 maps to at least one target_files/test_files entry or execution_step, including the two corrections (DatasourceConfiguration.java, application-test.yml) needed for the F-06 criterion and the smoke test to actually be satisfiable, not just configured.",
+    "blast_radius_concerns": [
+      "GenericResponse schema change is scoped to utility-service's own specs/apiSpecs.yaml copy only — each service defines its own schema independently, confirmed no shared file.",
+      "owasp-java-html-sanitizer is a new dependency added only to utility-service/pom.xml, not the shared BOM — no other service is affected.",
+      "DatasourceConfiguration.java and ExternalFinouxServiceConfig.java are additive, service-local @Configuration classes with no starter-level change and no AutoConfiguration.imports entry needed.",
+      "finouxRetry's maxAttempts=1 divergence from the IBAN precedent is fully self-contained to this feature's own beans (ibanRetry/ibanServiceRetry untouched)."
+    ],
+    "confidence": "medium",
+    "notes": "The spec itself is well-grounded, but three of this plan's target_files entries (DatasourceConfiguration.java, application-test.yml's adapter.finoux placeholder, and the controller's missing success-path correlationId) are corrections this execution plan had to make after verifying the actual codebase state, not things spec.md got right the first time — the weakest part of this plan is that CommunityPostServiceImpl's outbound WebClient dispatch has zero existing test-pattern precedent anywhere in this repo to build on, so that portion of the implementation will be the least test-covered piece despite being the one with the most failure modes (edge cases #7-#10).",
+    "user_decisions": []
+  }
+}

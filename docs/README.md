@@ -29,7 +29,7 @@ The documentation includes OpenAPI specifications for:
   - Request/response examples
   - Error handling
 
-- **Data Validation Service** (`data-validation-service`)
+- **Onboarding Service** (`onboarding-service`)
   - Data validation APIs
   - Schema definitions
   - Usage examples

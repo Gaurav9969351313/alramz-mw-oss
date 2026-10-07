@@ -83,3 +83,13 @@ company:
         minimum-idle: ${COMPANY_DATASOURCE_MIDDLEWARE_POOL_MINIMUM_IDLE:2}
       sql-logging:
         enabled: false
+
+adapter:
+  finoux:
+    base-url: ${FINOUX_BASE_URL:}
+    api-key: ${FINOUX_API_KEY:}
+    request-timeout-seconds: 5
+    post:
+      posted-user-flag: ADMIN
+      publish-flag: A
+      post-type-id: "2"

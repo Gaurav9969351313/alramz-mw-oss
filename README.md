@@ -9,7 +9,7 @@ Terraform + Kubernetes IaC that deploys them to Azure, in one Maven-reactor mono
 |---|---|
 | [`alramz-common-bom`](services/alramz-common-bom) | Parent POM + dependency BOM + shared plugin config — every other module inherits from it |
 | [`alramz-api-starter`](services/alramz-api-starter) | Shared Spring Boot auto-config starter (library, not a runnable app): JWT auth, multi-datasource, scheduler, request/DB audit logging, feature flags |
-| [`data-validation-service`](services/data-validation-service) | Payload/IBAN/phone validation — only module using Liquibase |
+| [`onboarding-service`](services/onboarding-service) | Payload/IBAN/phone validation — only module using Liquibase |
 | [`alramz-notification-service`](services/alramz-notification-service) | Email/notification delivery via MS Graph and Azure Service Bus |
 | [`reference-data-service`](services/reference-data-service) | Reference/global-config data, backed by Redis cache |
 
@@ -32,7 +32,7 @@ without needing GitHub Packages auth.
 ```bash
 mvn -pl services/<service> -am clean test          # build/test one service
 mvn -pl services/<service> -am clean test-compile  # fast compile check
-cd services/data-validation-service && ./mvnw spring-boot:run
+cd services/onboarding-service && ./mvnw spring-boot:run
 ```
 
 Full CLI reference: [`docs/COMMANDS.md`](docs/COMMANDS.md). Local Postgres/Redis/Seq stack:

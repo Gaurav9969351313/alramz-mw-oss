@@ -1,6 +1,6 @@
 docker run -d --name seq -e ACCEPT_EULA=Y -e SEQ_FIRSTRUN_ADMINPASSWORD=admin123 -p 5341:80 -p 5342:5341 datalust/seq:latest
 
-mvn -pl services/data-validation-service -am clean test-compile -Dmaven.compiler.useIncrementalCompilation=false
+mvn -pl services/onboarding-service -am clean test-compile -Dmaven.compiler.useIncrementalCompilation=false
 mvn clean package
 
 kubectl -n kube-system create serviceaccount headlamp-admin
@@ -10,8 +10,8 @@ helm repo add headlamp https://kubernetes-sigs.github.io/headlamp/
 helm install alramz-headlamp headlamp/headlamp --namespace kube-system
 
 
-# Build data-validation-service Docker image
-mvn clean package -DskipTests -pl services/data-validation-service -am && docker build -t data-validation-service:latest services/data-validation-service
+# Build onboarding-service Docker image
+mvn clean package -DskipTests -pl services/onboarding-service -am && docker build -t onboarding-service:latest services/onboarding-service
 
 # Build alramz-notification-service Docker image  
 mvn clean package -DskipTests -pl services/alramz-notification-service -am && docker build -t alramz-notification-service:latest services/alramz-notification-service
@@ -86,7 +86,7 @@ alramz-mw-oss/
 │       ├── qa/                               # QA Environment Stack (Placeholder)
 │       └── shared-platform/                  # Shared Platform Stack (ACR & Service Principals)
 ├── services/                                 # Microservice applications
-│   └── data-validation-service/              # Java Spring Boot validation service
+│   └── onboarding-service/              # Java Spring Boot validation service
 │       ├── .mvn/
 │       ├── src/                              # Source code directory
 │       ├── Dockerfile                        # Multi-stage containerization build file
@@ -103,9 +103,9 @@ alramz-mw-oss/
 
 ## ☕ Services
 
-### 📊 Data Validation Service
+### 📊 Onboarding Service
 
-The [data-validation-service](file:///c:/Users/User/Desktop/alramz-mw-oss/services/data-validation-service) is a Java-based microservice designed for validating middleware payloads.
+The [onboarding-service](file:///c:/Users/User/Desktop/alramz-mw-oss/services/onboarding-service) is a Java-based microservice designed for validating middleware payloads.
 
 #### Key Features:
 * **Tech Stack**: Built with **Java 21** and **Spring Boot 4.1.0**.
@@ -113,23 +113,23 @@ The [data-validation-service](file:///c:/Users/User/Desktop/alramz-mw-oss/servic
 * **ORM & Data**: Spring Data JPA for persistence.
 * **Boilerplate Reduction**: Project Lombok for automatic getters, setters, and builders.
 * **Observability**: Spring Boot Actuator endpoints enabled to monitor service health.
-* **Testing**: JUnit 5 tests inside [DataValidationServiceApplicationTests.java](file:///c:/Users/User/Desktop/alramz-mw-oss/services/data-validation-service/src/test/java/com/alramz/DataValidationServiceApplicationTests.java).
+* **Testing**: JUnit 5 tests inside [OnboardingServiceApplicationTests.java](file:///c:/Users/User/Desktop/alramz-mw-oss/services/onboarding-service/src/test/java/com/alramz/OnboardingServiceApplicationTests.java).
 
 #### Local Development:
 1. Make sure you have Java 21 JDK and Maven installed.
 2. Run the application from the microservice folder:
    ```bash
-   cd services/data-validation-service
+   cd services/onboarding-service
    ./mvnw spring-boot:run
    ```
-3. The service starts on port `5001`. You can test the main endpoint using `curl` or the provided HTTP request helper in [apiCollection.http](file:///c:/Users/User/Desktop/alramz-mw-oss/services/data-validation-service/apiCollection.http):
+3. The service starts on port `5001`. You can test the main endpoint using `curl` or the provided HTTP request helper in [apiCollection.http](file:///c:/Users/User/Desktop/alramz-mw-oss/services/onboarding-service/apiCollection.http):
    ```bash
    curl http://localhost:5001/api/v1/info
    ```
    **Response Format:**
    ```json
    {
-     "applicationName": "data-validation-service",
+     "applicationName": "onboarding-service",
      "host": "<your-hostname>",
      "timestamp": "2026-07-17T12:00:00Z"
    }
@@ -140,7 +140,7 @@ The [data-validation-service](file:///c:/Users/User/Desktop/alramz-mw-oss/servic
    * **Password**: *(leave blank)*
 
 #### Docker Build:
-The service provides a optimized multi-stage build in its [Dockerfile](file:///c:/Users/User/Desktop/alramz-mw-oss/services/data-validation-service/Dockerfile):
+The service provides a optimized multi-stage build in its [Dockerfile](file:///c:/Users/User/Desktop/alramz-mw-oss/services/onboarding-service/Dockerfile):
 ```dockerfile
 # Stage 1: Build the artifact
 FROM maven AS build
@@ -153,13 +153,13 @@ RUN mvn clean package -DskipTests
 # Stage 2: Final lightweight JRE layer
 FROM eclipse-temurin:21-jdk AS final
 WORKDIR /app
-COPY --from=build /app/target/data-validation-service-*.jar app.jar
+COPY --from=build /app/target/onboarding-service-*.jar app.jar
 EXPOSE 5001
 ENTRYPOINT ["java", "-jar", "app.jar"]
 ```
 To build it manually:
 ```bash
-docker build -t alramz/data-validation-service:latest ./services/data-validation-service
+docker build -t alramz/onboarding-service:latest ./services/onboarding-service
 ```
 
 ---
@@ -382,7 +382,9 @@ Step 6)
 
 
 
+1) Internal API Log
+2) Joules Agent.
 
-
+sudo lsof -nP -iTCP:8080 -sTCP:LISTEN
       
         

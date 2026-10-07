@@ -220,7 +220,7 @@ infra/modules/apim/main.tf
     <modules>
         <module>services/alramz-common-bom</module>
         <module>services/alramz-api-starter</module>
-        <module>services/data-validation-service</module>
+        <module>services/onboarding-service</module>
         <module>services/alramz-notification-service</module>
         <module>services/reference-data-service</module>
     </modules>
@@ -299,25 +299,25 @@ b53db96 Fix YAML multiline syntax - use run: | for heredoc
 87f115f Fix GitHub workflow secrets syntax errors
 
 === HIGH-CHURN FILES (last 90 days, top 20) ===
-  61 services/data-validation-service/src/main/java/com/alramz/DataValidationServiceApplication.java
+  61 services/onboarding-service/src/main/java/com/alramz/OnboardingServiceApplication.java
   49 .github/workflows/cicd.yml
-  18 services/data-validation-service/apiCollection.http
+  18 services/onboarding-service/apiCollection.http
   15 .github/actions/deploy-aca/action.yaml
   14 services/alramz-api-starter/pom.xml
   14 infra/environments/dev.tfvars
   14 .github/workflows/sync-secrets-to-keyvault.yml
   13 README.md
-  13 services/data-validation-service/pom.xml
+  13 services/onboarding-service/pom.xml
   12 .github/workflows/api-docs-deploy.yml
   12 infra/stacks/dev/main.tf
   12 .github/workflows/terraform.yml
   11 .gitignore
-  10 services/data-validation-service/src/main/resources/application-dev.yml
-  10 services/data-validation-service/specs/apiSpecs.yaml
-  10 services/data-validation-service/src/main/java/com/alramz/controllers/DataValidationController.java
+  10 services/onboarding-service/src/main/resources/application-dev.yml
+  10 services/onboarding-service/specs/apiSpecs.yaml
+  10 services/onboarding-service/src/main/java/com/alramz/controllers/DataValidationController.java
   10 services/alramz-common-bom/pom.xml
   10 .github/service-deployment-catalogue/dev.yml
-   9 services/data-validation-service/src/main/resources/application.yml
+   9 services/onboarding-service/src/main/resources/application.yml
    9 .github/workflows/deploy-qa.yml
 
 === MONOREPO SIGNALS ===
@@ -336,14 +336,14 @@ Files by language:
 Top 10 largest files:
 infra/stacks/dev/.terraform/providers/registry.terraform.io/hashicorp/azurerm/4.81.0/darwin_arm64/terraform-provider-azurerm_v4.81.0_x5: 224431.1KB
 infra/stacks/dev/.terraform/providers/registry.terraform.io/hashicorp/external/2.4.1/darwin_arm64/terraform-provider-external_v2.4.1_x5: 16857.2KB
-logs/data-validation-service.log: 2710.5KB
+logs/onboarding-service.log: 2710.5KB
 services/reference-data-service/logs/reference-data-service.log: 2506.1KB
 logs/reference-data-service.log: 2329.6KB
-services/data-validation-service/logs/data-validation-service.2026-09-17.0.log.gz: 818.8KB
-.kilo/worktrees/meowing-tarascosaurus/services/data-validation-service/logs/onboarding-api-docs.md: 775.2KB
-.kilo/worktrees/carbonated-kookaburra/services/data-validation-service/logs/onboarding-api-docs.md: 775.2KB
-services/data-validation-service/logs/onboarding-api-docs.md: 775.2KB
-logs/data-validation-service.2026-09-17.0.log.gz: 748.0KB
+services/onboarding-service/logs/onboarding-service.2026-09-17.0.log.gz: 818.8KB
+.kilo/worktrees/meowing-tarascosaurus/services/onboarding-service/logs/onboarding-api-docs.md: 775.2KB
+.kilo/worktrees/carbonated-kookaburra/services/onboarding-service/logs/onboarding-api-docs.md: 775.2KB
+services/onboarding-service/logs/onboarding-api-docs.md: 775.2KB
+logs/onboarding-service.2026-09-17.0.log.gz: 748.0KB
 
 === CI/CD PIPELINES ===
 CI/CD: GitHub Actions

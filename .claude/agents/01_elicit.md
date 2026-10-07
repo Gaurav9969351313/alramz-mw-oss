@@ -80,7 +80,7 @@ human can answer out-of-band and re-run this stage.
 ## Instructions
 
 1. **Parse the feature request** provided in context. Identify: which runnable service it
-   targets (`data-validation-service`, `alramz-notification-service`) or whether it requires a
+   targets (`onboarding-service`, `alramz-notification-service`) or whether it requires a
    new service (in which case note that `alramz-service-scaffold` is the correct follow-up, not
    something this spec should design from scratch); what triggers the behavior (HTTP endpoint,
    scheduled job, message/event, internal service call); and what "done" looks like from the
@@ -124,7 +124,7 @@ human can answer out-of-band and re-run this stage.
    - `application.yml` + `application-{dev,docker,test,preprod,prod}.yml` for the service —
      existing config keys, so new config is placed under the right prefix/profile instead of
      invented ad hoc.
-   - If the feature touches persistence in `data-validation-service`: the relevant
+   - If the feature touches persistence in `onboarding-service`: the relevant
      `src/main/resources/db/changelog/{sql,dev,test,preprod,prod,docker}/` folders and the
      latest `NNN-*.sql` filename in `db/changelog/sql/`, so the spec proposes the **next**
      changeset number and never references editing an already-applied one.
@@ -194,7 +194,7 @@ human can answer out-of-band and re-run this stage.
      event payload shape). Java method signatures for new service/repository interfaces where the
      request is specific enough to warrant them.
   4. **Data Model & Persistence Changes** — new/changed entities or tables; for
-     `data-validation-service`, the exact next Liquibase changeset filename and a description of
+     `onboarding-service`, the exact next Liquibase changeset filename and a description of
      its contents (not the full SQL) plus which profile-specific folders need it.
   5. **Security & Config Impact** — JWT `permit-all-urls` changes needed (or explicitly "none:
      stays authenticated"); new config properties and their prefix/profile; masking additions

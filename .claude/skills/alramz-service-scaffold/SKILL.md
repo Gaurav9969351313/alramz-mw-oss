@@ -6,16 +6,16 @@ description: >
   (JWT security, request/response + DB audit logging, multi-datasource, scheduler, OpenAPI-generator
   contract-first controllers, Liquibase, Docker, k8s service sizing). Use whenever asked to create a
   new service, bootstrap a microservice, add a module to services/, or "make a service like
-  data-validation-service / reference-data-service / alramz-notification-service". Modeled directly
+  onboarding-service / reference-data-service / alramz-notification-service". Modeled directly
   on services/reference-data-service (the newest, cleanest minimal scaffold in this repo) plus the
-  variations found in data-validation-service (JPA/Liquibase-heavy) and alramz-notification-service
+  variations found in onboarding-service (JPA/Liquibase-heavy) and alramz-notification-service
   (DB-less, external-integration-heavy).
 ---
 
 # Al Ramz microservice scaffold
 
 This skill turns the pattern already used by `services/reference-data-service`,
-`services/data-validation-service`, and `services/alramz-notification-service` into a repeatable
+`services/onboarding-service`, and `services/alramz-notification-service` into a repeatable
 procedure for standing up a new `services/<service-name>` module. Read this whole file before
 touching disk — the order of operations matters (the reactor and the JWT filter both fail closed
 if a step is skipped).
@@ -40,7 +40,7 @@ Ask (or infer from the request) — don't guess silently on anything load-bearin
 
 Also decide, from the request or by asking:
 - **Does this service own a database?** Default yes (JPA + Liquibase + middleware datasource), matching
-  `reference-data-service`/`data-validation-service`. If no (a pure integration/notification-style
+  `reference-data-service`/`onboarding-service`. If no (a pure integration/notification-style
   service like `alramz-notification-service`), use the "DB-less services" variant in §5.
 - **Which datasources?** `middleware` only, unless the service explicitly needs `brok` (Oracle) or
   `integration` too — each is a separate Hikari pool requiring its own `@Qualifier` everywhere it's
@@ -50,7 +50,7 @@ Also decide, from the request or by asking:
   Azure/Graph dependency set) — this skill only covers the shared-framework baseline, not
   service-specific integrations.
 
-Picking `__PORT__`: grep existing `server.port` values (`grep -rn "port: 80" services/*/src/main/resources/application*.yml`) and pick the next unused `808x`. `data-validation-service` is `5001`, `alramz-notification-service` is `8082`; `reference-data-service` dev is `8081`. Non-dev profiles all bind `8080` inside their own container — the Kubernetes Service is what makes the external port distinct, not `application-prod.yml`.
+Picking `__PORT__`: grep existing `server.port` values (`grep -rn "port: 80" services/*/src/main/resources/application*.yml`) and pick the next unused `808x`. `onboarding-service` is `5001`, `alramz-notification-service` is `8082`; `reference-data-service` dev is `8081`. Non-dev profiles all bind `8080` inside their own container — the Kubernetes Service is what makes the external port distinct, not `application-prod.yml`.
 
 ## 2. Directory + file checklist
 
@@ -82,18 +82,18 @@ copy the named template from `templates/`, substitute placeholders, and write it
 | `src/test/java/com/alramz/__APP_CLASS__Tests.java` | `ApplicationTests.java.template` |
 
 Also **copy verbatim** (don't template — these are the Maven Wrapper, and must match the working
-wrapper exactly) from `services/data-validation-service/`, which has the wrapper checked in
+wrapper exactly) from `services/onboarding-service/`, which has the wrapper checked in
 (`reference-data-service` also has one you can copy from):
 - `mvnw`, `mvnw.cmd`
 - `.mvn/wrapper/maven-wrapper.properties`
 
 Use package `com.alramz` (not `com.alramz.<service_name>`) for the application class, controllers,
 and config — every service in this repo shares that top-level package by convention (see CLAUDE.md
-§4 "package-by-feature", and compare `data-validation-service`'s and `reference-data-service`'s
+§4 "package-by-feature", and compare `onboarding-service`'s and `reference-data-service`'s
 `com.alramz.*` layouts). The one place to actively avoid copying a mistake: `reference-data-service`'s
 test class ended up in package `com.alramz.reference_data_service` (a Spring Initializr default it
 never cleaned up, documented in its own `HELP.md`) — put the new service's test class in plain
-`com.alramz`, matching `data-validation-service`, not that.
+`com.alramz`, matching `onboarding-service`, not that.
 
 ## 3. Wire it into the Maven reactor
 
@@ -152,7 +152,7 @@ skipped, because `alramz-api-starter`'s auto-configurations default to "off" or 
   edit or renumber a changeset that has already run anywhere.
 - **Typed exceptions**: add a `com.alramz.exception` package with a `GlobalExceptionHandler`
   (`@ControllerAdvice`) as soon as the service has its first real endpoint beyond `/api/v1/info` —
-  see `data-validation-service/src/main/java/com/alramz/exception/GlobalExceptionHandler.java` for
+  see `onboarding-service/src/main/java/com/alramz/exception/GlobalExceptionHandler.java` for
   the shape (typed exceptions, not generic `RuntimeException`).
 - **Lombok**: use `@Getter`/`@Setter`/`@Slf4j`/builders everywhere; the `pom.xml` and
   `maven-compiler-plugin` annotation-processor wiring for it is already in the template.
@@ -200,7 +200,7 @@ separate, explicit instruction:
   automatically; nothing to edit there for a brand-new service to get picked up by the main
   pipeline. But `feature-deploy.yml`, `feature-deploy-fast.yml`, `restart-pods.yml`, and
   `rollback.yml` each have a hardcoded service dropdown (currently only listing
-  `data-validation-service`) — adding the new service to those dropdowns is a workflow-file edit
+  `onboarding-service`) — adding the new service to those dropdowns is a workflow-file edit
   and needs explicit sign-off, not something to do as part of scaffolding.
 - `.github/service-deployment-catalogue/service-register.yml` — CI owns this; never hand-edit it.
 - `infra/` (Terraform) — no Terraform changes are needed just to add a Maven module; only touch

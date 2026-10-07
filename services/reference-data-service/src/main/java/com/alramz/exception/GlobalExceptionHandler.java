@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
  * Covers every controller under {@code com.alramz.controllers} (including the
  * pre-existing {@code RedisCacheController}/{@code ApplicationController}), since this
  * service has exactly one response envelope family ({@link GenericResponse}) — no
- * per-controller path branching is needed, unlike data-validation-service's
+ * per-controller path branching is needed, unlike onboarding-service's
  * {@code GlobalExceptionHandler}.
  */
 @RestControllerAdvice(basePackages = "com.alramz.controllers")

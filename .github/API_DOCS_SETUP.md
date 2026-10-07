@@ -25,7 +25,7 @@ The setup includes:
 │       └── .nojekyll                     # GitHub Pages config
 ├── services/
 │   ├── alramz-notification-service/specs/openapi.yaml
-│   └── data-validation-service/specs/apiSpecs.yaml
+│   └── onboarding-service/specs/apiSpecs.yaml
 └── .github/workflows/
     └── api-docs-deploy.yml               # GitHub Actions workflow
 ```
@@ -58,7 +58,7 @@ Set the following repository secrets in GitHub Settings → Secrets and variable
 Ensure your OpenAPI specs are in the correct locations:
 
 - `services/alramz-notification-service/specs/openapi.yaml`
-- `services/data-validation-service/specs/apiSpecs.yaml`
+- `services/onboarding-service/specs/apiSpecs.yaml`
 
 If you have additional services, update `redocly.yaml`:
 

@@ -3,7 +3,7 @@
 Pattern-focused, copy-paste-ready reference docs for building a new service (or a new feature in an
 existing service) in this monorepo. Each doc is grounded in the **real code** of the two reference
 services — `services/reference-data-service` (newest, cleanest scaffold) and
-`services/data-validation-service` (JPA/Liquibase-heavy, most mature) — plus the shared plumbing in
+`services/onboarding-service` (JPA/Liquibase-heavy, most mature) — plus the shared plumbing in
 `services/alramz-api-starter`. Every claim in these docs was verified against the actual source, not
 inferred from convention alone; where the two reference services disagree or where the repo has a
 real bug/gap, the doc says so explicitly instead of presenting it as the pattern to copy.
@@ -54,12 +54,12 @@ These aren't hypothetical — each was found by reading the actual code, and eac
 section explains it in more detail. Flagging them here as a punch list, since fixing them wasn't in
 scope for this documentation pass:
 
-- **`data-validation-service`'s `OnboardingExceptionHandler` is dead code.** It's `@Order(1)` while `GlobalExceptionHandler` is `@Order(0)` with a broader `basePackages`, so the global handler always wins for every exception type they both declare.
+- **`onboarding-service`'s `OnboardingExceptionHandler` is dead code.** It's `@Order(1)` while `GlobalExceptionHandler` is `@Order(0)` with a broader `basePackages`, so the global handler always wins for every exception type they both declare.
 - **`reference-data-service` has no exception handling at all** — no typed exceptions, no `@RestControllerAdvice`. It only gets the starter's generic fallback (`LoggingExceptionHandler`). Not a pattern to copy from.
 - **`reference-data-service`'s `ApplicationController` hand-writes `GET /api/v1/info`** instead of implementing the generated `InfoApi` interface its own spec declares — breaks the contract-first pattern it otherwise follows.
 - **Both services' `application-prod.yml` use `plainPassword`** for datasource credentials instead of encrypted `password`+`passwordVector` via `cipher.password` — CLAUDE.md explicitly calls `plainPassword` dev-only.
 - **`reference-data-service`'s Liquibase changelog has a numbering/changeset-id collision** and an orphaned "shared" folder nothing includes; a `.bak`-disabled seed file also exists. See `liquibase-migrations.md` for specifics.
 - **`SchedulerProperties` doesn't follow the Lombok + `PREFIX` constant convention** the other starter properties classes use, and `company.jwt.enabled` isn't actually wired as a kill switch in `JwtAutoConfiguration` despite being documented as a toggle in CLAUDE.md.
 - **Neither reference service uses Spring Data JPA** (`extends JpaRepository`) despite the dependency being present — both do direct SQL via `NamedParameterJdbcTemplate` + a `SqlQueriesManager` query-file loader. JPA is documented as supported but not the pattern actually in use.
-- **A real, signed JWT and extensive PII-shaped test data are hardcoded in tracked `apiCollection.http` files** (`data-validation-service`'s onboarding example body in particular — a full name, an EID-number-pattern value, a real-domain email, base64 image blobs). Low practical risk (the token is short-lived) but not a pattern to extend. See `api-collection-http-requests.md`.
+- **A real, signed JWT and extensive PII-shaped test data are hardcoded in tracked `apiCollection.http` files** (`onboarding-service`'s onboarding example body in particular — a full name, an EID-number-pattern value, a real-domain email, base64 image blobs). Low practical risk (the token is short-lived) but not a pattern to extend. See `api-collection-http-requests.md`.
 - **`alramz-notification-service`'s `apiCollection.http` references `{{authToken}}` in its Scheduler Management block without ever defining `@authToken`** — a copy-paste artifact; those six requests would send the literal unresolved string as the header value if run as-is.

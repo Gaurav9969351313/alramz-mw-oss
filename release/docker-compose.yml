@@ -42,9 +42,9 @@ services:
       start_period: 10s
     command: redis-server --save "" --appendonly no
 
-  data-validation-service:
-    image: ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/data-validation-service:${DATA_VALIDATION_SERVICE_TAG}
-    container_name: alramz-data-validation-service
+  onboarding-service:
+    image: ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/onboarding-service:${ONBOARDING_SERVICE_TAG}
+    container_name: alramz-onboarding-service
     restart: unless-stopped
     env_file:
       - .env

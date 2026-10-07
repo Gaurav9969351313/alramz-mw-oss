@@ -11,7 +11,7 @@ The release folder provides:
 - `RELEASE-MANIFEST.yaml.template` — Manifest template for image digests and metadata
 - `.env.example` — Template documenting all required environment variables
 
-**Note:** Each service owns its own `Dockerfile` inside its service directory (e.g., `services/data-validation-service/Dockerfile`). There are no duplicate Dockerfiles in the release folder.
+**Note:** Each service owns its own `Dockerfile` inside its service directory (e.g., `services/onboarding-service/Dockerfile`). There are no duplicate Dockerfiles in the release folder.
 
 ## Which Script Do I Need?
 
@@ -47,13 +47,13 @@ Are you building and publishing images?
 ## Architecture
 
 Services:
-- **data-validation-service** (port 8080) — Validates user data against external APIs and internal DB
+- **onboarding-service** (port 8080) — Validates user data against external APIs and internal DB
 - **alramz-notification-service** (port 8082) — Sends notifications via Microsoft Graph
 - **postgres** (port 5432) — Persistent database (Liquibase migrations)
 - **redis** (port 6379) — Cache layer
 
 Dependencies:
-- data-validation-service depends on postgres and redis
+- onboarding-service depends on postgres and redis
 - alramz-notification-service depends on postgres
 
 Network: All services communicate via a dedicated `alramz-platform_alramz-network` bridge network.
@@ -62,7 +62,7 @@ Network: All services communicate via a dedicated `alramz-platform_alramz-networ
 
 | Service | Container | Port | Browser URL |
 |---------|-----------|------|-------------|
-| data-validation-service | alramz-data-validation-service | 8080 | http://localhost:8080/api/v1/info |
+| onboarding-service | alramz-onboarding-service | 8080 | http://localhost:8080/api/v1/info |
 | alramz-notification-service | alramz-notification-service | 8082 | http://localhost:8082/api/v1/info |
 | PostgreSQL | alramz-postgres | 5432 | `localhost:5432` (DB client) |
 | Redis | alramz-redis | 6379 | `localhost:6379` (Redis client) |
@@ -104,7 +104,7 @@ Network: All services communicate via a dedicated `alramz-platform_alramz-networ
 | `REGISTRY_URL` | Docker registry URL | `your-registry.example.com` |
 | `REGISTRY_NAMESPACE` | Docker registry namespace/org | `alramz` |
 | `RELEASE_VERSION` | Semantic version (e.g., `1.0.0`) | `1.0.0` |
-| `DATA_VALIDATION_SERVICE_TAG` | Image tag for data-validation-service | `1.0.0` |
+| `ONBOARDING_SERVICE_TAG` | Image tag for onboarding-service | `1.0.0` |
 | `NOTIFICATION_SERVICE_TAG` | Image tag for alramz-notification-service | `1.0.0` |
 | `POSTGRES_IMAGE` | PostgreSQL Docker image | `postgres:15-alpine` |
 | `REDIS_IMAGE` | Redis Docker image | `redis:7-alpine` |
@@ -163,7 +163,7 @@ Menu options:
 export REGISTRY_URL=registry.example.com
 export REGISTRY_NAMESPACE=alramz
 export RELEASE_VERSION=1.0.0
-export DATA_VALIDATION_SERVICE_TAG=1.0.0
+export ONBOARDING_SERVICE_TAG=1.0.0
 export NOTIFICATION_SERVICE_TAG=1.0.0
 export REGISTRY_USERNAME=ci-user
 export REGISTRY_PASSWORD=ci-password
@@ -206,7 +206,7 @@ Menu options:
 export REGISTRY_URL=registry.example.com
 export REGISTRY_NAMESPACE=alramz
 export RELEASE_VERSION=1.0.0
-export DATA_VALIDATION_SERVICE_TAG=1.0.0
+export ONBOARDING_SERVICE_TAG=1.0.0
 export NOTIFICATION_SERVICE_TAG=1.0.0
 
 ./scripts/deploy.sh --no-prompt
@@ -232,7 +232,7 @@ The service must be added to the root `pom.xml` modules list:
 <modules>
     <module>services/alramz-common-bom</module>
     <module>services/alramz-api-starter</module>
-    <module>services/data-validation-service</module>
+    <module>services/onboarding-service</module>
     <module>services/alramz-notification-service</module>
     <module>services/my-new-service</module>  <!-- add this -->
 </modules>
@@ -430,5 +430,5 @@ mvn clean package -DskipTests
 ### Image Not Found
 Verify the image tag and registry URL are correct. Use `docker manifest inspect` to check availability:
 ```bash
-docker manifest inspect docker.io/gauravtalele1994/data-validation-service:1.0.0
+docker manifest inspect docker.io/gauravtalele1994/onboarding-service:1.0.0
 ```

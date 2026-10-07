@@ -8,14 +8,14 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: data-validation.local
+    - host: onboarding.local
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: data-validation-service
+                name: onboarding-service
                 port:
                   number: 8080
     - host: notification.local

@@ -6,8 +6,8 @@ Every schema change in this repo — new table, new column, new index, seed/refe
 
 Two services currently use it:
 
-- `services/data-validation-service` — the original adopter (H2 in tests, Postgres-compatible SQL in real profiles).
-- `services/reference-data-service` — adopted the identical pattern later (confirmed by reading its `db/changelog/` tree — it mirrors `data-validation-service` file-for-file in structure).
+- `services/onboarding-service` — the original adopter (H2 in tests, Postgres-compatible SQL in real profiles).
+- `services/reference-data-service` — adopted the identical pattern later (confirmed by reading its `db/changelog/` tree — it mirrors `onboarding-service` file-for-file in structure).
 
 If you're scaffolding a new service that needs its own schema (not just reading another service's DB), copy this structure from `reference-data-service` — it's the cleaner, more recent example.
 
@@ -57,7 +57,7 @@ spring:
 Every profile (`dev`, `docker`, `preprod`, `prod`) has this same two-line block pointing at its own master. The `test` profile is configured from `src/test/resources/application.yml`:
 
 ```yaml
-# services/data-validation-service/src/test/resources/application.yml:4-5
+# services/onboarding-service/src/test/resources/application.yml:4-5
 spring:
   liquibase:
     change-log: classpath:db/changelog/test/db.changelog-master.yaml
@@ -104,13 +104,13 @@ Note `MODE=PostgreSQL` on the H2 URL — that's what lets Postgres-flavored SQL 
 
 ## 4. How to add a new migration
 
-### 4a. In an existing service (data-validation-service or reference-data-service)
+### 4a. In an existing service (onboarding-service or reference-data-service)
 
 **Step 1 — find the next number.** List the target profile's `sql/` folder and take the highest numeric prefix + 1. As of this writing:
 
 | Service | Folder | Highest existing | Next file starts with |
 |---|---|---|---|
-| `data-validation-service` | `dev/sql`, `docker/sql`, `preprod/sql`, `prod/sql` | `006-...` | `007-` |
+| `onboarding-service` | `dev/sql`, `docker/sql`, `preprod/sql`, `prod/sql` | `006-...` | `007-` |
 | `reference-data-service` | `dev/sql`, `docker/sql`, `preprod/sql`, `prod/sql` | `004-...` | `005-` |
 
 (Always re-check by listing the folder yourself — these numbers move.)
@@ -129,9 +129,9 @@ CREATE INDEX IF NOT EXISTS idx_customer_status ON customer(status);
 
 Rules for the header, taken directly from real files in this repo:
 - First line is `--liquibase formatted sql` (no leading `#`/blank required, but keep it as the first content line).
-- `--changeset <author>:<id>` — `<author>` has been either a real name (`gaurav`) or a shared token (`alramz`, `liquibase`) in existing files; pick your name. `<id>` must be **unique within the file** — convention in this repo is to reuse the filename's number+description as the id (e.g. `007-add-customer-status-column`), though one existing file (`data-validation-service/.../002-jwt-tables.sql`) uses changeset ids `003`, `004`, `005` that don't match its own filename number `002` — don't copy that inconsistency; keep filename number and changeset id aligned in new files.
+- `--changeset <author>:<id>` — `<author>` has been either a real name (`gaurav`) or a shared token (`alramz`, `liquibase`) in existing files; pick your name. `<id>` must be **unique within the file** — convention in this repo is to reuse the filename's number+description as the id (e.g. `007-add-customer-status-column`), though one existing file (`onboarding-service/.../002-jwt-tables.sql`) uses changeset ids `003`, `004`, `005` that don't match its own filename number `002` — don't copy that inconsistency; keep filename number and changeset id aligned in new files.
 - A single file **can** hold multiple `--changeset` blocks (see `002-jwt-tables.sql`, which has three), but prefer **one logical change per file** for anything you write now — easier to review and roll back independently.
-- Add a `--rollback <SQL>;` line whenever the forward statement is reversible (`CREATE TABLE` → `DROP TABLE`, `ADD COLUMN` → `DROP COLUMN`). Real example: `data-validation-service/.../004-api-audit-log.sql` ends with `--rollback DROP TABLE IF EXISTS api_audit_log;`. Today this is the **only** file in the repo with a rollback statement — treat it as the standard to follow, not the exception.
+- Add a `--rollback <SQL>;` line whenever the forward statement is reversible (`CREATE TABLE` → `DROP TABLE`, `ADD COLUMN` → `DROP COLUMN`). Real example: `onboarding-service/.../004-api-audit-log.sql` ends with `--rollback DROP TABLE IF EXISTS api_audit_log;`. Today this is the **only** file in the repo with a rollback statement — treat it as the standard to follow, not the exception.
 - Use `IF NOT EXISTS` / `IF EXISTS` guards on `CREATE TABLE`, `CREATE INDEX`, and `ALTER ... RENAME` where you can — every recent changeset in `reference-data-service` does this, and it makes the changeset idempotent-safe if the changelog table and actual DB schema ever drift.
 
 **Step 3 — decide shared vs. profile-specific, and copy to every profile that needs it.** Unlike a typical Liquibase setup, this repo does **not** have one master that all profiles share — each profile folder is independent (see §5.1). In practice, most real changes here have been copied byte-for-byte into `dev/sql/`, `docker/sql/`, `preprod/sql/`, and `prod/sql/` under the same filename. If your change is genuinely profile-only (e.g. dev-only seed data), put it *only* in that profile's folder — but if it's a real schema change meant to reach prod, **add the identical file to all four folders** (`dev`, `docker`, `preprod`, `prod`), plus the `test` profile under `src/test/resources/db/changelog/test/sql/` if your tests touch that table.
@@ -170,18 +170,18 @@ Both current services already have it, but if you scaffold a service that needs 
        change-log: classpath:db/changelog/<profile>/db.changelog-master.yaml
    ```
 4. Create the same tree under `src/test/resources/db/changelog/test/sql/` + `src/test/resources/db/changelog/test/db.changelog-master.yaml`, and point `src/test/resources/application.yml` at it.
-5. Add the `liquibase-maven-plugin` block (copy verbatim from `data-validation-service/pom.xml` or `reference-data-service/pom.xml`) if you want local `mvn liquibase:update`/`liquibase:diff` support against H2.
+5. Add the `liquibase-maven-plugin` block (copy verbatim from `onboarding-service/pom.xml` or `reference-data-service/pom.xml`) if you want local `mvn liquibase:update`/`liquibase:diff` support against H2.
 6. Write your first changeset as `001-<description>.sql` in each profile folder.
 
 ## 5. Common pitfalls / anti-patterns
 
-1. **There is no real "shared" changelog folder today, despite appearances.** `data-validation-service` has a `src/main/resources/db/changelog/sql/` folder (no profile prefix) containing `004-reference-data-table.sql` and `005-reference-data-inserts.sql.bak`, plus a root `db/changelog/db.changelog-master.yaml` that includes only that folder. **Nothing references that root master** — every `application-<profile>.yml` points straight at `db/changelog/<profile>/db.changelog-master.yaml`, which only includes its own `<profile>/sql` folder. So `004-reference-data-table.sql` is dead/orphaned unless a profile folder happens to duplicate it, and `005-reference-data-inserts.sql.bak` is disabled by its `.bak` extension (Liquibase's `includeAll` won't pick up a non-`.sql` file). **Don't build on the assumption of a shared folder** — if you want a change applied everywhere, copy the file into every profile folder explicitly (see step 4a-3), and if you're cleaning this up, either wire the root master into every profile or delete the orphaned folder.
+1. **There is no real "shared" changelog folder today, despite appearances.** `onboarding-service` has a `src/main/resources/db/changelog/sql/` folder (no profile prefix) containing `004-reference-data-table.sql` and `005-reference-data-inserts.sql.bak`, plus a root `db/changelog/db.changelog-master.yaml` that includes only that folder. **Nothing references that root master** — every `application-<profile>.yml` points straight at `db/changelog/<profile>/db.changelog-master.yaml`, which only includes its own `<profile>/sql` folder. So `004-reference-data-table.sql` is dead/orphaned unless a profile folder happens to duplicate it, and `005-reference-data-inserts.sql.bak` is disabled by its `.bak` extension (Liquibase's `includeAll` won't pick up a non-`.sql` file). **Don't build on the assumption of a shared folder** — if you want a change applied everywhere, copy the file into every profile folder explicitly (see step 4a-3), and if you're cleaning this up, either wire the root master into every profile or delete the orphaned folder.
 
 2. **Never edit or renumber an already-applied changeset.** Liquibase stores a checksum per `(author, id, file)` in `DATABASECHANGELOG`; changing the SQL after it's shipped to any environment breaks startup there with a checksum-mismatch error. If you need to fix a mistake, add a new changeset (e.g. `ALTER TABLE ... DROP COLUMN ...` followed by a corrected `ADD COLUMN`), never touch the old file.
 
-3. **Filename number and changeset id can drift — don't let them.** `data-validation-service/.../dev/sql/002-jwt-tables.sql` contains changesets `003-create-jwt-user-table`, `004-create-jwt-refresh-token-table`, `005-create-jwt-indexes` — none matching the `002` filename prefix. This is confusing when scanning for "what's changeset 003" and it's the reason `reference-data-service` ended up with two files both prefixed `003-` (`003-cache-audit-log.sql` and `003-rename-to-application-workflow-locks.sql`) — the numbering had already drifted from the changeset ids. Keep filename prefix == changeset id prefix in anything new.
+3. **Filename number and changeset id can drift — don't let them.** `onboarding-service/.../dev/sql/002-jwt-tables.sql` contains changesets `003-create-jwt-user-table`, `004-create-jwt-refresh-token-table`, `005-create-jwt-indexes` — none matching the `002` filename prefix. This is confusing when scanning for "what's changeset 003" and it's the reason `reference-data-service` ended up with two files both prefixed `003-` (`003-cache-audit-log.sql` and `003-rename-to-application-workflow-locks.sql`) — the numbering had already drifted from the changeset ids. Keep filename prefix == changeset id prefix in anything new.
 
-4. **Add `--rollback` — almost nothing in this repo does, but one file shows the standard.** `data-validation-service/.../004-api-audit-log.sql` is the only changeset with a `--rollback` line today. Follow it, don't follow the majority.
+4. **Add `--rollback` — almost nothing in this repo does, but one file shows the standard.** `onboarding-service/.../004-api-audit-log.sql` is the only changeset with a `--rollback` line today. Follow it, don't follow the majority.
 
 5. **Postgres-only SQL syntax works because of the H2 compatibility mode**, not because the target DB is Postgres in dev. `BIGSERIAL`, `JSONB`, `CHECK (col IN (...))`, `ON CONFLICT ... DO NOTHING` all run against H2 because of `MODE=PostgreSQL` on the test JDBC URL. If you introduce a genuinely Postgres-specific feature (e.g. a Postgres-only function), verify it also works — or is conditionally skipped — against whatever the `preprod`/`prod` real database actually is before assuming dev-test parity proves it.
 

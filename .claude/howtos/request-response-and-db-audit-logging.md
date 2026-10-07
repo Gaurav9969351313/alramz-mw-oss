@@ -12,7 +12,7 @@ This doc covers four independent, starter-provided logging/audit concerns, all o
 4. **Masking** — a single `SensitiveDataMasker` (backed by `LogMaskingUtil`) that redacts sensitive
    values before anything reaches a log line or an audit row.
 
-Reference services: `data-validation-service` (uses all four, including DB audit logging) and
+Reference services: `onboarding-service` (uses all four, including DB audit logging) and
 `reference-data-service` (uses 1, 3, 4, but deliberately leaves DB audit logging **off** even though it
 has the `middleware` datasource enabled).
 
@@ -36,8 +36,8 @@ All in `services/alramz-api-starter/src/main/java/com/alramz/`:
 
 Registered in `services/alramz-api-starter/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports` as `com.alramz.logging.config.LoggingAutoConfiguration`.
 
-`api_audit_log` table (Liquibase, `data-validation-service` only — see `liquibase-migrations.md`):
-`services/data-validation-service/src/main/resources/db/changelog/{dev,docker,preprod,prod}/sql/004-api-audit-log.sql`.
+`api_audit_log` table (Liquibase, `onboarding-service` only — see `liquibase-migrations.md`):
+`services/onboarding-service/src/main/resources/db/changelog/{dev,docker,preprod,prod}/sql/004-api-audit-log.sql`.
 
 ## 2. How it works
 
@@ -87,7 +87,7 @@ request/response to JSON and inserts one row into `api_audit_log` via `middlewar
   `com.alramz.client..*`, `ETradeTokenProvider.fetchAndCacheToken`, `IBANValidationServiceImpl.validate`,
   `PhoneValidationServiceImpl.validate`, `DuplicateCheckServiceImpl..*`, and `com.alramz.controllers..*`
   (direction `OUTBOUND` unless the declaring class is a `@RestController`/`@Controller`, in which case
-  `INBOUND`). Note the pointcut hardcodes specific service class names from `data-validation-service` —
+  `INBOUND`). Note the pointcut hardcodes specific service class names from `onboarding-service` —
   if a new service wants aspect-based audit coverage of its own client/service classes beyond the generic
   `com.alramz.client..*`/`com.alramz.controllers..*` patterns, those class names would need to be added to
   this pointcut in the starter (this is shared starter code, so treat that as a cross-cutting change, not
@@ -96,7 +96,7 @@ request/response to JSON and inserts one row into `api_audit_log` via `middlewar
   `company.logging.database-logging.retentionDays` (default 7) on `company.logging.database-logging.cleanupCron`
   (default `0 0 2 * * *`, i.e. 2am daily).
 
-Real, working example — `data-validation-service` (`application-dev.yml`) enables it fully:
+Real, working example — `onboarding-service` (`application-dev.yml`) enables it fully:
 
 ```yaml
 company:
@@ -132,7 +132,7 @@ audit logging is an explicit opt-in, not something you get "for free" just becau
 - Real usage — both reference services annotate methods directly:
 
   ```java
-  // services/data-validation-service/src/main/java/com/alramz/service/impl/IBANValidationServiceImpl.java:54
+  // services/onboarding-service/src/main/java/com/alramz/service/impl/IBANValidationServiceImpl.java:54
   @Override
   @Loggable
   public GenericResponse validate(IBANRequest request) { ... }
@@ -205,7 +205,7 @@ This requires the `middleware` datasource AND the `api_audit_log` table to exist
    `multi-datasource-and-jpa.md`.
 2. If the new service doesn't already have Liquibase, either add it (see `liquibase-migrations.md`) or, at
    minimum, ensure the `api_audit_log` table exists in its target schema — copy the DDL from
-   `services/data-validation-service/src/main/resources/db/changelog/dev/sql/004-api-audit-log.sql`
+   `services/onboarding-service/src/main/resources/db/changelog/dev/sql/004-api-audit-log.sql`
    (adjust the `service_name` default if you want, though the code always writes the real
    `spring.application.name` value regardless of that column default).
 3. Turn the feature on:

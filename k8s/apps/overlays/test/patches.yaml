@@ -1,14 +1,14 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: data-validation-service
+  name: onboarding-service
 spec:
   replicas: 2
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: data-validation-service-config
+  name: onboarding-service-config
 data:
   SPRING_PROFILES_ACTIVE: "test"
 ---

@@ -107,7 +107,7 @@ cmd_validate_prerequisites() {
     check "docker" "docker --version"
     check "docker compose" "docker compose version || docker-compose version"
     check "docker daemon" "docker info"
-    check "registry reachable" "[ -n \"${REGISTRY_URL}\" ] && docker manifest inspect ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/data-validation-service:latest >/dev/null 2>&1 || echo 'skip'"
+    check "registry reachable" "[ -n \"${REGISTRY_URL}\" ] && docker manifest inspect ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/onboarding-service:latest >/dev/null 2>&1 || echo 'skip'"
     check "host port 8080" "lsof -i :8080 >/dev/null 2>&1 || ss -i listening '( dport = 8080 )' >/dev/null 2>&1 || echo 'skip'"
     check "host port 8082" "lsof -i :8082 >/dev/null 2>&1 || ss -i listening '( dport = 8082 )' >/dev/null 2>&1 || echo 'skip'"
     check "compose file" "test -f ${RELEASE_DIR}/docker-compose.yml"
@@ -165,7 +165,7 @@ cmd_pull_images() {
     log_info "[STEP 4/15] Pull Images"
     source "${RELEASE_DIR}/.env"
 
-    for service in data-validation-service alramz-notification-service; do
+    for service in onboarding-service alramz-notification-service; do
         local tag_var="$(to_upper "$service")_TAG"
         local tag="${!tag_var:-${RELEASE_VERSION:-latest}}"
         local image="${REGISTRY_URL}/${REGISTRY_NAMESPACE}/${service}:${tag}"
@@ -190,7 +190,7 @@ cmd_verify_images() {
     log_info "[STEP 5/15] Verify Images"
     source "${RELEASE_DIR}/.env"
 
-    for service in data-validation-service alramz-notification-service; do
+    for service in onboarding-service alramz-notification-service; do
         local tag_var="$(to_upper "$service")_TAG"
         local tag="${!tag_var:-${RELEASE_VERSION:-latest}}"
         local image="${REGISTRY_URL}/${REGISTRY_NAMESPACE}/${service}:${tag}"
@@ -244,7 +244,7 @@ cmd_platform_status() {
 
 cmd_health_check() {
     log_info "[STEP 11/15] Health Check"
-    local services=("data-validation-service:8080:/actuator/health" "alramz-notification-service:8082:/api/v1/info")
+    local services=("onboarding-service:8080:/actuator/health" "alramz-notification-service:8082:/api/v1/info")
     for entry in "${services[@]}"; do
         local svc="${entry%%:*}"
         local port="${entry##*:}"
@@ -263,7 +263,7 @@ cmd_health_check() {
 cmd_view_logs() {
     log_info "[STEP 12/15] View Logs"
     echo "Select service:"
-    echo " 1) data-validation-service"
+    echo " 1) onboarding-service"
     echo " 2) alramz-notification-service"
     echo " 3) postgres"
     echo " 4) redis"
@@ -271,7 +271,7 @@ cmd_view_logs() {
     read -rp "Enter choice [1-5]: " log_choice
     local service=""
     case "$log_choice" in
-        1) service="data-validation-service" ;;
+        1) service="onboarding-service" ;;
         2) service="alramz-notification-service" ;;
         3) service="postgres" ;;
         4) service="redis" ;;
@@ -290,7 +290,7 @@ cmd_upgrade_release() {
     log_info "Upgrade started from ${old_version}"
 
     read -rp "Enter new RELEASE_VERSION: " RELEASE_VERSION
-    read -rp "Enter new DATA_VALIDATION_SERVICE_TAG: " DATA_VALIDATION_SERVICE_TAG
+    read -rp "Enter new ONBOARDING_SERVICE_TAG: " ONBOARDING_SERVICE_TAG
     read -rp "Enter new NOTIFICATION_SERVICE_TAG: " NOTIFICATION_SERVICE_TAG
 
     log_info "Backing up configuration..."
