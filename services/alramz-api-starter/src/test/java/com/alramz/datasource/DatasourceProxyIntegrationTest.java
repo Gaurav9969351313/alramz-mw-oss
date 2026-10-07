@@ -48,4 +48,19 @@ class DatasourceProxyIntegrationTest {
                     assertThat(dataSource).isNotInstanceOf(ProxyDataSource.class);
                 });
     }
+
+    @Test
+    void sqlLoggingDisabledStillProxiesForTracing() {
+        com.alramz.tracing.listener.TracingQueryExecutionListener tracingListener =
+                new com.alramz.tracing.listener.TracingQueryExecutionListener(io.micrometer.tracing.Tracer.NOOP);
+        contextRunner
+                .withPropertyValues("company.datasource.middleware.sql-logging.enabled=false")
+                .withBean(com.alramz.tracing.listener.TracingQueryExecutionListener.class, () -> tracingListener)
+                .run(context -> {
+                    DataSource dataSource = context.getBean("middlewareDataSource", DataSource.class);
+                    assertThat(dataSource).isInstanceOf(ProxyDataSource.class);
+                    assertThat(((ProxyDataSource) dataSource).getProxyConfig().getQueryListener().getListeners())
+                            .containsExactly(tracingListener);
+                });
+    }
 }

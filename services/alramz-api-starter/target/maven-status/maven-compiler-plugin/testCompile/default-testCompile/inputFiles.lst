@@ -19,4 +19,7 @@
 /Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/test/java/com/alramz/logging/LogMaskingUtilTest.java
 /Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/test/java/com/alramz/logging/LoggingHelperTest.java
 /Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/test/java/com/alramz/logging/MethodExecutionLoggingAspectTest.java
+/Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/test/java/com/alramz/logging/interceptor/WebClientLoggingFilterTest.java
+/Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/test/java/com/alramz/tracing/config/TracingAutoConfigurationTest.java
+/Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/test/java/com/alramz/tracing/listener/TracingQueryExecutionListenerTest.java
 /Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/test/java/com/alramz/utils/PWProtectorTest.java

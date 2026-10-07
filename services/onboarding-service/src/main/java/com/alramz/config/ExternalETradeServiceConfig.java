@@ -19,6 +19,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
+import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.time.Duration;
@@ -33,8 +34,8 @@ public class ExternalETradeServiceConfig {
     private static final String CIRCUIT_BREAKER_ID = "etrade-circuit-breaker";
 
     @Bean(name = "etradeValidationService")
-    public WebClient etradeValidationService() {
-        return WebClient.builder()
+    public WebClient etradeValidationService(WebClient.Builder builder, ExchangeFilterFunction alramzWebClientLoggingFilterFunction) {
+        return builder
                 .baseUrl(etradeProperties.baseUrl())
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
@@ -42,6 +43,7 @@ public class ExternalETradeServiceConfig {
                     configurer.defaultCodecs().jackson2JsonDecoder(new Jackson2JsonDecoder(objectMapper()));
                     configurer.defaultCodecs().maxInMemorySize(4 * 1024 * 1024);
                 })
+                .filter(alramzWebClientLoggingFilterFunction)
                 .build();
     }
 

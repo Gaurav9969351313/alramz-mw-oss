@@ -2,6 +2,8 @@ package com.alramz.logging.aspect;
 
 import com.alramz.logging.util.MethodExecutionLoggingHelper;
 import com.alramz.logging.util.MDCUtil;
+import io.micrometer.tracing.Span;
+import io.micrometer.tracing.Tracer;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -16,9 +18,12 @@ import java.lang.reflect.Method;
 public class MethodExecutionLoggingAspect {
 
     private final ObjectProvider<MethodExecutionLoggingHelper> helperProvider;
+    private final ObjectProvider<Tracer> tracerProvider;
 
-    public MethodExecutionLoggingAspect(ObjectProvider<MethodExecutionLoggingHelper> helperProvider) {
+    public MethodExecutionLoggingAspect(ObjectProvider<MethodExecutionLoggingHelper> helperProvider,
+                                        ObjectProvider<Tracer> tracerProvider) {
         this.helperProvider = helperProvider;
+        this.tracerProvider = tracerProvider;
         log.debug("MethodExecutionLoggingAspect initialized with helperProvider");
     }
 
@@ -60,21 +65,31 @@ public class MethodExecutionLoggingAspect {
 
         String correlationId = MDCUtil.getCorrelationId();
 
+        // Child span per @Loggable method: masked args/return as tags, exceptions (with stack trace) recorded.
+        Tracer tracer = tracerProvider.getIfAvailable();
+        Span span = tracer == null ? null : tracer.nextSpan().name(fullMethod).tag("code.function", fullMethod).start();
+
+        String args = logArgs && (span != null || logEntry && log.isInfoEnabled()) ? helper.formatArgs(pjp, maxLength) : null;
+        if (span != null && args != null) {
+            span.tag("method.args", args);
+        }
         if (logEntry && log.isInfoEnabled()) {
-            String args = logArgs ? helper.formatArgs(pjp, maxLength) : "[]";
             log.info("{}\n>>> ENTERING: {} [correlationId={}]\n>>> ARGS: {}\n{}",
-                    separator, fullMethod, correlationId, args, separator);
+                    separator, fullMethod, correlationId, args == null ? "[]" : args, separator);
         }
 
         long start = System.nanoTime();
         Object result = null;
         Throwable thrown = null;
 
-        try {
+        try (Tracer.SpanInScope scope = span == null ? null : tracer.withSpan(span)) {
             result = pjp.proceed();
             return result;
         } catch (Throwable t) {
             thrown = t;
+            if (span != null) {
+                span.error(t);
+            }
             if (logExceptions && log.isErrorEnabled()) {
                 log.error("{}\n<<< EXCEPTION in {} [correlationId={}]: {}\n{}",
                         separator, fullMethod, correlationId, t.getMessage(), separator, t);
@@ -82,10 +97,17 @@ public class MethodExecutionLoggingAspect {
             throw t;
         } finally {
             long elapsedMs = (System.nanoTime() - start) / 1_000_000L;
+            String returnValue = logReturn && thrown == null && (span != null || logExit && log.isInfoEnabled())
+                    ? helper.serialize(result, maxLength) : null;
+            if (span != null) {
+                if (returnValue != null) {
+                    span.tag("method.return", returnValue);
+                }
+                span.end();
+            }
             if (logExit && log.isInfoEnabled()) {
-                String returnValue = logReturn ? helper.serialize(result, maxLength) : "[disabled]";
                 log.info("{}\n<<< EXITING: {} [correlationId={}]\n<<< RETURN: {}\n<<< EXECUTION TIME: {}ms\n{}",
-                        separator, fullMethod, correlationId, returnValue, elapsedMs, separator);
+                        separator, fullMethod, correlationId, returnValue == null ? "[disabled]" : returnValue, elapsedMs, separator);
             }
         }
     }

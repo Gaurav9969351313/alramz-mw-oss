@@ -17,6 +17,7 @@ import com.microsoft.graph.models.Recipient;
 import com.microsoft.graph.models.UserSendMailParameterSet;
 import com.microsoft.graph.requests.AttachmentCollectionPage;
 import com.microsoft.graph.requests.GraphServiceClient;
+import io.micrometer.tracing.Tracer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -36,13 +37,16 @@ public class EmailServiceImpl implements EmailService {
 
     private final EmailProperties emailProperties;
     private final org.springframework.beans.factory.ObjectProvider<GraphServiceClient<?>> graphClientProvider;
+    private final Tracer tracer;
 
     public EmailServiceImpl(
             final EmailProperties emailProperties,
-            @Qualifier("graphServiceClient") final org.springframework.beans.factory.ObjectProvider<GraphServiceClient<?>> graphClientProvider
+            @Qualifier("graphServiceClient") final org.springframework.beans.factory.ObjectProvider<GraphServiceClient<?>> graphClientProvider,
+            final Tracer tracer
     ) {
         this.emailProperties = emailProperties;
         this.graphClientProvider = graphClientProvider;
+        this.tracer = tracer;
     }
 
     @Override
@@ -62,6 +66,10 @@ public class EmailServiceImpl implements EmailService {
 
     private EmailSendResponse sendEmailWithGraphClient(final EmailRequest request, final UUID correlationId,
                                                         final UUID traceId, final GraphServiceClient<?> graphClient) {
+        io.micrometer.tracing.Span span = tracer.nextSpan()
+                .name("graph.send_mail")
+                .tag("messaging.system", "microsoft-graph")
+                .start();
         try {
             final Message message = buildGraphMessage(request);
             graphClient.users(request.getFrom()) // NOPMD LawOfDemeter
@@ -81,11 +89,16 @@ public class EmailServiceImpl implements EmailService {
             response.setSentTo(request.getTo());
             response.setSentAt(java.time.OffsetDateTime.now());
             response.setTraceId(traceId);
+            span.tag("messaging.status", "success");
             return response;
 
         } catch (Exception ex) { // NOPMD AvoidCatchingGenericException
+            span.tag("messaging.status", "failure");
+            span.error(ex);
             logEmailError(ex);
             throw new EmailServiceException(503, "Service Unavailable", ex);
+        } finally {
+            span.end();
         }
     }
 

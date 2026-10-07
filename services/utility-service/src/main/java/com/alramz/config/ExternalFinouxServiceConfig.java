@@ -15,6 +15,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.time.Duration;
@@ -30,11 +31,12 @@ public class ExternalFinouxServiceConfig {
     private static final String RESILIENCE_ID = "finoux-community";
 
     @Bean(name = "finouxService")
-    public WebClient finouxService() {
-        return WebClient.builder()
+    public WebClient finouxService(WebClient.Builder builder, ExchangeFilterFunction alramzWebClientLoggingFilterFunction) {
+        return builder
                 .baseUrl(finouxProperties.getBaseUrl())
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .filter(alramzWebClientLoggingFilterFunction)
                 .build();
     }
 

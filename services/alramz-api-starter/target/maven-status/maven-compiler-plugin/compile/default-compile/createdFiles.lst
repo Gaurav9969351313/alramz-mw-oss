@@ -1,6 +1,7 @@
 com/alramz/jwt/controller/ValidateController$UserResponse.class
 com/alramz/exceptions/ApiCallFailedException.class
 com/alramz/exceptions/InvalidHttpRequestException.class
+com/alramz/tracing/listener/TracingQueryExecutionListener.class
 com/alramz/logging/config/LoggingProperties$RequestProperties.class
 com/alramz/jwt/model/User.class
 com/alramz/scheduler/service/Schedulable.class
@@ -65,6 +66,7 @@ com/alramz/datasource/config/AbstractDataSourceAutoConfiguration.class
 com/alramz/scheduler/config/SchedulerProperties$ScheduleJobProperties.class
 com/alramz/jwt/service/PasswordEncoderService.class
 com/alramz/jwt/repository/UserJpaRepository.class
+com/alramz/tracing/config/TracingAutoConfiguration.class
 com/alramz/scheduler/service/ISchedulerService.class
 com/alramz/jwt/controller/AuthController.class
 com/alramz/logging/advice/CorrelationIdResponseBodyAdvice.class

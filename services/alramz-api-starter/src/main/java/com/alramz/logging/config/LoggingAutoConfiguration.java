@@ -124,8 +124,9 @@ public class LoggingAutoConfiguration {
     @ConditionalOnProperty(name = "company.logging.aspect.enabled", havingValue = "true")
     @ConditionalOnClass(org.aspectj.lang.annotation.Aspect.class)
     MethodExecutionLoggingAspect alramzMethodExecutionLoggingAspect(
-            ObjectProvider<MethodExecutionLoggingHelper> helperProvider) {
-        MethodExecutionLoggingAspect aspect = new MethodExecutionLoggingAspect(helperProvider);
+            ObjectProvider<MethodExecutionLoggingHelper> helperProvider,
+            ObjectProvider<io.micrometer.tracing.Tracer> tracerProvider) {
+        MethodExecutionLoggingAspect aspect = new MethodExecutionLoggingAspect(helperProvider, tracerProvider);
         System.out.println("[LOGGING] MethodExecutionLoggingAspect bean created and registered");
         return aspect;
     }

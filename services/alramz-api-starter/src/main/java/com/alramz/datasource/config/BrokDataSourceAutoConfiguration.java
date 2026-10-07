@@ -3,7 +3,9 @@ package com.alramz.datasource.config;
 import com.alramz.datasource.health.PoolHealthIndicator;
 import com.alramz.utils.PWProtector;
 import com.zaxxer.hikari.HikariDataSource;
+import com.alramz.tracing.listener.TracingQueryExecutionListener;
 import net.ttddyy.dsproxy.support.ProxyDataSource;
+import org.springframework.beans.factory.ObjectProvider;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -22,9 +24,9 @@ import javax.sql.DataSource;
 public class BrokDataSourceAutoConfiguration extends AbstractDataSourceAutoConfiguration {
 
     @Bean(name = "brokDataSource", destroyMethod = "close")
-    public DataSource brokDataSource(DatasourceProperties properties, PWProtector pwProtector) {
+    public DataSource brokDataSource(DatasourceProperties properties, PWProtector pwProtector, ObjectProvider<TracingQueryExecutionListener> tracingListenerProvider) {
         HikariDataSource hikariDataSource = createHikariDataSource(properties.getBrok(), pwProtector, "brok");
-        return wrapWithProxy(hikariDataSource, properties.getBrok().getSqlLogging(), "brok"); // NOPMD LawOfDemeter
+        return wrapWithProxy(hikariDataSource, properties.getBrok().getSqlLogging(), "brok", tracingListenerProvider); // NOPMD LawOfDemeter
     }
 
     @Bean(name = "brokJdbcTemplate")

@@ -91,6 +91,8 @@
 /Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/main/java/com/alramz/scheduler/service/ISchedulerService.java
 /Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/main/java/com/alramz/scheduler/service/Schedulable.java
 /Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/main/java/com/alramz/scheduler/service/impl/JobScheduleManager.java
+/Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/main/java/com/alramz/tracing/config/TracingAutoConfiguration.java
+/Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/main/java/com/alramz/tracing/listener/TracingQueryExecutionListener.java
 /Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/main/java/com/alramz/utils/DataValidationUtil.java
 /Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/main/java/com/alramz/utils/PWProtector.java
 /Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/main/java/com/alramz/utils/SqlQueriesManager.java

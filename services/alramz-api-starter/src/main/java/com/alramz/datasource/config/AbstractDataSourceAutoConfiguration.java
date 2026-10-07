@@ -3,8 +3,10 @@ package com.alramz.datasource.config;
 import com.alramz.utils.PWProtector;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import com.alramz.tracing.listener.TracingQueryExecutionListener;
 import net.ttddyy.dsproxy.support.ProxyDataSource;
 import net.ttddyy.dsproxy.listener.logging.DefaultQueryLogEntryCreator;
+import org.springframework.beans.factory.ObjectProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import javax.sql.DataSource;
@@ -127,31 +129,44 @@ public abstract class AbstractDataSourceAutoConfiguration {
         }
     }
 
-    protected DataSource wrapWithProxy(DataSource dataSource, DatasourceProperties.SqlLoggingProperties sqlLogging, String dbName) {
-        if (!sqlLogging.isEnabled()) {
+    protected DataSource wrapWithProxy(DataSource dataSource, DatasourceProperties.SqlLoggingProperties sqlLogging, String dbName, ObjectProvider<TracingQueryExecutionListener> tracingListenerProvider) {
+        // Tracing is independent of SQL logging: proxy whenever either one needs to see the queries.
+        TracingQueryExecutionListener tracingListener = tracingListenerProvider.getIfAvailable();
+        if (!sqlLogging.isEnabled() && tracingListener == null) {
             return dataSource;
         }
 
         ProxyDataSource proxyDataSource = new ProxyDataSource();
         proxyDataSource.setDataSource(dataSource);
+        proxyDataSource.setDataSourceName(dbName);
 
-        DefaultQueryLogEntryCreator logEntryCreator = new DefaultQueryLogEntryCreator();
-        logEntryCreator.setMultiline(true);
+        if (sqlLogging.isEnabled()) {
+            DefaultQueryLogEntryCreator logEntryCreator = new DefaultQueryLogEntryCreator();
+            logEntryCreator.setMultiline(true);
 
-        net.ttddyy.dsproxy.listener.logging.SLF4JQueryLoggingListener queryLoggingListener = new net.ttddyy.dsproxy.listener.logging.SLF4JQueryLoggingListener();
-        queryLoggingListener.setLogLevel(net.ttddyy.dsproxy.listener.logging.SLF4JLogLevel.DEBUG);
-        queryLoggingListener.setQueryLogEntryCreator(logEntryCreator);
-        proxyDataSource.addListener(queryLoggingListener);
+            net.ttddyy.dsproxy.listener.logging.SLF4JQueryLoggingListener queryLoggingListener = new net.ttddyy.dsproxy.listener.logging.SLF4JQueryLoggingListener();
+            queryLoggingListener.setLogLevel(net.ttddyy.dsproxy.listener.logging.SLF4JLogLevel.DEBUG);
+            queryLoggingListener.setQueryLogEntryCreator(logEntryCreator);
+            proxyDataSource.addListener(queryLoggingListener);
 
-        if (sqlLogging.getSlowQueryThresholdMs() > 0) {
-            net.ttddyy.dsproxy.listener.logging.SLF4JSlowQueryListener slowQueryListener = new net.ttddyy.dsproxy.listener.logging.SLF4JSlowQueryListener(sqlLogging.getSlowQueryThresholdMs(), TimeUnit.MILLISECONDS);
-            slowQueryListener.setQueryLogEntryCreator(logEntryCreator);
-            proxyDataSource.addListener(slowQueryListener);
+            if (sqlLogging.getSlowQueryThresholdMs() > 0) {
+                net.ttddyy.dsproxy.listener.logging.SLF4JSlowQueryListener slowQueryListener = new net.ttddyy.dsproxy.listener.logging.SLF4JSlowQueryListener(sqlLogging.getSlowQueryThresholdMs(), TimeUnit.MILLISECONDS);
+                slowQueryListener.setQueryLogEntryCreator(logEntryCreator);
+                proxyDataSource.addListener(slowQueryListener);
+            }
+
+            if (logger.isInfoEnabled()) {
+                logger.info("[{}] SQL logging enabled via datasource-proxy (logParameters={}, slowQueryThresholdMs={})", dbName, sqlLogging.isLogParameters(), sqlLogging.getSlowQueryThresholdMs());
+            }
         }
 
-        if (logger.isInfoEnabled()) {
-            logger.info("[{}] SQL logging enabled via datasource-proxy (logParameters={}, slowQueryThresholdMs={})", dbName, sqlLogging.isLogParameters(), sqlLogging.getSlowQueryThresholdMs());
+        if (tracingListener != null) {
+            proxyDataSource.addListener(tracingListener);
+            if (logger.isInfoEnabled()) {
+                logger.info("[{}] JDBC tracing listener registered via datasource-proxy", dbName);
+            }
         }
+
         return proxyDataSource;
     }
 

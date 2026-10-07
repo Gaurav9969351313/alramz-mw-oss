@@ -57,6 +57,7 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
             String correlationId = (String) request.getAttribute(LoggingConstants.CORRELATION_ID_ATTRIBUTE);
             RequestLog requestLog = loggingHelper.buildRequestLog(wrapped, correlationId);
             loggingHelper.logRequest(logger, requestLog);
+            loggingHelper.tagRequestOnCurrentSpan(requestLog);
         }
     }
 

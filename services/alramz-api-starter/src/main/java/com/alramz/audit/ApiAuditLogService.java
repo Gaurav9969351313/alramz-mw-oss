@@ -3,6 +3,7 @@ package com.alramz.audit;
 import com.alramz.logging.config.LoggingProperties;
 import com.alramz.logging.util.MDCUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.tracing.annotation.NewSpan;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.env.Environment;
@@ -149,6 +150,7 @@ public class ApiAuditLogService {
         return null;
     }
 
+    @NewSpan("api.audit.cleanup")
     @Scheduled(cron = "${company.logging.database-logging.cleanup-cron:0 0 2 * * *}")
     public void cleanupExpired() {
         try {

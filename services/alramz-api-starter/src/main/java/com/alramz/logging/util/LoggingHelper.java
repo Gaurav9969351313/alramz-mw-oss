@@ -1,5 +1,7 @@
 package com.alramz.logging.util;
 
+import io.opentelemetry.api.trace.Span;
+import jakarta.servlet.http.HttpServletResponse;
 import com.alramz.logging.config.LoggingProperties;
 import com.alramz.logging.model.RequestLog;
 import com.alramz.logging.model.ResponseLog;
@@ -185,6 +187,42 @@ public class LoggingHelper {
                 .clientIp(extractClientIp(request))
                 .payload(payload)
                 .build();
+    }
+
+    /**
+     * Copy the (already masked) request headers, query params and payload onto the
+     * current trace span so they show up in Jaeger next to the server span.
+     */
+    public void tagRequestOnCurrentSpan(RequestLog requestLog) {
+        if (requestLog == null) {
+            return;
+        }
+        Span span = Span.current();
+        requestLog.headers().forEach((name, value) ->
+                span.setAttribute("http.request.header." + name.toLowerCase(Locale.ROOT), LogMaskingUtil.mask(value)));
+        if (!requestLog.queryParams().isEmpty()) {
+            span.setAttribute("http.request.query", requestLog.queryParams().toString());
+        }
+        if (requestLog.payload() != null) {
+            span.setAttribute("http.request.body", requestLog.payload());
+        }
+    }
+
+    /**
+     * Copy response headers (when header logging is on) and the already masked
+     * response payload onto the current trace span.
+     */
+    public void tagResponseOnCurrentSpan(HttpServletResponse response, String payload) {
+        Span span = Span.current();
+        if (properties.getRequest().isIncludeHeaders()) { // NOPMD LawOfDemeter
+            for (String name : response.getHeaderNames()) {
+                String value = LogMaskingUtil.maskHeader(name, new ArrayList<>(response.getHeaders(name)));
+                span.setAttribute("http.response.header." + name.toLowerCase(Locale.ROOT), LogMaskingUtil.mask(value));
+            }
+        }
+        if (payload != null) {
+            span.setAttribute("http.response.body", payload);
+        }
     }
 
     public ResponseLog buildResponseLog(int status, String statusMessage, long responseTimeMs, long responseSizeBytes, String payload) {

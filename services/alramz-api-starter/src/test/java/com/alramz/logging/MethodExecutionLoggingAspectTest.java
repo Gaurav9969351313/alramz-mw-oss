@@ -43,7 +43,7 @@ class MethodExecutionLoggingAspectTest {
         MethodExecutionLoggingHelper helper = new MethodExecutionLoggingHelper(properties, new ObjectMapper());
         ObjectProvider<MethodExecutionLoggingHelper> provider = Mockito.mock(ObjectProvider.class);
         when(provider.getIfAvailable()).thenReturn(helper);
-        aspect = new MethodExecutionLoggingAspect(provider);
+        aspect = new MethodExecutionLoggingAspect(provider, Mockito.mock(ObjectProvider.class));
 
         Logger logger = (Logger) LoggerFactory.getLogger(MethodExecutionLoggingAspect.class);
         appender = new ListAppender<>();
@@ -108,6 +108,42 @@ class MethodExecutionLoggingAspectTest {
                 .reduce("", (a, b) -> a + "\n" + b);
         assertThat(allMessages).contains("<<< EXCEPTION in");
         assertThat(allMessages).contains("boom");
+    }
+
+    @Test
+    void recordsMethodSpanWithArgsReturnAndException() throws Throwable {
+        io.micrometer.tracing.Tracer tracer = mock(io.micrometer.tracing.Tracer.class);
+        io.micrometer.tracing.Span span = mock(io.micrometer.tracing.Span.class, Mockito.RETURNS_SELF);
+        when(tracer.nextSpan()).thenReturn(span);
+        when(tracer.withSpan(span)).thenReturn(mock(io.micrometer.tracing.Tracer.SpanInScope.class));
+        ObjectProvider<io.micrometer.tracing.Tracer> tracerProvider = Mockito.mock(ObjectProvider.class);
+        when(tracerProvider.getIfAvailable()).thenReturn(tracer);
+        ObjectProvider<MethodExecutionLoggingHelper> helperProvider = Mockito.mock(ObjectProvider.class);
+        when(helperProvider.getIfAvailable()).thenReturn(new MethodExecutionLoggingHelper(properties, new ObjectMapper()));
+        MethodExecutionLoggingAspect tracingAspect = new MethodExecutionLoggingAspect(helperProvider, tracerProvider);
+
+        ProceedingJoinPoint pjp = mock(ProceedingJoinPoint.class);
+        MethodSignature signature = mock(MethodSignature.class);
+        when(pjp.getSignature()).thenReturn(signature);
+        when(pjp.getArgs()).thenReturn(new Object[]{"arg1", 123});
+        when(signature.getMethod()).thenReturn(TestService.class.getMethod("doWork", String.class, int.class));
+        when(signature.getDeclaringType()).thenReturn(TestService.class);
+
+        when(pjp.proceed()).thenReturn("result");
+        tracingAspect.logMethodExecution(pjp);
+        Mockito.verify(span).name("TestService#doWork");
+        Mockito.verify(span).tag(Mockito.eq("method.args"), Mockito.contains("arg1"));
+        Mockito.verify(span).tag("method.return", "result");
+        Mockito.verify(span).end();
+
+        RuntimeException ex = new RuntimeException("boom");
+        when(pjp.proceed()).thenThrow(ex);
+        try {
+            tracingAspect.logMethodExecution(pjp);
+        } catch (RuntimeException ignored) {
+        }
+        Mockito.verify(span).error(ex);
+        Mockito.verify(span, Mockito.times(2)).end();
     }
 
     @Test

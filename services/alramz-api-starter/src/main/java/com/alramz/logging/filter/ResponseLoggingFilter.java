@@ -75,6 +75,7 @@ public class ResponseLoggingFilter extends OncePerRequestFilter {
                     size,
                     payload);
             loggingHelper.logResponse(logger, responseLog);
+            loggingHelper.tagResponseOnCurrentSpan(cachingResponse, payload);
             cachingResponse.copyBodyToResponse();
         }
     }
