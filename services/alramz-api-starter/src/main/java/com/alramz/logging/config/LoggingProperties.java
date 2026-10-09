@@ -186,6 +186,11 @@ public class LoggingProperties {
         private String cleanupCron = "0 0 2 * * *";
         /** Maximum age of audit log entries in days. */
         private int retentionDays = 7;
+        /**
+         * Also audit outgoing WebClient calls made through {@code alramzWebClientLoggingFilterFunction}.
+         * Off by default so a service opts in explicitly.
+         */
+        private boolean outboundEnabled = false;
         /** Endpoints to exclude from audit logging. */
         private List<String> excludedPaths = new ArrayList<>(List.of(
                 "/api/v1/info", "/actuator/**", "/swagger-ui/**", "/v3/api-docs/**"));

@@ -1,29 +1,16 @@
 package com.alramz.exception;
 
+/** A client-side request problem; always answered with 400. */
 public class ApplicationException extends RuntimeException {
 
-    private final String field;
-    private final String serviceErrorResponseCode;
+    private final ErrorCode errorCode;
 
-    public ApplicationException(String field, String message) {
-        this(field, message, null);
-    }
-
-    public ApplicationException(String field, String message, String serviceErrorResponseCode) {
+    public ApplicationException(ErrorCode errorCode, String message) {
         super(message);
-        this.field = field;
-        this.serviceErrorResponseCode = serviceErrorResponseCode;
+        this.errorCode = errorCode;
     }
 
-    public ApplicationException(String message) {
-        this(null, message, null);
-    }
-
-    public String getField() {
-        return field;
-    }
-
-    public String getServiceErrorResponseCode() {
-        return serviceErrorResponseCode;
+    public ErrorCode getErrorCode() {
+        return errorCode;
     }
 }

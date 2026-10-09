@@ -1,7 +1,6 @@
 package com.alramz.controllers;
 
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.Map;
 
 import com.alramz.jwt.annotation.PermitAll;
@@ -22,13 +21,10 @@ public class ApplicationController {
     @GetMapping("/api/v1/info")
     @PermitAll
     @Loggable
-    public Map<String, Object> info() throws Exception {
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("applicationName", applicationName);
-        response.put("host", host);
-        response.put("timestamp", Instant.now());
-
-        return response;
+    public Map<String, Object> info() {
+        return Map.of(
+                "applicationName", applicationName,
+                "host", host,
+                "timestamp", Instant.now());
     }
 }

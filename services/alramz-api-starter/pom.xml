@@ -190,6 +190,16 @@
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-exporter-sender-jdk</artifactId>
         </dependency>
+        <!-- /actuator/prometheus for the Grafana Spring Boot dashboard -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+        <!-- Bridges logback events into the OTel SDK so Boot exports them over OTLP (e.g. to Loki) -->
+        <dependency>
+            <groupId>io.opentelemetry.instrumentation</groupId>
+            <artifactId>opentelemetry-logback-appender-1.0</artifactId>
+        </dependency>
         <!-- Boot-managed (prototype) WebClient.Builder with observation instrumentation: client spans + traceparent -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

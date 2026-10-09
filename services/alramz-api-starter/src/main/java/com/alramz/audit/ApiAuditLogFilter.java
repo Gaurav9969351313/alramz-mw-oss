@@ -15,6 +15,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.core.env.Environment;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.util.ContentCachingRequestWrapper;
 import org.springframework.web.util.ContentCachingResponseWrapper;
 import org.springframework.web.util.WebUtils;
@@ -98,14 +99,14 @@ public class ApiAuditLogFilter extends OncePerRequestFilter {
                 }
             }
 
-            String correlationId = MDCUtil.getCorrelationId();
-            if (correlationId == null || correlationId.isBlank()) {
-                correlationId = UUID.randomUUID().toString();
-            }
+            UUID correlationId = MDCUtil.getCorrelationIdAsUuid();
 
             Object handler = request.getAttribute(org.springframework.web.servlet.HandlerMapping.BEST_MATCHING_HANDLER_ATTRIBUTE);
             String controllerName;
-            if (handler instanceof Class<?> clazz) {
+            if (handler instanceof HandlerMethod handlerMethod) {
+                // What Spring MVC stores for every @RestController endpoint.
+                controllerName = handlerMethod.getBeanType().getSimpleName() + "." + handlerMethod.getMethod().getName();
+            } else if (handler instanceof Class<?> clazz) {
                 controllerName = clazz.getSimpleName();
             } else if (handler instanceof String beanName) {
                 controllerName = beanName;
@@ -128,7 +129,7 @@ public class ApiAuditLogFilter extends OncePerRequestFilter {
             }
 
             ApiAuditLog auditLog = new ApiAuditLog(
-                    UUID.fromString(correlationId),
+                    correlationId,
                     "INBOUND",
                     serviceName,
                     controllerName,

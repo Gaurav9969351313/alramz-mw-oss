@@ -387,4 +387,5 @@ Step 6)
 
 sudo lsof -nP -iTCP:8080 -sTCP:LISTEN
       
-        
+http.request.header.user-agent  = vscode-restclient
+http.request.header.traceparent = 00-d3b8dc320ead7570132786344c580f05-da4cb7f2949ac320-01

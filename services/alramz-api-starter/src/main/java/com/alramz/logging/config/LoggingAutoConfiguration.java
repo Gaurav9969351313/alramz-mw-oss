@@ -29,6 +29,8 @@ import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import reactor.core.scheduler.Schedulers;
+
 import java.util.List;
 
 /**
@@ -162,8 +164,17 @@ public class LoggingAutoConfiguration {
      */
     @Bean
     @ConditionalOnClass(WebClient.class)
-    ExchangeFilterFunction alramzWebClientLoggingFilterFunction(LoggingProperties properties) {
-        return new WebClientLoggingFilter(properties).filterFunction();
+    ExchangeFilterFunction alramzWebClientLoggingFilterFunction(LoggingProperties properties,
+                                                                ObjectProvider<com.alramz.audit.ApiAuditLogService> auditLogService,
+                                                                Environment environment) {
+        ExchangeFilterFunction logging = new WebClientLoggingFilter(properties).filterFunction();
+        com.alramz.audit.ApiAuditLogService audit = auditLogService.getIfAvailable();
+        if (audit == null || !properties.getDatabaseLogging().isOutboundEnabled()) { // NOPMD LawOfDemeter
+            return logging;
+        }
+        // Logging runs first so the audited request already carries the propagated correlation header.
+        return logging.andThen(new com.alramz.audit.WebClientAuditFilter(audit, properties,
+                environment.getProperty("spring.application.name", "unknown"), Schedulers.boundedElastic()));
     }
 
     // ----------------------------------------------------- correlation id response injection

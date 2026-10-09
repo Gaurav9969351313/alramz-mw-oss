@@ -31,7 +31,9 @@ public class ApiAuditAspect {
         this.environment = environment;
     }
 
-    @Around("execution(* com.alramz.client..*(..)) || execution(* com.alramz.config.ETradeTokenProvider.fetchAndCacheToken(..)) || execution(* com.alramz.service.impl.IBANValidationServiceImpl.validate(..)) || execution(* com.alramz.service.impl.PhoneValidationServiceImpl.validate(..)) || execution(* com.alramz.service.impl.DuplicateCheckServiceImpl..*(..)) || execution(* com.alramz.controllers..*(..))")
+    // Outbound calls only: ApiAuditLogFilter already writes the INBOUND row for every request, so
+    // matching controllers here would audit each request twice.
+    @Around("execution(* com.alramz.client..*(..)) || execution(* com.alramz.config.ETradeTokenProvider.fetchAndCacheToken(..)) || execution(* com.alramz.service.impl.IBANValidationServiceImpl.validate(..)) || execution(* com.alramz.service.impl.PhoneValidationServiceImpl.validate(..)) || execution(* com.alramz.service.impl.DuplicateCheckServiceImpl..*(..))")
     public Object auditApiCall(ProceedingJoinPoint pjp) throws Throwable {
         long startTime = System.currentTimeMillis();
         String status = "SUCCESS";
@@ -61,24 +63,16 @@ public class ApiAuditAspect {
             String endpoint = resolveEndpoint(method, pjp.getArgs());
             String httpMethod = resolveHttpMethod(method, pjp.getArgs());
 
-            String direction = "OUTBOUND";
-            if (declaringClass.isAnnotationPresent(org.springframework.web.bind.annotation.RestController.class)
-                    || declaringClass.isAnnotationPresent(org.springframework.stereotype.Controller.class)) {
-                direction = "INBOUND";
-            }
 
-            String correlationId = MDCUtil.getCorrelationId();
-            if (correlationId == null || correlationId.isBlank()) {
-                correlationId = UUID.randomUUID().toString();
-            }
+            UUID correlationId = MDCUtil.getCorrelationIdAsUuid();
 
             String serviceName = environment.getProperty("spring.application.name", "unknown");
 
             Object requestPayload = masker.mask(buildRequestMap(method, pjp.getArgs()));
 
             auditLogService.log(new ApiAuditLog(
-                    UUID.fromString(correlationId),
-                    direction,
+                    correlationId,
+                    "OUTBOUND",
                     serviceName,
                     controllerName,
                     endpoint,

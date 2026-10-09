@@ -40,6 +40,7 @@ company:
       threshold: 1000ms
     database-logging:
       enabled: true
+      outbound-enabled: true
       include-request-payload: true
       include-response-payload: true
       cleanup-cron: "0 0 2 * * *"
@@ -61,6 +62,7 @@ company:
     validate-url: /api/auth/validate
     permit-all-urls:
       - /api/v1/info
+      - /actuator/prometheus   # scraped by Prometheus
   datasource:
     middleware:
       enabled: true
@@ -79,9 +81,3 @@ company:
 adapter:
   finoux:
     base-url: https://finoux-test.example.invalid
-    api-key: ""
-    request-timeout-seconds: 5
-    post:
-      posted-user-flag: ADMIN
-      publish-flag: A
-      post-type-id: "2"

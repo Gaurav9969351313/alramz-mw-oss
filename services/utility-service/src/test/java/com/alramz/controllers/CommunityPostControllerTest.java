@@ -1,5 +1,6 @@
 package com.alramz.controllers;
 
+import com.alramz.logging.util.MDCUtil;
 import com.alramz.model.CommunityPost;
 import com.alramz.model.CommunityPostRequest;
 import com.alramz.model.CommunityPostResponse;
@@ -10,9 +11,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -27,7 +25,7 @@ class CommunityPostControllerTest {
 
     @AfterEach
     void tearDown() {
-        RequestContextHolder.resetRequestAttributes();
+        MDCUtil.clear();
     }
 
     @Test
@@ -64,10 +62,8 @@ class CommunityPostControllerTest {
     }
 
     @Test
-    void createCommunityPost_shouldUseHeaderCorrelationIdWhenPresentAndValid() {
-        MockHttpServletRequest httpRequest = new MockHttpServletRequest();
-        httpRequest.addHeader("X-Correlation-Id", "2afe4a42-44f7-4e12-aae7-df0e42d4d757");
-        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(httpRequest));
+    void createCommunityPost_shouldEchoTheRequestCorrelationId() {
+        MDCUtil.putCorrelationId("2afe4a42-44f7-4e12-aae7-df0e42d4d757");
 
         CommunityPostController controller = new CommunityPostController(communityPostService);
         CommunityPostRequest request = new CommunityPostRequest(2L, "admin", "admin", "<p>hello</p>");
@@ -81,10 +77,8 @@ class CommunityPostControllerTest {
     }
 
     @Test
-    void createCommunityPost_shouldGenerateRandomCorrelationIdWhenHeaderIsNotAValidUuid() {
-        MockHttpServletRequest httpRequest = new MockHttpServletRequest();
-        httpRequest.addHeader("X-Correlation-Id", "not-a-uuid");
-        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(httpRequest));
+    void createCommunityPost_shouldGenerateCorrelationIdWhenRequestIdIsNotAUuid() {
+        MDCUtil.putCorrelationId("not-a-uuid");
 
         CommunityPostController controller = new CommunityPostController(communityPostService);
         CommunityPostRequest request = new CommunityPostRequest(2L, "admin", "admin", "<p>hello</p>");

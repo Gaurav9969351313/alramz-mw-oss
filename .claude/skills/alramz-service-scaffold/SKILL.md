@@ -153,7 +153,29 @@ skipped, because `alramz-api-starter`'s auto-configurations default to "off" or 
 - **Typed exceptions**: add a `com.alramz.exception` package with a `GlobalExceptionHandler`
   (`@ControllerAdvice`) as soon as the service has its first real endpoint beyond `/api/v1/info` —
   see `onboarding-service/src/main/java/com/alramz/exception/GlobalExceptionHandler.java` for
-  the shape (typed exceptions, not generic `RuntimeException`).
+  the shape (typed exceptions, not generic `RuntimeException`). Follow
+  `utility-service/src/main/java/com/alramz/exception/` for the details:
+  - one `ErrorCode` enum holds every `errorCode` string the service returns. Exceptions carry an
+    `ErrorCode`, not a raw `"XXX001"` literal, and Bean Validation field errors map through
+    `ErrorCode.forField(...)` instead of a hand-written switch;
+  - the correlation ID comes from the starter's MDC (`MDCUtil.getCorrelationId()`, populated by
+    `CorrelationIdFilter`) through one small helper (`util/CorrelationIds`). Never re-parse the
+    `X-Correlation-Id` header in a controller or handler, because a second parse can disagree
+    with the ID that appears in the logs;
+  - add an explicit `AccessDeniedException` → 403 handler, or the `Exception.class` catch-all
+    turns `@JwtSecured` denials into 500s.
+- **External integrations**: put each upstream system in its own package (e.g. `com.alramz.finoux`),
+  holding one `@Component` client that extends `AbstractRestClient`, the upstream's
+  request/response records, and a `sealed` result type (`Posted`/`Rejected`/`Failed`/`Unavailable`).
+  The client does the HTTP call and the parsing of upstream data, and never writes
+  `api_audit_log` rows itself: set `company.logging.database-logging.outbound-enabled: true` and
+  build the WebClient with `.filter(alramzWebClientLoggingFilterFunction)`, and the starter's
+  `WebClientAuditFilter` records every call (URL, method, status, masked bodies, duration);
+  unreadable upstream data becomes a `Rejected` result, not a stray `NumberFormatException` that
+  ends up as a 500. The `@Service` injects the client and only switches over the result, and
+  never extends `AbstractRestClient` itself. Keep these hand-written records out of `com.alramz.model`,
+  which belongs to the OpenAPI generator. Test the client through the real WebClient chain with
+  `WebClient.builder().exchangeFunction(...)` (see `FinouxClientTest`), which needs no extra dependency.
 - **Lombok**: use `@Getter`/`@Setter`/`@Slf4j`/builders everywhere; the `pom.xml` and
   `maven-compiler-plugin` annotation-processor wiring for it is already in the template.
 

@@ -51,6 +51,29 @@ class TracingAutoConfigurationTest {
     }
 
     @Test
+    void actuatorRequestsAreNotObservedButApiRequestsAre() {
+        io.micrometer.observation.ObservationPredicate predicate =
+                new TracingAutoConfiguration.ServletErrorRecordingConfiguration().alramzActuatorObservationPredicate();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        MockHttpServletRequest scrape = new MockHttpServletRequest("GET", "/actuator/prometheus");
+        MockHttpServletRequest api = new MockHttpServletRequest("GET", "/api/v1/info");
+
+        assertThat(predicate.test("http.server.requests", new ServerRequestObservationContext(scrape, response))).isFalse();
+        assertThat(predicate.test("http.server.requests", new ServerRequestObservationContext(api, response))).isTrue();
+
+        // Spring Security filter spans: matched through the request bound to the thread
+        org.springframework.web.context.request.RequestContextHolder.setRequestAttributes(
+                new org.springframework.web.context.request.ServletRequestAttributes(scrape));
+        try {
+            assertThat(predicate.test("spring.security.filterchains", new Observation.Context())).isFalse();
+        } finally {
+            org.springframework.web.context.request.RequestContextHolder.resetRequestAttributes();
+        }
+        assertThat(predicate.test("spring.security.filterchains", new Observation.Context())).isTrue();
+        assertThat(TracingAutoConfiguration.ServletErrorRecordingConfiguration.isActuator("/actuatorx")).isFalse();
+    }
+
+    @Test
     void handledControllerExceptionIsAttachedToServerObservation() {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/info");
         MockHttpServletResponse response = new MockHttpServletResponse();

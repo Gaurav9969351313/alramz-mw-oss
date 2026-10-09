@@ -1,4 +1,4 @@
-package com.alramz.model;
+package com.alramz.finoux;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

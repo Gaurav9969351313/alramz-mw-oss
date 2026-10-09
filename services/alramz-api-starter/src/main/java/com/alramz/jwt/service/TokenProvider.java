@@ -37,6 +37,7 @@ public class TokenProvider {
 
         String refreshToken = io.jsonwebtoken.Jwts.builder()
                 .subject(username)
+                .id(java.util.UUID.randomUUID().toString())
                 .issuedAt(new java.util.Date(now))
                 .expiration(new java.util.Date(now + properties.getRefreshTokenExpirationMs()))
                 .signWith(key)
@@ -57,6 +58,7 @@ public class TokenProvider {
         long now = System.currentTimeMillis();
         return io.jsonwebtoken.Jwts.builder()
                 .subject(username)
+                .id(java.util.UUID.randomUUID().toString())
                 .issuedAt(new java.util.Date(now))
                 .expiration(new java.util.Date(now + properties.getRefreshTokenExpirationMs()))
                 .signWith(key)

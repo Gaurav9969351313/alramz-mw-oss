@@ -134,6 +134,12 @@ mid-implementation, leave already-passing work in place, write `implementation-r
    class. Write toward that gate now, not after: every new file needs its meaningful branches
    exercised — the edge cases from `spec.md` and the failure modes from `execution_plan.json`'s
    `technical_gaps` — not just a happy path plus one error case, or step 10 will send you back here.
+   Test through public methods only. If a private method seems to need its own test, it belongs in
+   a separate collaborator; never widen it to package-private just so a test can reach it. For an
+   outbound `AbstractRestClient` subclass, drive the real WebClient + resilience chain with
+   `WebClient.builder().exchangeFunction(...)` returning canned `ClientResponse`s (precedent:
+   `utility-service`'s `FinouxClientTest`). Don't leave the HTTP path untested on the grounds that
+   "there's no precedent for mocking the WebClient fluent chain".
 
 5. **Run the targeted tests and confirm they fail** (`mvn -pl services/<service> -am test
    -Dtest=<TestClass>`) — a red phase you skip is a test you can't trust. If a test can't even
@@ -157,6 +163,32 @@ mid-implementation, leave already-passing work in place, write `implementation-r
    folder that propagates a change automatically). Make the **minimal diff**: do not refactor,
    rename, or "clean up" code outside what the plan scoped, and never hand-edit anything under
    `target/generated-sources/` — regenerate via the verification commands instead.
+
+   **Code-quality rules for everything you write** (reference implementation: `utility-service`'s
+   `finoux/`, `exception/`, `util/CorrelationIds`):
+   - **One job per class.** An outbound integration gets its own `@Component` client (extends
+     `AbstractRestClient`, lives in its own package with the upstream's records and a `sealed`
+     result type). The `@Service` injects that client and does not extend `AbstractRestClient`.
+   - **No Spring AOP self-invocation.** `@Loggable`, `@Transactional`, `@JwtSecured` and similar
+     annotations on a method called from inside the same class never run, because the call
+     bypasses the proxy. If the behavior must apply, move the method to another bean.
+   - **Reuse the starter instead of re-deriving.** Read the correlation ID from the MDC
+     (`MDCUtil.getCorrelationId()`, via the service's `CorrelationIds` helper), never by
+     re-parsing request headers in a controller or handler.
+   - **Error codes live in the service's `ErrorCode` enum.** Never spread `"XXX0NN"` string
+     literals across classes.
+   - **Upstream data is untrusted.** Parsing failures (`NumberFormatException`,
+     `DateTimeParseException`, an unknown enum value) become a typed failure result or exception
+     with its own error code, never an unhandled 500. Never paper over a missing upstream field
+     with an invented value such as `0L`.
+   - **Say what you mean.** No magic numbers standing in for a state (e.g. `Rejected(200, …)`
+     meaning "business failure"); use a separate type or name.
+   - **Comments explain *why* the code is the way it is, in plain terms.** Never cite `spec.md`
+     sections, edge-case numbers, finding IDs (`F-02`), pipeline stage names (`04_security`),
+     or "correction to the plan" notes in source code. Those belong in
+     `implementation-report.md`, and in code they go stale the moment the spec changes.
+   - **No dead annotations or signatures.** No `@Validated` on a class without constraints, no
+     `throws Exception` on a method that throws nothing checked.
 
 7. **If this feature added or changed a REST endpoint, amend `apiCollection.http`** (the target
    service's root, per `api-collection-http-requests.md`) — add a `### <Name>` request block
@@ -215,6 +247,8 @@ mid-implementation, leave already-passing work in place, write `implementation-r
       rather than assuming it's fine; this stage does not replace that one.
     - Whether every howto pitfall relevant to what you built (step 2) was actually avoided in the
       real code you wrote, not just noted — re-check the actual diff, not your intent.
+    - Whether the diff obeys every step-6 code-quality rule. In particular, grep your new code for
+      `spec.md`, `§`, `edge case #`, and stage names; any hit in a comment is a defect to fix.
     - Whether step 10's coverage gate genuinely passed for every new file — re-check the actual
       `jacoco.csv` numbers, don't trust your own running estimate.
     If this surfaces a **new** blocking gap, resolve it via `AskUserQuestion` and re-verify (step
@@ -273,6 +307,9 @@ mid-implementation, leave already-passing work in place, write `implementation-r
   controller test, a Liquibase file placed only in an assumed shared `db/changelog/sql/` folder)
   even if `execution_plan.json` described it that way — write the corrected version and note the
   divergence in the report's Self-Critique.
+- Do **NOT** violate step 6's code-quality rules (pipeline/spec references in comments,
+  AOP self-invocation, package-private-for-tests, scattered error-code literals, re-parsed
+  correlation headers). Re-check the actual diff against them in step 11.
 - Do **NOT** mark this stage complete, or write `implementation-report.md` as final, while the
   full-suite command hasn't exited `0` for every impacted service, any new file sits at or below
   `80%` line coverage without a stated justification, or a blocking gap remains unresolved. Never

@@ -1,9 +1,8 @@
 @baseUrl=http://localhost:8083
 
 ### Get a token first by registering + logging in below, then paste it here.
-@authToken=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1dGlsaXR5X3NlcnZpY2VhcHAiLCJpYXQiOjE3OTEzNzEyMDcsImV4cCI6MTc5MTM3MjEwNywicm9sZXMiOlsiQVBQX1VUSUxJVFkiXSwiYXBwbGljYXRpb24iOiJ1dGlsaXR5LXNlcnZpY2UiLCJlbnZpcm9ubWVudCI6ImxvY2FsIn0.U7sbZMYmUUD8W9c1HhQ-BTslZ1U9S9fgXsOJBoXHtRw
+@authToken=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1dGlsaXR5X3NlcnZpY2VhcHAiLCJpYXQiOjE3OTE1MzM2MTQsImV4cCI6MTc5MTUzNDUxNCwicm9sZXMiOlsiQVBQX1VUSUxJVFkiXSwiYXBwbGljYXRpb24iOiJ1dGlsaXR5LXNlcnZpY2UiLCJlbnZpcm9ubWVudCI6ImxvY2FsIn0.wAZvRs-bVJYEjhk6EerU88K23davozaKcVocwqTU-zg
 
-###
 GET {{baseUrl}}/api/v1/info
 
 ###

@@ -83,15 +83,15 @@ request/response to JSON and inserts one row into `api_audit_log` via `middlewar
   `false` — the row is still written, just without the raw body, unless you turn these on).
   Respects `company.logging.database-logging.excludedPaths` (default `/api/v1/info`, `/actuator/**`,
   `/swagger-ui/**`, `/v3/api-docs/**`).
-- **`ApiAuditAspect`** (`@Around` AOP) — captures **outbound/internal** calls via an explicit pointcut:
+- **`ApiAuditAspect`** (`@Around` AOP) — captures **outbound** calls via an explicit pointcut:
   `com.alramz.client..*`, `ETradeTokenProvider.fetchAndCacheToken`, `IBANValidationServiceImpl.validate`,
-  `PhoneValidationServiceImpl.validate`, `DuplicateCheckServiceImpl..*`, and `com.alramz.controllers..*`
-  (direction `OUTBOUND` unless the declaring class is a `@RestController`/`@Controller`, in which case
-  `INBOUND`). Note the pointcut hardcodes specific service class names from `onboarding-service` —
-  if a new service wants aspect-based audit coverage of its own client/service classes beyond the generic
-  `com.alramz.client..*`/`com.alramz.controllers..*` patterns, those class names would need to be added to
-  this pointcut in the starter (this is shared starter code, so treat that as a cross-cutting change, not
-  a per-service override).
+  `PhoneValidationServiceImpl.validate`, `DuplicateCheckServiceImpl..*`; every row is `OUTBOUND`. It does
+  **not** match controllers: `ApiAuditLogFilter` already writes the `INBOUND` row (with the real URI, HTTP
+  method, status and `ClassName.method` as `controller_name`), and matching controllers here audited each
+  request twice. **It is only active in onboarding-service:** the pointcut names onboarding's classes, and
+  AspectJ rejects the whole expression (`Xlint:invalidAbsoluteTypeName`) in any service where one of them
+  doesn't exist, so the aspect applies to nothing there. New services audit outbound HTTP with
+  `outbound-enabled` (below), never by extending this pointcut.
 - A `@Scheduled` cleanup job on `ApiAuditLogService.cleanupExpired()` deletes rows older than
   `company.logging.database-logging.retentionDays` (default 7) on `company.logging.database-logging.cleanupCron`
   (default `0 0 2 * * *`, i.e. 2am daily).
@@ -117,6 +117,14 @@ company:
       enabled: true
       # ... url/username/plainPassword/driverClassName/pool — see multi-datasource-and-jpa.md
 ```
+
+**Outbound calls (opt-in).** With `company.logging.database-logging.outbound-enabled: true` (default
+`false`), the starter composes `WebClientAuditFilter` into `alramzWebClientLoggingFilterFunction`, so every
+WebClient built with that filter writes one `OUTBOUND` row per call: URL without the query string, method,
+status code, request/response bodies (gated by the same `include-*-payload` flags and masked like inbound
+bodies), duration, and the correlation ID. A connection failure or a timeout is recorded as `FAILURE` with no
+status code. The database insert runs on `boundedElastic`, never on the HTTP event loop, and a failed write
+never fails the call. `utility-service` uses it; client classes must not write audit rows themselves.
 
 Contrast — `reference-data-service` (`application-dev.yml`) has the `middleware` datasource enabled too,
 but its `company.logging` block has **no `database-logging` section at all**, so it stays off by default:
@@ -226,10 +234,8 @@ This requires the `middleware` datasource AND the `api_audit_log` table to exist
            - /v3/api-docs/**
    ```
 4. Inbound HTTP traffic is captured automatically by `ApiAuditLogFilter` — no code changes needed.
-   Outbound/internal calls are only captured if they match `ApiAuditAspect`'s hardcoded pointcut
-   (`com.alramz.client..*`, `com.alramz.controllers..*`, plus the few named validation-service methods) —
-   if your new service's classes don't fall under `com.alramz.client` or `com.alramz.controllers`, they
-   won't be audited by the aspect even with the feature on; only the filter's inbound capture applies.
+   Outbound HTTP calls are captured only with `outbound-enabled: true` (see "Outbound calls" above);
+   `ApiAuditAspect` is onboarding-specific and inactive in every other service.
 
 ### Step 3 — method-execution logging for a specific method
 
@@ -293,6 +299,9 @@ with whoever owns `alramz-api-starter` rather than working around it in the cons
   all inbound HTTP traffic via the filter, but outbound/internal method audit coverage only applies to the
   specific packages/classes hardcoded in `ApiAuditAspect`'s pointcut — don't assume a new service's
   internal client classes are automatically audited.
+  For outbound HTTP, use `outbound-enabled` (above) instead of extending that pointcut. Don't enable it
+  in a service whose client classes are already in the pointcut (onboarding-service today), or each call
+  is audited twice.
 - **Two separate masking key sets.** `company.logging.masking.sensitive-keys` (general logs) and
   `SensitiveDataMasker`'s hardcoded set (audit rows only) are independent — adding a key to one does not
   protect the other pipeline.

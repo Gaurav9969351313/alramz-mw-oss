@@ -3,12 +3,16 @@ package com.alramz.tracing.config;
 import com.alramz.tracing.listener.TracingQueryExecutionListener;
 import io.micrometer.common.KeyValue;
 import io.micrometer.observation.ObservationFilter;
+import io.micrometer.observation.ObservationPredicate;
 import io.micrometer.observation.transport.RequestReplyReceiverContext;
 import io.micrometer.observation.transport.RequestReplySenderContext;
 import io.micrometer.tracing.Tracer;
 import io.micrometer.tracing.handler.TracingObservationHandler;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
@@ -16,6 +20,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.core.env.Environment;
+import org.springframework.http.server.observation.ServerRequestObservationContext;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.filter.ServerHttpObservationFilter;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 import org.springframework.web.servlet.ModelAndView;
@@ -32,10 +39,17 @@ public class TracingAutoConfiguration {
 
     static final String PROFILE_KEY = "spring.profiles.active";
     static final String DIRECTION_KEY = "direction";
+    static final String ACTUATOR_PATH = "/actuator";
 
     @Bean
     TracingQueryExecutionListener tracingQueryExecutionListener(Tracer tracer) {
         return new TracingQueryExecutionListener(tracer);
+    }
+
+    /** Connects the logback OTEL appender to Boot's OpenTelemetry SDK so log records are exported over OTLP. */
+    @Bean
+    InitializingBean alramzOpenTelemetryLogbackInstaller(OpenTelemetry openTelemetry) {
+        return () -> OpenTelemetryAppender.install(openTelemetry);
     }
 
     /**
@@ -68,6 +82,28 @@ public class TracingAutoConfiguration {
         @Bean
         ServerSpanErrorRecorder alramzServerSpanErrorRecorder() {
             return new ServerSpanErrorRecorder();
+        }
+
+        /**
+         * Drops every observation (server span, Spring Security spans, metrics) made while serving
+         * {@code /actuator/**}, so Prometheus scrapes and health probes do not flood the trace backend.
+         * The server request is matched on its own context, because it starts before
+         * RequestContextHolder is populated; the security filter spans are matched on the bound request.
+         */
+        @Bean
+        ObservationPredicate alramzActuatorObservationPredicate() {
+            return (name, context) -> {
+                HttpServletRequest request = context instanceof ServerRequestObservationContext server
+                        ? server.getCarrier()
+                        : RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attributes
+                                ? attributes.getRequest()
+                                : null;
+                return request == null || !isActuator(request.getRequestURI());
+            };
+        }
+
+        static boolean isActuator(String uri) {
+            return uri != null && (uri.equals(ACTUATOR_PATH) || uri.startsWith(ACTUATOR_PATH + "/"));
         }
     }
 

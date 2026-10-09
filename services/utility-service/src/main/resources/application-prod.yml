@@ -41,6 +41,7 @@ company:
       threshold: 1000ms
     database-logging:
       enabled: true
+      outbound-enabled: true
       include-request-payload: true
       include-response-payload: true
       cleanup-cron: "0 0 2 * * *"
@@ -63,6 +64,7 @@ company:
     validate-url: /api/auth/validate
     permit-all-urls:
       - /api/v1/info
+      - /actuator/prometheus   # scraped by Prometheus
       # Add every new public endpoint here instead of writing ad hoc Spring Security config.
 
   datasource:
@@ -83,13 +85,3 @@ company:
         minimum-idle: ${COMPANY_DATASOURCE_MIDDLEWARE_POOL_MINIMUM_IDLE:2}
       sql-logging:
         enabled: false
-
-adapter:
-  finoux:
-    base-url: ${FINOUX_BASE_URL:}
-    api-key: ${FINOUX_API_KEY:}
-    request-timeout-seconds: 5
-    post:
-      posted-user-flag: ADMIN
-      publish-flag: A
-      post-type-id: "2"

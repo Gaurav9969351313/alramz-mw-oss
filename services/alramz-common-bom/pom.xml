@@ -51,6 +51,8 @@
         <liquibase.version>4.27.0</liquibase.version>
         <jjwt.version>0.12.6</jjwt.version>
         <datasource-proxy.version>1.10</datasource-proxy.version>
+        <!-- 2.28.0-alpha is built against OpenTelemetry 1.62.0 (Boot 4.1's SDK); bump together with Boot -->
+        <opentelemetry-logback-appender.version>2.28.0-alpha</opentelemetry-logback-appender.version>
 
         <checkstyle.config.location>${project.basedir}/../../config/checkstyle.xml</checkstyle.config.location>
         <checkstyle.consoleOutput>true</checkstyle.consoleOutput>
@@ -169,6 +171,11 @@
         <groupId>net.ttddyy</groupId>
         <artifactId>datasource-proxy</artifactId>
         <version>${datasource-proxy.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.opentelemetry.instrumentation</groupId>
+        <artifactId>opentelemetry-logback-appender-1.0</artifactId>
+        <version>${opentelemetry-logback-appender.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

@@ -1,20 +1,16 @@
 package com.alramz.exception;
 
-/**
- * Finoux responded but reported (or implied, via a non-2xx status) a business/backend
- * failure — covers spec.md §6 edge cases #7 (non-2xx HTTP) and #8 (2xx but isSuccess=false or
- * missing post_ID). Always maps to HTTP 500 in {@code GlobalExceptionHandler}.
- */
+/** Finoux answered, but with an error status or a rejection; always answered with 500. */
 public class FinouxIntegrationException extends RuntimeException {
 
-    private final String errorCode;
+    private final ErrorCode errorCode;
 
-    public FinouxIntegrationException(String errorCode, String message) {
+    public FinouxIntegrationException(ErrorCode errorCode, String message) {
         super(message);
         this.errorCode = errorCode;
     }
 
-    public String getErrorCode() {
+    public ErrorCode getErrorCode() {
         return errorCode;
     }
 }

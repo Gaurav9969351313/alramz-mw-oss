@@ -1,7 +1,7 @@
 package com.alramz.exception;
 
+import com.alramz.logging.util.MDCUtil;
 import com.alramz.model.GenericResponse;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,114 +11,63 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.util.UUID;
 import java.util.stream.Collectors;
 
-/**
- * Single-envelope-family handler ({@code GenericResponse} only — utility-service has exactly
- * one response contract, unlike data-validation-service's two) modeled on
- * reference-data-service's (non-existent) handler per the exception-handling howto's Step 3
- * skeleton, extended with the errorCode/errorMsg fields this feature's contract requires.
- */
 @RestControllerAdvice(basePackages = "com.alramz.controllers")
 @Order(0)
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(ApplicationException.class)
-    public ResponseEntity<GenericResponse> handleApplication(ApplicationException ex, HttpServletRequest request) {
-        return buildResponse(HttpStatus.BAD_REQUEST, "Bad Request",
-                ex.getServiceErrorResponseCode(), ex.getMessage(), request);
+    public ResponseEntity<GenericResponse> handleApplication(ApplicationException ex) {
+        return buildResponse(HttpStatus.BAD_REQUEST, ex.getErrorCode(), ex.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<GenericResponse> handleValidation(MethodArgumentNotValidException ex, HttpServletRequest request) {
+    public ResponseEntity<GenericResponse> handleValidation(MethodArgumentNotValidException ex) {
         String message = ex.getBindingResult().getFieldErrors().stream()
                 .map(fe -> fe.getField() + ": " + (fe.getDefaultMessage() != null ? fe.getDefaultMessage() : "invalid"))
                 .collect(Collectors.joining("; "));
-        String errorCode = ex.getBindingResult().getFieldErrors().stream()
+        ErrorCode errorCode = ex.getBindingResult().getFieldErrors().stream()
                 .findFirst()
-                .map(fe -> mapFieldToErrorCode(fe.getField()))
-                .orElse("FNX090");
-        return buildResponse(HttpStatus.BAD_REQUEST, "Bad Request", errorCode, message, request);
+                .map(fe -> ErrorCode.forField(fe.getField()))
+                .orElse(ErrorCode.INVALID_REQUEST);
+        return buildResponse(HttpStatus.BAD_REQUEST, errorCode, message);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<GenericResponse> handleNotReadable(HttpMessageNotReadableException ex, HttpServletRequest request) {
-        return buildResponse(HttpStatus.BAD_REQUEST, "Bad Request", "FNX090", "Malformed JSON request", request);
+    public ResponseEntity<GenericResponse> handleNotReadable(HttpMessageNotReadableException ex) {
+        return buildResponse(HttpStatus.BAD_REQUEST, ErrorCode.INVALID_REQUEST, "Malformed JSON request");
     }
 
     @ExceptionHandler(FinouxIntegrationException.class)
-    public ResponseEntity<GenericResponse> handleFinouxIntegration(FinouxIntegrationException ex, HttpServletRequest request) {
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error",
-                ex.getErrorCode(), ex.getMessage(), request);
+    public ResponseEntity<GenericResponse> handleFinouxIntegration(FinouxIntegrationException ex) {
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getErrorCode(), ex.getMessage());
     }
 
     @ExceptionHandler(FinouxUnavailableException.class)
-    public ResponseEntity<GenericResponse> handleFinouxUnavailable(FinouxUnavailableException ex, HttpServletRequest request) {
-        return buildResponse(HttpStatus.SERVICE_UNAVAILABLE, "Service Unavailable",
-                ex.getErrorCode(), ex.getMessage(), request);
+    public ResponseEntity<GenericResponse> handleFinouxUnavailable(FinouxUnavailableException ex) {
+        return buildResponse(HttpStatus.SERVICE_UNAVAILABLE, ErrorCode.FINOUX_UNAVAILABLE, ex.getMessage());
     }
 
-    // Security fix (04_security): without this explicit handler, Spring's
-    // ExceptionHandlerExceptionResolver resolves JwtSecuredAspect's AccessDeniedException
-    // (thrown when a valid JWT lacks ROLE_APP_UTILITY) via the catch-all Exception.class
-    // handler below BEFORE it can ever reach Spring Security's ExceptionTranslationFilter —
-    // the generic Exception handler is checked first because MVC resolves @ExceptionHandler
-    // methods inside DispatcherServlet, which runs before the exception could propagate back
-    // out to the security filter chain. Without this, every 403 (edge case #12) was silently
-    // downgraded to a 500/FNX013, masking authorization-denial visibility (OWASP A01/A09) and
-    // failing spec.md §6 edge case #12's acceptance criterion.
+    // Must be explicit: otherwise the catch-all below turns @JwtSecured's 403 into a 500.
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<GenericResponse> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
-        return buildResponse(HttpStatus.FORBIDDEN, "Forbidden", null, "Access denied", request);
+    public ResponseEntity<GenericResponse> handleAccessDenied(AccessDeniedException ex) {
+        return buildResponse(HttpStatus.FORBIDDEN, null, "Access denied");
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<GenericResponse> handleGeneric(Exception ex, HttpServletRequest request) {
-        // F-07: never leak ex.getMessage()/stack trace for an unexpected failure.
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error",
-                "FNX013", "Internal Server Error", request);
+    public ResponseEntity<GenericResponse> handleGeneric(Exception ex) {
+        // Never leak the message or stack trace of an unexpected failure.
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, "Internal Server Error");
     }
 
-    private ResponseEntity<GenericResponse> buildResponse(HttpStatus status, String responseMessage,
-                                                           String errorCode, String errorMsg,
-                                                           HttpServletRequest request) {
+    private ResponseEntity<GenericResponse> buildResponse(HttpStatus status, ErrorCode errorCode, String errorMsg) {
         GenericResponse body = new GenericResponse();
         body.setResponseCode(String.valueOf(status.value()));
-        body.setResponseMessage(responseMessage);
-        body.setErrorCode(errorCode);
+        body.setResponseMessage(status.getReasonPhrase());
+        body.setErrorCode(errorCode != null ? errorCode.code() : null);
         body.setErrorMsg(errorMsg);
-        body.setCorrelationId(extractCorrelationId(request));
+        body.setCorrelationId(MDCUtil.getCorrelationIdAsUuid());
         return ResponseEntity.status(status).body(body);
-    }
-
-    private String mapFieldToErrorCode(String field) {
-        if (field == null) {
-            return "FNX090";
-        }
-        String normalized = field.contains(".") ? field.substring(field.lastIndexOf('.') + 1) : field;
-        return switch (normalized) {
-            case "postedUserId" -> "FNX001";
-            case "username" -> "FNX002";
-            case "postedBy" -> "FNX003";
-            case "postDesc" -> "FNX004";
-            case "tagSymbol" -> "FNX005";
-            default -> "FNX090";
-        };
-    }
-
-    private UUID extractCorrelationId(HttpServletRequest request) {
-        String correlationId = request.getHeader("X-Correlation-Id");
-        if (correlationId == null || correlationId.isBlank()) {
-            correlationId = request.getParameter("correlationId");
-        }
-        if (correlationId == null || correlationId.isBlank()) {
-            return UUID.randomUUID();
-        }
-        try {
-            return UUID.fromString(correlationId);
-        } catch (IllegalArgumentException ex) {
-            return UUID.randomUUID();
-        }
     }
 }

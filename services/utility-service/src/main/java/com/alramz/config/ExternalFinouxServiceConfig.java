@@ -8,13 +8,12 @@ import io.github.resilience4j.retry.RetryRegistry;
 import io.github.resilience4j.timelimiter.TimeLimiter;
 import io.github.resilience4j.timelimiter.TimeLimiterConfig;
 import io.github.resilience4j.timelimiter.TimeLimiterRegistry;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -22,13 +21,12 @@ import java.time.Duration;
 
 @Configuration
 @EnableConfigurationProperties(FinouxProperties.class)
-@Validated
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class ExternalFinouxServiceConfig {
 
-    private final FinouxProperties finouxProperties;
-
     private static final String RESILIENCE_ID = "finoux-community";
+
+    private final FinouxProperties finouxProperties;
 
     @Bean(name = "finouxService")
     public WebClient finouxService(WebClient.Builder builder, ExchangeFilterFunction alramzWebClientLoggingFilterFunction) {
@@ -47,9 +45,7 @@ public class ExternalFinouxServiceConfig {
 
     @Bean(name = "finouxRetry")
     public Retry finouxRetry(RetryRegistry registry) {
-        // Deliberate divergence from ibanServiceRetry's implicit default (3 attempts): the
-        // source migration doc requires the Finoux POST is never auto-retried (no
-        // idempotency-key infra backs it) — see spec.md §5.
+        // Never retry: InsertPostData is not idempotent, so a retry could publish the post twice.
         RetryConfig config = RetryConfig.custom().maxAttempts(1).build();
         return registry.retry(RESILIENCE_ID, config);
     }

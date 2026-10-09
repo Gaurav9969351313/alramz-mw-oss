@@ -31,6 +31,7 @@ class WebClientLoggingFilterTest {
     @AfterEach
     void resetMasking() {
         LogMaskingUtil.configure(true, null, List.of(), List.of());
+        reactor.core.publisher.Hooks.resetOnErrorDropped();
     }
 
     @Test
@@ -55,13 +56,22 @@ class WebClientLoggingFilterTest {
             }
         });
 
-        // Stub transport: serialize the request body like a real connector would, then answer with JSON.
+        // Stub transport: serialize the request body like a real connector would, then answer with JSON
+        // whose body, like a real HTTP response, can be subscribed to only once.
+        List<Throwable> dropped = new CopyOnWriteArrayList<>();
+        reactor.core.publisher.Hooks.onErrorDropped(dropped::add);
+        java.util.concurrent.atomic.AtomicBoolean consumed = new java.util.concurrent.atomic.AtomicBoolean();
+        reactor.core.publisher.Flux<org.springframework.core.io.buffer.DataBuffer> singleUseBody =
+                reactor.core.publisher.Flux.defer(() -> consumed.getAndSet(true)
+                        ? reactor.core.publisher.Flux.error(new IllegalStateException("body can only be consumed once"))
+                        : reactor.core.publisher.Flux.just(org.springframework.core.io.buffer.DefaultDataBufferFactory.sharedInstance
+                                .wrap("{\"exists\":true,\"password\":\"resp-secret\"}".getBytes(java.nio.charset.StandardCharsets.UTF_8))));
         ExchangeFunction transport = request -> request
                 .writeTo(new MockClientHttpRequest(HttpMethod.POST, URI.create("http://etrade/IfEidExists")),
                         ExchangeStrategies.withDefaults())
                 .then(reactor.core.publisher.Mono.just(ClientResponse.create(HttpStatus.OK)
                         .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                        .body("{\"exists\":true,\"password\":\"resp-secret\"}")
+                        .body(singleUseBody)
                         .build()));
 
         WebClient client = WebClient.builder()
@@ -79,6 +89,7 @@ class WebClientLoggingFilterTest {
                 .block();
 
         assertThat(body).isEqualTo("{\"exists\":true,\"password\":\"resp-secret\"}");
+        assertThat(dropped).isEmpty(); // re-reading the single-use body would be dropped here
         assertThat(stopped).hasSize(1);
         Map<String, String> tags = new HashMap<>();
         for (KeyValue kv : stopped.get(0).getHighCardinalityKeyValues()) {

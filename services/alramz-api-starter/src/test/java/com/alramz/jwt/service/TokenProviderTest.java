@@ -27,6 +27,18 @@ class TokenProviderTest {
     }
 
     @Test
+    void generateTokenPair_refreshTokensAreUniqueWithinSameSecond() {
+        JwtProperties properties = new JwtProperties();
+        properties.setSecret("testSecretKey1234567890123456789012");
+
+        TokenProvider provider = new TokenProvider(properties);
+
+        assertNotEquals(provider.generateTokenPair("testuser", List.of("USER")).refreshToken(),
+                provider.generateTokenPair("testuser", List.of("USER")).refreshToken());
+        assertNotEquals(provider.generateRefreshToken("testuser"), provider.generateRefreshToken("testuser"));
+    }
+
+    @Test
     void validateToken_returnsUsernameForValidToken() {
         JwtProperties properties = new JwtProperties();
         properties.setSecret("testSecretKey1234567890123456789012");

@@ -3,6 +3,12 @@ server:
   port: 8082
   host: localhost
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+
 spring:
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:h2:mem:notificationsdb}
@@ -30,6 +36,7 @@ company:
     permit-all-urls:
       - /api/v1/info
       - /api/v1/email/send
+      - /actuator/prometheus   # scraped by release/observability Prometheus
   scheduler:
     management-endpoints:
       enabled: true

@@ -122,6 +122,7 @@ company:
     validate-url: /api/auth/validate
     permit-all-urls:
       - /api/v1/info
+      - /actuator/prometheus   # scraped by release/observability Prometheus
       
   datasource:
     middleware:

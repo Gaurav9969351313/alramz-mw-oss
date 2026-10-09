@@ -4,6 +4,7 @@
 /Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/main/java/com/alramz/audit/ApiAuditLogFilter.java
 /Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/main/java/com/alramz/audit/ApiAuditLogService.java
 /Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/main/java/com/alramz/audit/SensitiveDataMasker.java
+/Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/main/java/com/alramz/audit/WebClientAuditFilter.java
 /Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/main/java/com/alramz/client/AbstractRestClient.java
 /Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/main/java/com/alramz/client/UserRequestContext.java
 /Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/main/java/com/alramz/config/BeanCreationLoggingPostProcessor.java
@@ -59,6 +60,7 @@
 /Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/main/java/com/alramz/logging/filter/RequestLoggingFilter.java
 /Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/main/java/com/alramz/logging/filter/ResponseLoggingFilter.java
 /Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/main/java/com/alramz/logging/interceptor/RestTemplateLoggingInterceptor.java
+/Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/main/java/com/alramz/logging/interceptor/WebClientBodies.java
 /Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/main/java/com/alramz/logging/interceptor/WebClientLoggingFilter.java
 /Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/main/java/com/alramz/logging/logback/AlramzJsonEncoder.java
 /Users/gtalele/Library/CloudStorage/OneDrive-AlRamz/Desktop/workspace/alramz-mw-oss/services/alramz-api-starter/src/main/java/com/alramz/logging/logback/SeqAppender.java

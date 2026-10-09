@@ -5,6 +5,7 @@ import org.slf4j.MDC;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Thin wrapper around {@link MDC} providing typed helpers for the standard
@@ -91,6 +92,23 @@ public final class MDCUtil {
 
     public static String getCorrelationId() {
         return get(LoggingConstants.CORRELATION_ID);
+    }
+
+    /**
+     * The current correlation ID as a UUID, for audit rows and response bodies that type it as one. The
+     * value comes from a client-controlled header, so a missing or non-UUID value yields a fresh UUID
+     * instead of an exception.
+     */
+    public static UUID getCorrelationIdAsUuid() {
+        String correlationId = getCorrelationId();
+        if (correlationId != null && !correlationId.isBlank()) {
+            try {
+                return UUID.fromString(correlationId);
+            } catch (IllegalArgumentException ignored) {
+                // not a UUID: fall through to a fresh one
+            }
+        }
+        return UUID.randomUUID();
     }
 
     public static String getTraceId() {

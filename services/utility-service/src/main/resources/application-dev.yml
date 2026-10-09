@@ -41,6 +41,7 @@ company:
       threshold: 1000ms
     database-logging:
       enabled: true
+      outbound-enabled: true
       include-request-payload: true
       include-response-payload: true
       cleanup-cron: "0 0 2 * * *"
@@ -63,6 +64,7 @@ company:
     validate-url: /api/auth/validate
     permit-all-urls:
       - /api/v1/info
+      - /actuator/prometheus   # scraped by release/observability Prometheus
       # Add every new public endpoint here instead of writing ad hoc Spring Security config.
 
   datasource:

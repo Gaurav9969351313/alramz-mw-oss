@@ -1,7 +1,8 @@
 package com.alramz.exception;
 
 import com.alramz.model.GenericResponse;
-import jakarta.servlet.http.HttpServletRequest;
+import com.alramz.logging.util.MDCUtil;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpStatus;
@@ -16,18 +17,21 @@ import java.lang.reflect.Method;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 class GlobalExceptionHandlerTest {
 
     private final GlobalExceptionHandler handler = new GlobalExceptionHandler();
 
+    @AfterEach
+    void clearMdc() {
+        MDCUtil.clear();
+    }
+
     @Test
     void handleApplication_shouldReturn400WithExceptionsOwnErrorCode() {
-        ApplicationException ex = new ApplicationException("postDesc", "too long", "FNX004");
-        HttpServletRequest request = requestWithNoCorrelationId();
+        ApplicationException ex = new ApplicationException(ErrorCode.POST_DESC_INVALID, "too long");
 
-        ResponseEntity<GenericResponse> response = handler.handleApplication(ex, request);
+        ResponseEntity<GenericResponse> response = handler.handleApplication(ex);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody().getErrorCode()).isEqualTo("FNX004");
@@ -67,9 +71,8 @@ class GlobalExceptionHandlerTest {
 
     private void assertFieldMapsToCode(String field, String expectedCode) {
         MethodArgumentNotValidException ex = buildValidationException(field, "must not be blank");
-        HttpServletRequest request = requestWithNoCorrelationId();
 
-        ResponseEntity<GenericResponse> response = handler.handleValidation(ex, request);
+        ResponseEntity<GenericResponse> response = handler.handleValidation(ex);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody().getErrorCode()).isEqualTo(expectedCode);
@@ -78,9 +81,8 @@ class GlobalExceptionHandlerTest {
     @Test
     void handleNotReadable_shouldReturn400WithFNX090() {
         HttpMessageNotReadableException ex = mock(HttpMessageNotReadableException.class);
-        HttpServletRequest request = requestWithNoCorrelationId();
 
-        ResponseEntity<GenericResponse> response = handler.handleNotReadable(ex, request);
+        ResponseEntity<GenericResponse> response = handler.handleNotReadable(ex);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody().getErrorCode()).isEqualTo("FNX090");
@@ -89,10 +91,9 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void handleFinouxIntegration_shouldReturn500WithExceptionsOwnErrorCode() {
-        FinouxIntegrationException ex = new FinouxIntegrationException("FNX011", "isSuccess=false");
-        HttpServletRequest request = requestWithNoCorrelationId();
+        FinouxIntegrationException ex = new FinouxIntegrationException(ErrorCode.FINOUX_REJECTED, "isSuccess=false");
 
-        ResponseEntity<GenericResponse> response = handler.handleFinouxIntegration(ex, request);
+        ResponseEntity<GenericResponse> response = handler.handleFinouxIntegration(ex);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
         assertThat(response.getBody().getErrorCode()).isEqualTo("FNX011");
@@ -101,10 +102,9 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void handleFinouxUnavailable_shouldReturn503WithFNX012() {
-        FinouxUnavailableException ex = new FinouxUnavailableException("FNX012", "Finoux community service unavailable");
-        HttpServletRequest request = requestWithNoCorrelationId();
+        FinouxUnavailableException ex = new FinouxUnavailableException("Finoux community service unavailable", new RuntimeException("timeout"));
 
-        ResponseEntity<GenericResponse> response = handler.handleFinouxUnavailable(ex, request);
+        ResponseEntity<GenericResponse> response = handler.handleFinouxUnavailable(ex);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
         assertThat(response.getBody().getErrorCode()).isEqualTo("FNX012");
@@ -112,13 +112,10 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void handleAccessDenied_shouldReturn403NotBeSwallowedByGenericHandler() {
-        // Regression test (04_security): JwtSecuredAspect throws this exact exception type
-        // when a valid JWT lacks ROLE_APP_UTILITY. Before this handler existed, it was caught
-        // by handleGeneric (Exception.class is a supertype), silently turning a 403 into a 500.
+        // JwtSecuredAspect throws this when a valid JWT lacks ROLE_APP_UTILITY; it must stay a 403.
         AccessDeniedException ex = new AccessDeniedException("Insufficient role. Required one of: [APP_UTILITY]");
-        HttpServletRequest request = requestWithNoCorrelationId();
 
-        ResponseEntity<GenericResponse> response = handler.handleAccessDenied(ex, request);
+        ResponseEntity<GenericResponse> response = handler.handleAccessDenied(ex);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         assertThat(response.getBody().getErrorMsg()).isEqualTo("Access denied");
@@ -129,9 +126,8 @@ class GlobalExceptionHandlerTest {
     @Test
     void handleGeneric_shouldReturn500WithFNX013AndNeverLeakExceptionMessage() {
         RuntimeException ex = new RuntimeException("leaked internal stack trace detail");
-        HttpServletRequest request = requestWithNoCorrelationId();
 
-        ResponseEntity<GenericResponse> response = handler.handleGeneric(ex, request);
+        ResponseEntity<GenericResponse> response = handler.handleGeneric(ex);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
         assertThat(response.getBody().getErrorCode()).isEqualTo("FNX013");
@@ -140,32 +136,13 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    void handleApplication_shouldUseHeaderCorrelationIdWhenPresent() {
-        ApplicationException ex = new ApplicationException("postDesc", "too long", "FNX004");
-        HttpServletRequest request = mock(HttpServletRequest.class);
-        when(request.getHeader("X-Correlation-Id")).thenReturn("2afe4a42-44f7-4e12-aae7-df0e42d4d757");
+    void handleApplication_shouldEchoTheRequestCorrelationId() {
+        MDCUtil.putCorrelationId("2afe4a42-44f7-4e12-aae7-df0e42d4d757");
 
-        ResponseEntity<GenericResponse> response = handler.handleApplication(ex, request);
+        ResponseEntity<GenericResponse> response = handler.handleApplication(
+                new ApplicationException(ErrorCode.POST_DESC_INVALID, "too long"));
 
         assertThat(response.getBody().getCorrelationId().toString()).isEqualTo("2afe4a42-44f7-4e12-aae7-df0e42d4d757");
-    }
-
-    @Test
-    void handleApplication_shouldGenerateRandomCorrelationIdWhenHeaderIsNotAValidUuid() {
-        ApplicationException ex = new ApplicationException("postDesc", "too long", "FNX004");
-        HttpServletRequest request = mock(HttpServletRequest.class);
-        when(request.getHeader("X-Correlation-Id")).thenReturn("not-a-uuid");
-
-        ResponseEntity<GenericResponse> response = handler.handleApplication(ex, request);
-
-        assertThat(response.getBody().getCorrelationId()).isNotNull();
-    }
-
-    private HttpServletRequest requestWithNoCorrelationId() {
-        HttpServletRequest request = mock(HttpServletRequest.class);
-        when(request.getHeader("X-Correlation-Id")).thenReturn(null);
-        when(request.getParameter("correlationId")).thenReturn(null);
-        return request;
     }
 
     private MethodArgumentNotValidException buildValidationException(String field, String message) {
@@ -199,7 +176,7 @@ class GlobalExceptionHandlerTest {
         }
         MethodArgumentNotValidException ex = new MethodArgumentNotValidException(new MethodParameter(method, 0), bindingResult);
 
-        ResponseEntity<GenericResponse> response = handler.handleValidation(ex, requestWithNoCorrelationId());
+        ResponseEntity<GenericResponse> response = handler.handleValidation(ex);
 
         assertThat(response.getBody().getErrorMsg()).contains("username").contains("postedBy");
         assertThat(response.getBody().getErrorCode()).isEqualTo("FNX002");

@@ -80,6 +80,8 @@ k8s/
 |-------------------------------|--------------|--------------|----------------|
 | onboarding-service       | `<env>`      | 8080         | 8080           |
 | alramz-notification-service    | `<env>`      | 8082         | 8082           |
+| reference-data-service        | `<env>`      | 8080         | 8080           |
+| utility-service               | `<env>`      | 8080         | 8080           |
 
 > Replace `<env>` with the target environment namespace: `alramz-dev`, `alramz-test`, `alramz-preprod`, or `alramz-prod`.
 

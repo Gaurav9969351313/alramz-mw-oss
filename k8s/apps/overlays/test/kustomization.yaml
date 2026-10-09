@@ -4,6 +4,8 @@ resources:
   - ../../../infra/seq/
   - ../../base/onboarding-service/
   - ../../base/alramz-notification-service/
+  - ../../base/reference-data-service/
+  - ../../base/utility-service/
 
 namespace: alramz-test
 
@@ -16,6 +18,16 @@ images:
     newName: ghcr.io/gauravtalele1994/alramz-mw-oss/alramz-notification-service
     newTag: sha-a91c72f
 
+  - name: reference-data-service
+    newName: ghcr.io/gauravtalele1994/alramz-mw-oss/reference-data-service
+    newTag: sha-a91c72f
+
+  - name: utility-service
+    newName: ghcr.io/gauravtalele1994/alramz-mw-oss/utility-service
+    newTag: sha-a91c72f
+
 patches:
   - path: onboarding-service-patch.yaml
   - path: alramz-notification-service-patch.yaml
+  - path: reference-data-service-patch.yaml
+  - path: utility-service-patch.yaml

@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: reference-data-service-config
+data:
+  SPRING_PROFILES_ACTIVE: "docker"
+  # dev profile listens on 8081; pin the container port so probes and the Service line up.
+  SERVER_PORT: "8080"
+  COMPANY_DATASOURCE_MIDDLEWARE_URL: "jdbc:postgresql://postgres:5432/alramzmwdb?sslmode=disable"
+  COMPANY_DATASOURCE_MIDDLEWARE_USERNAME: "alramzmw"
+  COMPANY_DATASOURCE_MIDDLEWARE_DRIVERCLASSNAME: "org.postgresql.Driver"
+  COMPANY_DATASOURCE_MIDDLEWARE_STARTUP_VALIDATION_ENABLED: "false"
+  COMPANY_DATASOURCE_MIDDLEWARE_POOL_MAXIMUM_POOL_SIZE: "10"
+  COMPANY_DATASOURCE_MIDDLEWARE_POOL_MINIMUM_IDLE: "2"
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"

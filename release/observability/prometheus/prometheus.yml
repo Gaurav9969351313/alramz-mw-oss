@@ -1,0 +1,13 @@
+# Scrapes the services running on the host (mvn spring-boot:run).
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: spring-boot
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - host.docker.internal:8080   # onboarding-service
+          - host.docker.internal:8081   # reference-data-service
+          - host.docker.internal:8082   # alramz-notification-service
+          - host.docker.internal:8083   # utility-service

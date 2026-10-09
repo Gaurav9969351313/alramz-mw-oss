@@ -26,13 +26,13 @@
     <!-- Plain (no ANSI) pattern shared by the file/encoder classic output so log
          files stay clean for aggregators. -->
     <property name="CLASSIC_PATTERN"
-              value="[%d{yyyy-MM-dd HH:mm:ss.SSS}] [%thread] %-5level [%X{method} %X{uri} %X{responseStatus} %X{responseTimeMs}ms] %logger{36} - %msg%n"/>
+              value="[%d{yyyy-MM-dd HH:mm:ss.SSS}] [%thread] %-5level [%X{correlationId}] [%X{method} %X{uri} %X{responseStatus} %X{responseTimeMs}ms] %logger{36} - %msg%n"/>
 
     <!-- ANSI-colored pattern for the human-facing console only. Color codes are
          emitted by logback when the output supports a terminal; piped/CI output
          automatically falls back to plain text. -->
     <property name="CONSOLE_PATTERN"
-              value="[%d{yyyy-MM-dd HH:mm:ss.SSS}] [%thread] %highlight(%5p) [%X{method} %X{uri} %X{responseStatus} %X{responseTimeMs}ms] %logger{36} - %msg%n"/>
+              value="[%d{yyyy-MM-dd HH:mm:ss.SSS}] [%thread] %highlight(%5p) [%X{correlationId}] [%X{method} %X{uri} %X{responseStatus} %X{responseTimeMs}ms] %logger{36} - %msg%n"/>
 
     <!-- Injects the service name into every MDC so startup logs show it too. -->
     <turboFilter class="com.alramz.logging.logback.ServiceNameTurboFilter">
@@ -96,11 +96,19 @@
         <circuitBreakerCooldownMs>${SEQ_CIRCUIT_BREAKER_COOLDOWN_MS}</circuitBreakerCooldownMs>
     </appender>
 
+    <!-- OTEL: hands every event to the OpenTelemetry SDK, which exports it over OTLP when
+         management.opentelemetry.logging.export.otlp.endpoint is set (installed by TracingAutoConfiguration). -->
+    <appender name="OTEL" class="io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender">
+        <captureExperimentalAttributes>true</captureExperimentalAttributes>
+        <captureMdcAttributes>*</captureMdcAttributes>
+    </appender>
+
     <!-- Root logger. The threshold can be overridden per-package in the child. -->
     <root level="${APPENDER_LEVEL}">
         <appender-ref ref="ASYNC_CONSOLE"/>
         <appender-ref ref="ASYNC_FILE"/>
         <appender-ref ref="SEQ"/>
+        <appender-ref ref="OTEL"/>
     </root>
 
     <logger name="org.springframework" level="WARN"/>

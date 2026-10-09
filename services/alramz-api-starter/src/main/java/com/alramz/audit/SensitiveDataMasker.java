@@ -68,8 +68,7 @@ public class SensitiveDataMasker {
             if (wrapper == null || wrapper.getContentAsByteArray().length == 0) {
                 return null;
             }
-            String body = new String(wrapper.getContentAsByteArray(), StandardCharsets.UTF_8);
-            return LogMaskingUtil.mask(truncate(body, 5000));
+            return maskBody(new String(wrapper.getContentAsByteArray(), StandardCharsets.UTF_8));
         } catch (Exception e) { // NOPMD AvoidCatchingGenericException
             return null;
         }
@@ -84,11 +83,18 @@ public class SensitiveDataMasker {
             if (body.length == 0) {
                 return null;
             }
-            String str = new String(body, StandardCharsets.UTF_8);
-            return LogMaskingUtil.mask(truncate(str, 5000));
+            return maskBody(new String(body, StandardCharsets.UTF_8));
         } catch (Exception e) { // NOPMD AvoidCatchingGenericException
             return null;
         }
+    }
+
+    /** Masks sensitive values inside a raw (usually JSON) HTTP body and truncates it; null when masking is off or the body is empty. */
+    public String maskBody(String body) {
+        if (!enabled || body == null || body.isEmpty()) {
+            return null;
+        }
+        return LogMaskingUtil.mask(truncate(body, 5000));
     }
 
     public String maskHeaders(HttpServletRequest request) {

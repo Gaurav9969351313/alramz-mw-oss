@@ -4,6 +4,8 @@ resources:
   - ../../../infra/seq/
   - ../../base/onboarding-service/
   - ../../base/alramz-notification-service/
+  - ../../base/reference-data-service/
+  - ../../base/utility-service/
 
 namespace: alramz-dev
 
@@ -16,6 +18,16 @@ images:
     newName: gauravtalele1994/alramz-notification-service
     newTag: "1.0.0"
 
+  - name: reference-data-service
+    newName: gauravtalele1994/reference-data-service
+    newTag: "1.0.0"
+
+  - name: utility-service
+    newName: gauravtalele1994/utility-service
+    newTag: "1.0.0"
+
 patches:
   - path: onboarding-service-patch.yaml
   - path: alramz-notification-service-patch.yaml
+  - path: reference-data-service-patch.yaml
+  - path: utility-service-patch.yaml

@@ -1,0 +1,42 @@
+# Both trace backends are provisioned; only the one started via COMPOSE_PROFILES answers.
+# "$$" escapes Grafana's own variables from provisioning env-var expansion.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    url: http://prometheus:9090
+
+  - name: Loki
+    uid: loki
+    type: loki
+    url: http://loki:3100
+    isDefault: true
+    jsonData:
+      derivedFields:
+        - name: TraceID
+          matcherType: label          # OTLP structured metadata
+          matcherRegex: trace_id
+          datasourceUid: ${TRACING_BACKEND}
+          url: "$${__value.raw}"
+
+  - name: Tempo
+    uid: tempo
+    type: tempo
+    url: http://tempo:3200
+    jsonData:
+      tracesToLogsV2:
+        datasourceUid: loki
+        customQuery: true
+        query: '{service_name="$${__span.tags["service.name"]}"} | trace_id="$${__trace.traceId}" | line_format "[{{.correlationId}}] {{__line__}}"'
+
+  - name: Jaeger
+    uid: jaeger
+    type: jaeger
+    url: http://jaeger:16686
+    jsonData:
+      tracesToLogsV2:
+        datasourceUid: loki
+        customQuery: true
+        query: '{service_name="$${__span.tags["service.name"]}"} | trace_id="$${__trace.traceId}" | line_format "[{{.correlationId}}] {{__line__}}"'
